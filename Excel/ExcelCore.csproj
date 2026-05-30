@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>ExcelCore</RootNamespace>
+    <AssemblyName>ExcelCore</AssemblyName>
+    <PackageId>Angri450.Nong.Excel</PackageId>
+    <Version>1.0.2</Version>
+    <Authors>angri450</Authors>
+    <Description>Excel generation library — chainable builder API over ClosedXML</Description>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="*" />
+    <PackageReference Include="DocumentFormat.OpenXml" Version="*" />
+  </ItemGroup>
+
+</Project>

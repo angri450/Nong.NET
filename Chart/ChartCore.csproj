@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>ChartCore</RootNamespace>
+    <AssemblyName>Angri450.Nong.Chart</AssemblyName>
+    <PackageId>Angri450.Nong.Chart</PackageId>
+    <Version>1.0.1</Version>
+    <Authors>angri450</Authors>
+    <Description>Statistical chart generation for academic papers — ANOVA, Duncan MRT, publication-quality figures</Description>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ScottPlot" Version="*" />
+  </ItemGroup>
+
+</Project>
