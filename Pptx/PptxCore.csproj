@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>PptxCore</RootNamespace>
+    <AssemblyName>PptxCore</AssemblyName>
+    <PackageId>Angri450.Nong.Pptx</PackageId>
+    <Version>1.0.3</Version>
+    <Authors>angri450</Authors>
+    <Description>ShapeCrawler wrapper for AI agents — fluent slide builder, 10 themes, shape-map inspection, raw OOXML fallback. Build presentations with chainable API.</Description>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/angri450/nong-pptx</RepositoryUrl>
+    <PackageTags>nong agriculture pptx powerpoint presentation slides theme</PackageTags>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="ShapeCrawler" Version="0.79.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+</Project>
