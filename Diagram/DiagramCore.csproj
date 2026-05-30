@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>DiagramCore</RootNamespace>
+    <AssemblyName>Angri450.Nong.Diagram</AssemblyName>
+    <PackageId>Angri450.Nong.Diagram</PackageId>
+    <Version>1.0.2</Version>
+    <Authors>angri450</Authors>
+    <Description>Scientific diagram generator — flowcharts, network graphs, phylogenetic trees, mechanism diagrams. Pure .NET with MSAGL layout and SkiaSharp rendering.</Description>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SkiaSharp\SkiaSharp.csproj" />
+    <ProjectReference Include="..\HarfBuzzSharp\HarfBuzzSharp.csproj" />
+    <ProjectReference Include="..\SkiaSharp.HarfBuzz\SkiaSharp.HarfBuzz.csproj" />
+    <ProjectReference Include="..\MSAGL\MSAGL.csproj" />
+    <ProjectReference Include="..\MSAGL.Drawing\MSAGL.Drawing.csproj" />
+    <ProjectReference Include="..\Bioicons\Bioicons.csproj" />
+  </ItemGroup>
+
+</Project>

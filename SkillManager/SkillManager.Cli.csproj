@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net11.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>skill-manager</ToolCommandName>
+    <PackageId>Angri450.Nong.Skill.Manager</PackageId>
+    <Version>1.0.4</Version>
+    <Authors>angri450</Authors>
+    <Description>Skill management CLI — validate, scan, package, eval, scaffold</Description>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="YamlDotNet" Version="*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="assets\viewer.html" />
+  </ItemGroup>
+
+</Project>

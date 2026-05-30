@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>DocxCore</RootNamespace>
+    <AssemblyName>Angri450.Nong.Docx</AssemblyName>
+    <PackageId>Angri450.Nong.Docx</PackageId>
+    <Version>1.0.7</Version>
+    <Authors>angri450</Authors>
+    <Description>OpenXML Word generation library — not a COM wrapper. One-click formatting (BuildFromJson), chainable content writing (DocumentWriter), instant diagnostics (WordPreview), pre-save repair (ElementOrder). Life sciences contest/journal/thesis formatting in seconds.</Description>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/angri450/nong-docx</RepositoryUrl>
+    <PackageTags>nong agriculture docx paper word openxml document-generation thesis</PackageTags>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="DocumentFormat.OpenXml" Version="*" />
+    <PackageReference Include="System.Drawing.Common" Version="*" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+</Project>
+

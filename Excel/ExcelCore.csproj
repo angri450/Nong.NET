@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>ExcelCore</RootNamespace>
+    <AssemblyName>ExcelCore</AssemblyName>
+    <PackageId>Angri450.Nong.Excel</PackageId>
+    <Version>1.0.5</Version>
+    <Authors>angri450</Authors>
+    <Description>Excel generation library — chainable builder API over ClosedXML. Includes ClosedXML, OpenXml SDK, RBush, SixLabors.Fonts and all dependencies merged into a single assembly.</Description>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);IncludeMergedDlls</TargetsForTfmSpecificBuildOutput>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ClosedXML\ClosedXML.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\ClosedXML.IO\ClosedXML.IO.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\ExcelNumberFormat\ExcelNumberFormat.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\ClosedXML.Parser\ClosedXML.Parser.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\RBush\RBush.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\SixLabors.Fonts\SixLabors.Fonts.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\DocumentFormat.OpenXml\DocumentFormat.OpenXml.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\DocumentFormat.OpenXml.Framework\DocumentFormat.OpenXml.Framework.csproj" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.IO.Packaging" Version="10.0.2" />
+  </ItemGroup>
+
+  <Target Name="IncludeMergedDlls">
+    <ItemGroup>
+      <BuildOutputInPackage Include="..\ClosedXML\bin\$(Configuration)\$(TargetFramework)\ClosedXML.dll" />
+      <BuildOutputInPackage Include="..\ClosedXML.IO\bin\$(Configuration)\$(TargetFramework)\ClosedXML.IO.dll" />
+      <BuildOutputInPackage Include="..\ExcelNumberFormat\bin\$(Configuration)\$(TargetFramework)\ExcelNumberFormat.dll" />
+      <BuildOutputInPackage Include="..\ClosedXML.Parser\bin\$(Configuration)\$(TargetFramework)\ClosedXML.Parser.dll" />
+      <BuildOutputInPackage Include="..\RBush\bin\$(Configuration)\$(TargetFramework)\RBush.dll" />
+      <BuildOutputInPackage Include="..\SixLabors.Fonts\bin\$(Configuration)\$(TargetFramework)\SixLabors.Fonts.dll" />
+      <BuildOutputInPackage Include="..\DocumentFormat.OpenXml\bin\$(Configuration)\$(TargetFramework)\DocumentFormat.OpenXml.dll" />
+      <BuildOutputInPackage Include="..\DocumentFormat.OpenXml.Framework\bin\$(Configuration)\$(TargetFramework)\DocumentFormat.OpenXml.Framework.dll" />
+    </ItemGroup>
+  </Target>
+
+</Project>
