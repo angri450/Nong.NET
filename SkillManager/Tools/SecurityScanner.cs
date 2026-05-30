@@ -216,7 +216,7 @@ public class SecurityScanner
     {
         // Windows absolute paths with user names
         var winMatch = Regex.Match(line, @"C:\\Users\\([^\\""'\s]+)");
-        if (winMatch.Success && winMatch.Groups[1].Value != "Administrator")
+        if (winMatch.Success)
         {
             findings.Add(new SecurityFinding
             {

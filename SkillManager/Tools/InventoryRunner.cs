@@ -48,15 +48,6 @@ public class InventoryRunner
                 .ToList();
         }
 
-        // Python scripts (legacy)
-        var scriptsDir = Path.Combine(_skillDir, "scripts");
-        if (Directory.Exists(scriptsDir))
-        {
-            result.LegacyPythonScripts = Directory.GetFiles(scriptsDir, "*.py", SearchOption.TopDirectoryOnly)
-                .Select(f => Path.GetFileName(f))
-                .ToList();
-        }
-
         // .NET tools
         var toolsDir = Path.Combine(_skillDir, "tools");
         if (Directory.Exists(toolsDir))
@@ -99,7 +90,6 @@ public class InventoryResult
     public List<string> Templates { get; set; } = new();
     public List<string> Tools { get; set; } = new();
     public List<string> TestFiles { get; set; } = new();
-    public List<string> LegacyPythonScripts { get; set; } = new();
     public List<string> DotNetTools { get; set; } = new();
 
     public int TotalFileCount =>

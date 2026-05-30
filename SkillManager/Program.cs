@@ -4,12 +4,6 @@ using SkillManager.Cli.Tools;
 
 var skillDir = Directory.GetCurrentDirectory();
 
-if (!File.Exists(Path.Combine(skillDir, "SKILL.md")))
-{
-    Console.Error.WriteLine("[WARN] SKILL.md not found in current directory.");
-    Console.Error.WriteLine("       Running from: " + skillDir);
-}
-
 var command = args.Length > 0 ? args[0].ToLowerInvariant() : "";
 var commandArg = args.Length > 1 ? args[1] : ".";
 
@@ -18,8 +12,14 @@ switch (command)
     case "validate": case "v": await RunValidate(commandArg); break;
     case "scan": case "s": await RunScan(commandArg); break;
     case "package": case "pack": case "p": await RunPackage(commandArg); break;
-    case "eval": case "e": await RunEval(commandArg); break;
-    case "inventory": case "inspect": case "i": RunInventory(); break;
+    case "eval": case "e":
+        if (commandArg == "serve" || commandArg == "s")
+            await RunEvalServe();
+        else
+            await RunEval(commandArg);
+        break;
+    case "scaffold": RunScaffold(args.Skip(1).ToArray()); break;
+    case "inventory": case "inspect": case "i": RunInventory(commandArg); break;
     case "optimize-description": case "od": await RunOptimizeDescription(commandArg); break;
     case "run-loop": case "rl": await RunLoopCommand(commandArg); break;
     default: PrintUsage(); break;
@@ -27,21 +27,19 @@ switch (command)
 
 void PrintUsage()
 {
-    Console.WriteLine("SkillManager CLI - .NET-first skill management tool");
-    Console.WriteLine();
-    Console.WriteLine("Usage: dotnet run --project tools/SkillManager.Cli -- <command> [args]");
-    Console.WriteLine();
+    Console.WriteLine("skill-manager — CLI for the skill lifecycle\n");
     Console.WriteLine("Commands:");
-    Console.WriteLine("  validate              Validate SKILL.md structure and references");
-    Console.WriteLine("  scan                  Security scan (always-on, no verbose gate)");
-    Console.WriteLine("  scan --audit-allowlist  Audit scan allowlist for stale/overbroad rules");
-    Console.WriteLine("  package               Validate + scan + create .zip archive");
-    Console.WriteLine("  eval <evals.json>     Load and validate eval schema");
-    Console.WriteLine("  inventory             List all components");
-    Console.WriteLine("  optimize-description  Check description honesty boundary (dry-run)");
-    Console.WriteLine("  run-loop              validate->scan->eval->blind prep pipeline");
-    Console.WriteLine();
-    Console.WriteLine("All commands: dotnet run --project tools/SkillManager.Cli -- <command> .");
+    Console.WriteLine("  validate <path>       Validate SKILL.md structure and references");
+    Console.WriteLine("  scan <path>           Security scan (always-on)");
+    Console.WriteLine("  scan --audit-allowlist Audit scan allowlist");
+    Console.WriteLine("  package <path>        Validate + scan + create .zip");
+    Console.WriteLine("  eval <file>           Load and validate eval schema");
+    Console.WriteLine("  eval serve            Start interactive eval viewer (browser)");
+    Console.WriteLine("  scaffold <name>       Scaffold wrapper skill skeleton");
+    Console.WriteLine("    --tool <name>         Display name of upstream tool");
+    Console.WriteLine("    --target-dir <path>   Parent directory (default: .)");
+    Console.WriteLine("  inventory <path>      List all components");
+    Console.WriteLine("\nInstall: dotnet tool install --global Angri450.Nong.Skill.Manager");
 }
 
 // ---- validate ----
@@ -196,10 +194,44 @@ async Task RunEval(string path)
     Environment.Exit(result.InvalidCount > 0 ? 1 : 0);
 }
 
-// ---- inventory ----
-void RunInventory()
+// ---- eval serve ----
+async Task RunEvalServe()
 {
-    var targetDir = ResolveSkillDir(".");
+    var viewer = new EvalViewer(skillDir);
+    Console.WriteLine("[EVAL SERVE]\n");
+    try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = $"http://localhost:{viewer.Port}", UseShellExecute = true }); } catch { }
+    var cts = new CancellationTokenSource();
+    Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
+    await viewer.ServeAsync(cts.Token);
+}
+
+// ---- scaffold ----
+void RunScaffold(string[] scaffoldArgs)
+{
+    var name = scaffoldArgs.FirstOrDefault() ?? "";
+    var tool = ""; var targetDir = "."; var noConfig = false; var force = false;
+    for (int i = 1; i < scaffoldArgs.Length; i++)
+    {
+        switch (scaffoldArgs[i])
+        {
+            case "--tool": if (i + 1 < scaffoldArgs.Length) tool = scaffoldArgs[++i]; break;
+            case "--target-dir": if (i + 1 < scaffoldArgs.Length) targetDir = scaffoldArgs[++i]; break;
+            case "--no-config-template": noConfig = true; break;
+            case "--force": force = true; break;
+        }
+    }
+    if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(tool))
+    {
+        Console.Error.WriteLine("Usage: skill-manager scaffold <name> --tool <display-name> [--target-dir <path>]");
+        Environment.Exit(1); return;
+    }
+    Environment.Exit(Scaffolder.Run(name, tool, targetDir, noConfig, force));
+}
+
+// ---- inventory ----
+void RunInventory(string path)
+{
+    var targetDir = ResolveSkillDir(path);
     Console.WriteLine($"[INVENTORY] Target: {targetDir}\n");
     var runner = new InventoryRunner(targetDir);
     var result = runner.Run();
@@ -211,7 +243,6 @@ void RunInventory()
     Console.WriteLine($"Workflows: {result.Workflows.Count} files");
     Console.WriteLine($"Evals: {(result.HasEvals ? $"{result.EvalsFiles.Count} files" : "None")}");
     Console.WriteLine($".NET Tools: {result.DotNetTools.Count}");
-    Console.WriteLine($"Legacy Python: {result.LegacyPythonScripts.Count} scripts");
     Console.WriteLine($"Tests: {result.TestFiles.Count} source files");
     Console.WriteLine($"Total: {result.TotalFileCount} files");
     Environment.Exit(0);

@@ -1,17 +1,19 @@
+using System.Text.Json.Serialization;
+
 namespace SkillManager.Cli.Models;
 
 public class EvalItem
 {
-    public int Id { get; set; }
-    public string Prompt { get; set; } = "";
-    public string? ExpectedOutput { get; set; }
-    public List<string> Files { get; set; } = new();
-    public List<string> Assertions { get; set; } = new();
-    public List<string> Expectations { get; set; } = new();
+    [JsonPropertyName("id")] public int Id { get; set; }
+    [JsonPropertyName("prompt")] public string Prompt { get; set; } = "";
+    [JsonPropertyName("expected_output")] public string? ExpectedOutput { get; set; }
+    [JsonPropertyName("files")] public List<string> Files { get; set; } = new();
+    [JsonPropertyName("assertions")] public List<string> Assertions { get; set; } = new();
+    [JsonPropertyName("expectations")] public List<string> Expectations { get; set; } = new();
 }
 
 public class EvalSet
 {
-    public string? SkillName { get; set; }
-    public List<EvalItem> Evals { get; set; } = new();
+    [JsonPropertyName("skill_name")] public string? SkillName { get; set; }
+    [JsonPropertyName("evals")] public List<EvalItem> Evals { get; set; } = new();
 }
