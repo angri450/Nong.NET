@@ -7,6 +7,7 @@ public sealed class PresentationBuilder
     private readonly IPresentation _pres;
     private readonly List<string> _notes = new();
     private ThemePreset? _theme;
+    private bool _showPageNumbers = true;
 
     internal PresentationBuilder(IPresentation pres) => _pres = pres;
 
@@ -14,6 +15,13 @@ public sealed class PresentationBuilder
     public PresentationBuilder Standard() => this;
 
     public PresentationBuilder Theme(ThemePreset theme) { _theme = theme; return this; }
+
+    /// <summary>Enable or disable page numbers on content slides</summary>
+    public PresentationBuilder PageNumbers(bool show = true)
+    {
+        _showPageNumbers = show;
+        return this;
+    }
 
     public SlideHelper AddSlide()
     {
@@ -36,29 +44,41 @@ public sealed class PresentationBuilder
         configure(opt);
         _pres.Slides.Add(1);
         var slide = _pres.Slides[_pres.Slides.Count - 1];
-        var hidden = new HashSet<PlaceholderType>();
 
-        if (!string.IsNullOrEmpty(opt.TitleText))
-        {
-            SetPlaceholder(slide, PlaceholderType.Title, opt.TitleText);
-            hidden.Add(PlaceholderType.Title);
-            var titleShape = FindShape(slide, PlaceholderType.Title);
-            if (titleShape != null)
-            {
-                var titleSize = opt.TitleFontSize > 0 ? (decimal)opt.TitleFontSize : 36m;
-                var titleColor = !string.IsNullOrEmpty(opt.TitleColorHex) ? opt.TitleColorHex : null;
-                StyleHeading(titleShape, titleSize, titleColor);
-            }
-        }
+        // 标题：居中大字
+        var title = opt.TitleText ?? "";
+        slide.Shapes.AddTextBox(LayoutSystem.Margin_X, LayoutSystem.Cover.TitleY,
+            LayoutSystem.ContentWidth, 80, title);
+        var titleShape = slide.Shapes[slide.Shapes.Count - 1];
+        StyleTitle(titleShape, LayoutSystem.FontSizes.H1, opt.TitleColorHex);
+
+        // 副标题
         if (!string.IsNullOrEmpty(opt.SubtitleText))
         {
-            SetPlaceholder(slide, PlaceholderType.SubTitle, opt.SubtitleText);
-            hidden.Add(PlaceholderType.SubTitle);
-            var subShape = FindShape(slide, PlaceholderType.SubTitle);
-            if (subShape != null) StyleSubtitle(subShape);
+            slide.Shapes.AddTextBox(LayoutSystem.Margin_X, LayoutSystem.Cover.SubtitleY,
+                LayoutSystem.ContentWidth, 40, opt.SubtitleText);
+            var subtitleShape = slide.Shapes[slide.Shapes.Count - 1];
+            StyleSubtitle(subtitleShape);
         }
 
-        HideUnusedPlaceholders(slide, hidden);
+        // 作者/日期
+        if (!string.IsNullOrEmpty(opt.AuthorText))
+        {
+            slide.Shapes.AddTextBox(LayoutSystem.Margin_X, LayoutSystem.Cover.AuthorY,
+                LayoutSystem.ContentWidth, 30, opt.AuthorText);
+            var authorShape = slide.Shapes[slide.Shapes.Count - 1];
+            StyleBody(authorShape, LayoutSystem.FontSizes.Body_SM);
+        }
+
+        // 装饰线
+        if (_theme != null)
+        {
+            slide.Shapes.AddShape(LayoutSystem.Margin_X, LayoutSystem.Cover.DecorationY,
+                LayoutSystem.Decoration.AccentLineWidth, LayoutSystem.Decoration.AccentLineHeight);
+            var line = slide.Shapes[slide.Shapes.Count - 1];
+            line.Fill.SetColor(_theme.Accent1);
+        }
+
         return this;
     }
 
@@ -68,25 +88,39 @@ public sealed class PresentationBuilder
         configure(opt);
         _pres.Slides.Add(1);
         var slide = _pres.Slides[_pres.Slides.Count - 1];
-        var hidden = new HashSet<PlaceholderType>();
 
-        if (!string.IsNullOrEmpty(opt.TitleText))
+        // 标题
+        var title = opt.TitleText ?? "";
+        slide.Shapes.AddTextBox(LayoutSystem.Margin_X, LayoutSystem.Content.TitleY,
+            LayoutSystem.ContentWidth, 60, title);
+        var titleShape = slide.Shapes[slide.Shapes.Count - 1];
+        StyleHeading(titleShape, LayoutSystem.FontSizes.H2, null);
+
+        // 装饰线（标题下）
+        if (_theme != null)
         {
-            SetPlaceholder(slide, PlaceholderType.Title, opt.TitleText);
-            hidden.Add(PlaceholderType.Title);
-            var titleShape = FindShape(slide, PlaceholderType.Title);
-            if (titleShape != null) StyleHeading(titleShape, 28m, null);
+            slide.Shapes.AddShape(LayoutSystem.Margin_X, LayoutSystem.Content.BodyY - LayoutSystem.Spacing_SM,
+                LayoutSystem.Decoration.AccentLineWidth, LayoutSystem.Decoration.AccentLineHeight);
+            var line = slide.Shapes[slide.Shapes.Count - 1];
+            line.Fill.SetColor(_theme.Accent1);
         }
 
-        HideUnusedPlaceholders(slide, hidden);
-
-        int y = 120;
+        // 要点列表
+        int y = LayoutSystem.Content.BodyY;
         foreach (var bulletText in opt.BulletItems)
         {
-            slide.Shapes.AddTextBox(60, y, 860, 36, bulletText);
+            slide.Shapes.AddTextBox(LayoutSystem.Margin_X + LayoutSystem.Content.BulletIndent,
+                y, LayoutSystem.ContentWidth - LayoutSystem.Content.BulletIndent,
+                LayoutSystem.Content.BulletLineHeight, bulletText);
             var shape = slide.Shapes[slide.Shapes.Count - 1];
             StyleBullet(shape);
-            y += 38;
+            y += LayoutSystem.Content.BulletLineHeight;
+        }
+
+        // 页码
+        if (_showPageNumbers)
+        {
+            AddPageNumber(slide);
         }
 
         return this;
@@ -98,30 +132,46 @@ public sealed class PresentationBuilder
         configure(opt);
         _pres.Slides.Add(1);
         var slide = _pres.Slides[_pres.Slides.Count - 1];
-        var hidden = new HashSet<PlaceholderType>();
 
-        if (!string.IsNullOrEmpty(opt.TitleText))
-        {
-            SetPlaceholder(slide, PlaceholderType.Title, opt.TitleText);
-            hidden.Add(PlaceholderType.Title);
-            var titleShape = FindShape(slide, PlaceholderType.Title);
-            if (titleShape != null) StyleHeading(titleShape, 28m, null);
-        }
+        // 标题
+        var title = opt.TitleText ?? "";
+        slide.Shapes.AddTextBox(LayoutSystem.Margin_X, LayoutSystem.Content.TitleY,
+            LayoutSystem.ContentWidth, 60, title);
+        var titleShape = slide.Shapes[slide.Shapes.Count - 1];
+        StyleHeading(titleShape, LayoutSystem.FontSizes.H2, null);
 
-        HideUnusedPlaceholders(slide, hidden);
-
-        if (opt.TableData is { Length: > 0 })
+        // 表格
+        if (opt.TableData != null && opt.TableData.Length > 0)
         {
             int rows = opt.TableData.Length;
-            int cols = opt.TableData.Max(r => r.Length);
-            slide.Shapes.AddTable(50, 120, cols, rows);
+            int cols = opt.TableData[0].Length;
+            int tableWidth = LayoutSystem.ContentWidth;
+            int tableHeight = 360;  // 固定高度
+
+            slide.Shapes.AddTable(LayoutSystem.Margin_X, LayoutSystem.Content.BodyY,
+                cols, rows);
             var tableShape = slide.Shapes[slide.Shapes.Count - 1];
             var table = tableShape.Table!;
+
             for (int r = 0; r < rows; r++)
+            {
                 for (int c = 0; c < cols && c < opt.TableData[r].Length; c++)
-                    table[r, c].TextBox.SetText(opt.TableData[r][c]);
+                {
+                    var textBox = table[r, c].TextBox;
+                    if (textBox != null)
+                    {
+                        textBox.SetText(opt.TableData[r][c]);
+                    }
+                }
+            }
 
             StyleTable(table, rows, cols);
+        }
+
+        // 页码
+        if (_showPageNumbers)
+        {
+            AddPageNumber(slide);
         }
 
         return this;
@@ -133,29 +183,32 @@ public sealed class PresentationBuilder
         configure(opt);
         _pres.Slides.Add(1);
         var slide = _pres.Slides[_pres.Slides.Count - 1];
-        var hidden = new HashSet<PlaceholderType>();
 
-        if (!string.IsNullOrEmpty(opt.TitleText))
+        // 标题
+        var title = opt.TitleText ?? "";
+        slide.Shapes.AddTextBox(LayoutSystem.Margin_X, LayoutSystem.Chart.TitleY,
+            LayoutSystem.ContentWidth, 60, title);
+        var titleShape = slide.Shapes[slide.Shapes.Count - 1];
+        StyleHeading(titleShape, LayoutSystem.FontSizes.H2, null);
+
+        // 图表
+        if (opt.PieData != null)
         {
-            SetPlaceholder(slide, PlaceholderType.Title, opt.TitleText);
-            hidden.Add(PlaceholderType.Title);
-            var titleShape = FindShape(slide, PlaceholderType.Title);
-            if (titleShape != null) StyleHeading(titleShape, 28m, null);
+            slide.Shapes.AddPieChart(LayoutSystem.Margin_X, LayoutSystem.Chart.ChartY,
+                LayoutSystem.Chart.ChartWidth, LayoutSystem.Chart.ChartHeight,
+                opt.PieData, "Series 1");
+        }
+        else if (opt.BarData != null)
+        {
+            slide.Shapes.AddBarChart(LayoutSystem.Margin_X, LayoutSystem.Chart.ChartY,
+                LayoutSystem.Chart.ChartWidth, LayoutSystem.Chart.ChartHeight,
+                opt.BarData, "Series 1");
         }
 
-        HideUnusedPlaceholders(slide, hidden);
-
-        if (opt.PieData is { Count: > 0 })
-            slide.Shapes.AddPieChart(80, 120, 800, 380, opt.PieData, "Series 1");
-        else if (opt.BarData is { Count: > 0 })
-            slide.Shapes.AddBarChart(80, 120, 800, 380, opt.BarData,
-                string.IsNullOrEmpty(opt.BarSeriesName) ? "Series 1" : opt.BarSeriesName);
-
-        if (!string.IsNullOrEmpty(opt.ChartText))
+        // 页码
+        if (_showPageNumbers)
         {
-            slide.Shapes.AddTextBox(80, 490, 800, 30, opt.ChartText);
-            var chartLabel = slide.Shapes[slide.Shapes.Count - 1];
-            StyleBody(chartLabel, 14m);
+            AddPageNumber(slide);
         }
 
         return this;
@@ -357,6 +410,52 @@ public sealed class PresentationBuilder
                 for (int c = 0; c < cols; c++)
                 {
                     try { table[r, c].Fill.SetColor(_theme.Light2); } catch { }
+                }
+            }
+        }
+        catch { /* best effort */ }
+    }
+
+    private void StyleTitle(IShape shape, decimal fontSize, string? colorOverride)
+    {
+        if (_theme == null) return;
+        try
+        {
+            if (shape.TextBox is not { Paragraphs.Count: > 0 } tb) return;
+            var para = tb.Paragraphs[0];
+            if (para.Portions.Count == 0) return;
+            var font = para.Portions[0].Font;
+            font.LatinName = _theme.HeadFont;
+            font.EastAsianName = _theme.HeadCJK;
+            font.Size = fontSize;
+            font.IsBold = true;
+            font.Color.Set(!string.IsNullOrEmpty(colorOverride) ? colorOverride : _theme.Accent1);
+        }
+        catch { /* best effort */ }
+    }
+
+    private void AddPageNumber(IUserSlide slide)
+    {
+        try
+        {
+            int slideIndex = _pres.Slides.Count;  // 当前刚添加的 slide
+            slide.Shapes.AddTextBox(
+                LayoutSystem.SlideWidth - LayoutSystem.Margin_X - 50,
+                LayoutSystem.SlideHeight - LayoutSystem.Margin_Y - 20,
+                50, 20,
+                slideIndex.ToString()
+            );
+            var shape = slide.Shapes[slide.Shapes.Count - 1];
+            if (shape.TextBox is { Paragraphs.Count: > 0 } tb
+                && tb.Paragraphs[0].Portions.Count > 0)
+            {
+                var font = tb.Paragraphs[0].Portions[0].Font;
+                font.Size = LayoutSystem.FontSizes.Caption;
+                font.Color.Set("999999");
+                if (_theme != null)
+                {
+                    font.LatinName = _theme.BodyFont;
+                    font.EastAsianName = _theme.BodyCJK;
                 }
             }
         }
