@@ -6,7 +6,7 @@
     <RootNamespace>PptxCore</RootNamespace>
     <AssemblyName>PptxCore</AssemblyName>
     <PackageId>Angri450.Nong.Pptx</PackageId>
-    <Version>1.0.3</Version>
+    <Version>1.0.4</Version>
     <Authors>angri450</Authors>
     <Description>ShapeCrawler wrapper for AI agents — fluent slide builder, 10 themes, shape-map inspection, raw OOXML fallback. Build presentations with chainable API.</Description>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>

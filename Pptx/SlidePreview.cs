@@ -54,8 +54,20 @@ public static class SlidePreview
                         if (para.Portions.Count > 0)
                         {
                             var font = para.Portions[0].Font;
-                            if (font.Size > 0)
-                                sb.AppendLine($"    Font: {font.LatinName} {font.Size}pt Bold={font.IsBold}");
+                            var parts = new List<string>();
+                            if (font.Size > 0) parts.Add($"{font.Size}pt");
+                            if (font.IsBold) parts.Add("Bold");
+                            if (!string.IsNullOrEmpty(font.LatinName)) parts.Add(font.LatinName);
+                            if (!string.IsNullOrEmpty(font.EastAsianName) && font.EastAsianName != font.LatinName)
+                                parts.Add($"CJK={font.EastAsianName}");
+                            try
+                            {
+                                if (font.Color is { } c && !string.IsNullOrEmpty(c.Hex))
+                                    parts.Add($"#{c.Hex}");
+                            }
+                            catch { }
+                            if (parts.Count > 0)
+                                sb.AppendLine($"    Font: {string.Join(" ", parts)}");
                         }
                     }
                 }

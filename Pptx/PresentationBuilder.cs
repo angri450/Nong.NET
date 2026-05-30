@@ -18,7 +18,16 @@ public sealed class PresentationBuilder
     public SlideHelper AddSlide()
     {
         _pres.Slides.Add(1);
-        return new SlideHelper(_pres.Slides[_pres.Slides.Count - 1]) { Theme = _theme };
+        var slide = _pres.Slides[_pres.Slides.Count - 1];
+        // Hide all placeholder text on freeform slides
+        foreach (var shape in slide.Shapes)
+        {
+            if (shape.PlaceholderType is PlaceholderType pt)
+            {
+                try { shape.TextBox?.SetText(""); } catch { }
+            }
+        }
+        return new SlideHelper(slide) { Theme = _theme };
     }
 
     public PresentationBuilder AddTitleSlide(Action<TitleSlideBuilder> configure)
