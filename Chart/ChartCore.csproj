@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net11.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>ChartCore</RootNamespace>
@@ -9,41 +9,12 @@
     <PackageId>Angri450.Nong.Chart</PackageId>
     <Version>1.0.4</Version>
     <Authors>angri450</Authors>
-    <Description>Statistical chart generation for academic papers — ANOVA, Duncan MRT, publication-quality figures. Includes ClosedXML, OpenXml SDK, ScottPlot, SkiaSharp and all dependencies merged into a single assembly.</Description>
+    <Description>Statistical chart generation for academic papers — ANOVA, Duncan MRT, publication-quality figures. ClosedXML, OpenXml SDK, ScottPlot, SkiaSharp and all dependencies merged via ThirdParty.</Description>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);IncludeMergedDlls</TargetsForTfmSpecificBuildOutput>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ClosedXML\ClosedXML.csproj" PrivateAssets="all" />
-    <ProjectReference Include="..\ClosedXML.IO\ClosedXML.IO.csproj" PrivateAssets="all" />
-    <ProjectReference Include="..\ExcelNumberFormat\ExcelNumberFormat.csproj" PrivateAssets="all" />
-    <ProjectReference Include="..\ClosedXML.Parser\ClosedXML.Parser.csproj" PrivateAssets="all" />
-    <ProjectReference Include="..\RBush\RBush.csproj" PrivateAssets="all" />
-    <ProjectReference Include="..\SixLabors.Fonts\SixLabors.Fonts.csproj" PrivateAssets="all" />
-    <ProjectReference Include="..\DocumentFormat.OpenXml\DocumentFormat.OpenXml.csproj" PrivateAssets="all" />
-    <ProjectReference Include="..\DocumentFormat.OpenXml.Framework\DocumentFormat.OpenXml.Framework.csproj" PrivateAssets="all" />
-    <ProjectReference Include="..\SkiaSharp\SkiaSharp.csproj" PrivateAssets="all" />
-    <ProjectReference Include="..\HarfBuzzSharp\HarfBuzzSharp.csproj" PrivateAssets="all" />
-    <ProjectReference Include="..\SkiaSharp.HarfBuzz\SkiaSharp.HarfBuzz.csproj" PrivateAssets="all" />
-    <ProjectReference Include="..\ScottPlot\ScottPlot.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\ThirdParty\ThirdParty.csproj" PrivateAssets="all" />
   </ItemGroup>
-
-  <Target Name="IncludeMergedDlls">
-    <ItemGroup>
-      <BuildOutputInPackage Include="..\ClosedXML\bin\$(Configuration)\$(TargetFramework)\ClosedXML.dll" />
-      <BuildOutputInPackage Include="..\ClosedXML.IO\bin\$(Configuration)\$(TargetFramework)\ClosedXML.IO.dll" />
-      <BuildOutputInPackage Include="..\ExcelNumberFormat\bin\$(Configuration)\$(TargetFramework)\ExcelNumberFormat.dll" />
-      <BuildOutputInPackage Include="..\ClosedXML.Parser\bin\$(Configuration)\$(TargetFramework)\ClosedXML.Parser.dll" />
-      <BuildOutputInPackage Include="..\RBush\bin\$(Configuration)\$(TargetFramework)\RBush.dll" />
-      <BuildOutputInPackage Include="..\SixLabors.Fonts\bin\$(Configuration)\$(TargetFramework)\SixLabors.Fonts.dll" />
-      <BuildOutputInPackage Include="..\DocumentFormat.OpenXml\bin\$(Configuration)\$(TargetFramework)\DocumentFormat.OpenXml.dll" />
-      <BuildOutputInPackage Include="..\DocumentFormat.OpenXml.Framework\bin\$(Configuration)\$(TargetFramework)\DocumentFormat.OpenXml.Framework.dll" />
-      <BuildOutputInPackage Include="..\SkiaSharp\bin\$(Configuration)\$(TargetFramework)\SkiaSharp.dll" />
-      <BuildOutputInPackage Include="..\HarfBuzzSharp\bin\$(Configuration)\$(TargetFramework)\HarfBuzzSharp.dll" />
-      <BuildOutputInPackage Include="..\SkiaSharp.HarfBuzz\bin\$(Configuration)\$(TargetFramework)\SkiaSharp.HarfBuzz.dll" />
-      <BuildOutputInPackage Include="..\ScottPlot\bin\$(Configuration)\$(TargetFramework)\ScottPlot.dll" />
-    </ItemGroup>
-  </Target>
 
 </Project>

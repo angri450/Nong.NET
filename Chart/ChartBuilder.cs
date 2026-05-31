@@ -81,16 +81,7 @@ public static class ChartBuilder
                 Value = values[i],
                 ValueBase = 0,
                 FillColor = colors[i % colors.Length],
-                Error = errors[i],
-                ErrorPositive = errors[i],
-                ErrorNegative = errors[i],
             });
-
-            // 误差棒样式
-            if (config.ShowErrorBar && errors[i] > 0)
-            {
-                bar.ErrorLineWidth = 1.5f;
-            }
         }
 
         // 显著性标注
