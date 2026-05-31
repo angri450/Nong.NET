@@ -15,22 +15,31 @@ namespace SkiaSharp
 
 		static SKTypeface ()
 		{
-			// TODO: This is not the best way to do this as it will create a lot of objects that
-			//       might not be needed, but it is the only way to ensure that the static
-			//       instances are created before any access is made to them.
-			//       See more info: SKObject.EnsureStaticInstanceAreInitialized()
+			try
+			{
+				empty = new SKTypefaceStatic (SkiaApi.sk_typeface_create_empty ());
+			}
+			catch (EntryPointNotFoundException)
+			{
+				empty = null!;
+			}
 
-			empty = new SKTypefaceStatic (SkiaApi.sk_typeface_create_empty ());
+			// sk_fontmgr_legacy_create_typeface is not in m119 — use match_family_style
+			var fontMgr = SKFontManager.Default.Handle;
+			var style = SKFontStyle.Normal.Handle;
+			var matched = SkiaApi.sk_fontmgr_match_family_style (fontMgr, IntPtr.Zero, style);
 
-			// Use legacyMakeTypeface(null) to get the platform default — this uses
-			// fDefaultStyleSet on Android (which searches "sans-serif", "Roboto",
-			// then falls back to style set 0). matchFamilyStyle(null) doesn't work
-			// on Android/NDK/Custom because onMatchFamily(null) returns null.
-			var matched = SkiaApi.sk_fontmgr_legacy_create_typeface (
-				SKFontManager.Default.Handle, IntPtr.Zero, SKFontStyle.Normal.Handle);
-			defaultTypeface = matched == IntPtr.Zero
-				? empty
-				: new SKTypefaceStatic (matched);
+			if (matched == IntPtr.Zero)
+			{
+				var familyPtr = System.Runtime.InteropServices.Marshal.StringToHGlobalAnsi("Arial");
+				try { matched = SkiaApi.sk_fontmgr_match_family_style (fontMgr, familyPtr, style); }
+				catch { matched = IntPtr.Zero; }
+				System.Runtime.InteropServices.Marshal.FreeHGlobal(familyPtr);
+			}
+
+			defaultTypeface = matched != IntPtr.Zero
+				? new SKTypefaceStatic (matched)
+				: empty!;
 		}
 
 		internal static void EnsureStaticInstanceAreInitialized ()
@@ -57,7 +66,7 @@ namespace SkiaSharp
 
 		public static SKTypeface CreateDefault ()
 		{
-			var matched = SkiaApi.sk_fontmgr_legacy_create_typeface (
+			var matched = SkiaApi.sk_fontmgr_match_family_style (
 				SKFontManager.Default.Handle, IntPtr.Zero, SKFontStyle.Normal.Handle);
 			return matched == IntPtr.Zero
 				? empty

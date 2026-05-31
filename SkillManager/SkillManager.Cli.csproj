@@ -9,10 +9,10 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>skill-manager</ToolCommandName>
     <PackageId>Angri450.Nong.Skill.Manager</PackageId>
-    <Version>1.0.4</Version>
+    <Version>3.0.0</Version>
     <Authors>angri450</Authors>
     <Description>Skill management CLI — validate, scan, package, eval, scaffold</Description>
-    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>

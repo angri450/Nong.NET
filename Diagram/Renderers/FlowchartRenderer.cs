@@ -131,12 +131,8 @@ public class FlowchartRenderer : IRenderer
         var ax2 = (float)(x2 - arrowLength * Math.Cos(angle + arrowAngle));
         var ay2 = (float)(y2 - arrowLength * Math.Sin(angle + arrowAngle));
 
-        using var arrowPath = new SKPath();
-        arrowPath.MoveTo(x2, y2);
-        arrowPath.LineTo(ax1, ay1);
-        arrowPath.MoveTo(x2, y2);
-        arrowPath.LineTo(ax2, ay2);
-        canvas.DrawPath(arrowPath, paint);
+        canvas.DrawLine(x2, y2, ax1, ay1, paint);
+        canvas.DrawLine(x2, y2, ax2, ay2, paint);
     }
 
     /// <summary>
