@@ -17,7 +17,7 @@
     <PackageTags>nong agriculture docx paper word openxml document-generation thesis</PackageTags>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="DocumentFormat.OpenXml" Version="*" />
+    <ProjectReference Include="..\ThirdParty\ThirdParty.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="/" />

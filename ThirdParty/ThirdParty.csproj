@@ -4,6 +4,13 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>ThirdParty</RootNamespace>
     <AssemblyName>Angri450.Nong.ThirdParty</AssemblyName>
+    <PackageId>Angri450.Nong.ThirdParty</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>angri450</Authors>
+    <Description>Merged source of ClosedXML, DocumentFormat.OpenXml, ScottPlot, MSAGL, SkiaSharp, HarfBuzzSharp, SixLabors.Fonts and all sub-dependencies — compiled into a single assembly. Zero-external-dependency foundation for the Angri450.Nong document generation toolkit.</Description>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/angri450/nong</RepositoryUrl>
+    <PackageTags>closedxml openxml scottplot msagl skiasharp harfbuzz excel chart diagram document-generation</PackageTags>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <LangVersion>12</LangVersion>
@@ -106,12 +113,31 @@
     <CompilerVisibleProperty Include="DocumentFormat_OpenXml_Generator_Linq" />
   </ItemGroup>
 
-  <!-- Embedded resources -->
+  <!-- Embedded resources (LogicalName must match ClosedXML hardcoded paths) -->
   <ItemGroup>
-    <EmbeddedResource Include="..\ClosedXML\Graphics\Fonts\CarlitoBare-Bold.ttf" />
-    <EmbeddedResource Include="..\ClosedXML\Graphics\Fonts\CarlitoBare-BoldItalic.ttf" />
-    <EmbeddedResource Include="..\ClosedXML\Graphics\Fonts\CarlitoBare-Italic.ttf" />
-    <EmbeddedResource Include="..\ClosedXML\Graphics\Fonts\CarlitoBare-Regular.ttf" />
+    <EmbeddedResource Include="..\ClosedXML\Graphics\Fonts\CarlitoBare-Bold.ttf">
+      <LogicalName>ClosedXML.Graphics.Fonts.CarlitoBare-Bold.ttf</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\ClosedXML\Graphics\Fonts\CarlitoBare-BoldItalic.ttf">
+      <LogicalName>ClosedXML.Graphics.Fonts.CarlitoBare-BoldItalic.ttf</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\ClosedXML\Graphics\Fonts\CarlitoBare-Italic.ttf">
+      <LogicalName>ClosedXML.Graphics.Fonts.CarlitoBare-Italic.ttf</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\ClosedXML\Graphics\Fonts\CarlitoBare-Regular.ttf">
+      <LogicalName>ClosedXML.Graphics.Fonts.CarlitoBare-Regular.ttf</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <!-- OpenXml validation resources (.resx compiled to .resources by SDK) -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\DocumentFormat.OpenXml.Framework\Resources\ExceptionMessages.resx">
+      <CustomToolNamespace>DocumentFormat.OpenXml</CustomToolNamespace>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DocumentFormat.OpenXml.Framework\Validation\ValidationResources.resx">
+      <CustomToolNamespace>DocumentFormat.OpenXml.Validation</CustomToolNamespace>
+      <LogicalName>DocumentFormat.OpenXml.Validation.ValidationResources.resources</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 
   <!-- NuGet dependencies -->

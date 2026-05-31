@@ -15,9 +15,6 @@
     <PackageTags>ocr multimodal paddleocr document-parsing speech recognition</PackageTags>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="DocumentFormat.OpenXml" Version="*" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\Docx\DocxCore.csproj" />
   </ItemGroup>
   <ItemGroup>

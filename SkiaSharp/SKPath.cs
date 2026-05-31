@@ -406,7 +406,7 @@ namespace SkiaSharp
 			if (_builder == null)
 				return;
 
-			var newHandle = SkiaApi.sk_pathbuilder_detach_path (_builder.Handle);
+			var newHandle = _builder.Detach().Handle;
 			_builder.Dispose ();
 			_builder = null;
 			SkiaApi.sk_path_delete (Handle);
@@ -419,7 +419,7 @@ namespace SkiaSharp
 				_builder.Dispose ();
 				_builder = null;
 			}
-			var newHandle = SkiaApi.sk_pathbuilder_detach_path (builder.Handle);
+			var newHandle = builder.Detach().Handle;
 			SkiaApi.sk_path_delete (Handle);
 			Handle = newHandle;
 		}
