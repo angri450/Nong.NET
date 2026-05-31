@@ -43,7 +43,7 @@ public class TemplateEngine
     public static TemplateResult Analyze(string docxPath)
     {
         using var doc = WordprocessingDocument.Open(docxPath, false);
-        var body = doc.MainDocumentPart!.Document.Body!;
+        var body = doc.MainDocumentPart?.Document?.Body ?? throw new InvalidOperationException("Document body is missing.");
         var stylesPart = doc.MainDocumentPart.StyleDefinitionsPart;
 
         // 路 1：提取已定义的样式

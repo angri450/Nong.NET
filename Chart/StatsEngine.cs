@@ -14,7 +14,7 @@ public static class StatsEngine
             throw new InvalidOperationException("No data.");
 
         int k = groups.Count;
-        int N = allValues.Sum(v => groups[v.Key].Count);
+        int N = groups.Values.Sum(v => v.Count);
         double grandMean = allValues.Average();
 
         // 组间 (Between)
@@ -119,7 +119,6 @@ public static class StatsEngine
         for (int i = 0; i < items.Count; i++)
         {
             var sb = new System.Text.StringBuilder();
-            char current = 'a';
             bool[] connected = new bool[items.Count];
             for (int j = 0; j < items.Count; j++)
             {
@@ -181,7 +180,6 @@ public static class StatsEngine
             }
             if (i > 0)
             {
-                int p = 2;
                 double diff = result[i - 1].Mean - result[i].Mean;
                 double critical = qValues[1] * se;
                 if (diff >= critical)
@@ -226,7 +224,7 @@ public static class StatsEngine
         double front = Math.Exp(GammaLog(a + b) - GammaLog(a) - GammaLog(b) + a * Math.Log(x) + b * Math.Log(1 - x));
 
         // Lentz 连分数
-        double f = 1, c = 1, d = 1 - (a + b) * x / (a + 1);
+        double c = 1, d = 1 - (a + b) * x / (a + 1);
         if (Math.Abs(d) < 1e-30) d = 1e-30;
         d = 1 / d;
         double h = d;

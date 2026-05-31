@@ -62,7 +62,7 @@ public static class StyleRebuilder
     /// <summary>对文档中所有段落统一重建样式。</summary>
     public static void RebuildAllParagraphs(WordprocessingDocument doc, string bodyFontCJK = "宋体", string bodyFontLatin = "Times New Roman", string bodyFontSize = "21", string indent = "420", string lineSpacing = "312")
     {
-        var body = doc.MainDocumentPart!.Document.Body!;
+        var body = doc.MainDocumentPart?.Document?.Body ?? throw new InvalidOperationException("Document body is missing.");
         foreach (var para in body.Elements<Paragraph>())
         {
             var styleId = para.ParagraphProperties?.ParagraphStyleId?.Val?.Value ?? "";

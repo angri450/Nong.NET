@@ -1,63 +1,96 @@
-# Angri450.Nong.Docx
+# Angri450.Nong.Docx v2.0
 
-农学生文档生成库——OpenXML 底层直接控制，不是 COM 套壳。纯 .NET，零外部依赖。
+OpenXML Word generation library — pure .NET, zero COM, single dependency. One-stop paper writing: generate, fill, diagnose.
 
-## 为什么做这个
+## Dependency
 
-写论文最痛苦的不是内容，是格式。
-
-市面上的方案：python-docx 太底层、pandoc 不可逆、COM 必须装 Office。我们要的是：**内容写完，格式一步到位**。
-
-## 核心能力
-
-### StyleBuilder.BuildFromJson — 一键排版
-```csharp
-StyleBuilder.BuildFromJson(sp.Styles, "formats/life-sciences-contest.json");
-// 换格式 = 换 JSON。竞赛论文→期刊论文→学位论文，三秒切。
+```
+Angri450.Nong.Docx
+└── DocumentFormat.OpenXml
 ```
 
-### DocumentWriter — 链式写内容
+That's it. No System.Drawing.Common, no ImageSharp, no COM. Cross-platform.
+
+## Core Capabilities
+
+### StyleBuilder.BuildFromJson — One-Click Formatting
 ```csharp
-new DocumentWriter(body)
-    .Title("氮肥运筹对水稻产量及氮素利用效率的影响")
-    .EnglishTitle("Effects of nitrogen management on rice yield and nitrogen use efficiency")
-    .Abstract("以粳稻品种为材料，设置4个氮肥处理...")
-    .Keywords("水稻；氮肥运筹；产量；氮素利用效率")
-    .Heading("引言", 1).Body("正文[1]。")
-    .Table("不同氮肥处理下水稻产量构成因素", 1, headers, rows)
-    .Figure("图1 实验设计示意图", 1)
-    .Heading("讨论", 1)
-    .BibHeading().References("作者. 标题[J]. 期刊, 年.");
-// 链式调用，[N] 自动上标，Heading 自动编号
+StyleBuilder.BuildFromJson(sp.Styles, "formats/journal-paper.json");
+var sectPr = StyleBuilder.LoadPageLayout("formats/journal-paper.json").Build();
+// Swap format = swap JSON. Contest → journal → thesis in 3 seconds.
 ```
 
-### ImageEmbedder — 图片嵌入
+### DocumentWriter — Chainable Content
+```csharp
+var w = new DocumentWriter(body, doc);
+w.Title("Title").EnglishTitle("English Title")
+ .Abstract("Abstract...").Keywords("K1; K2")
+ .TableOfContents("Contents")
+ .Heading("Introduction", 1).Body("Text[1].")
+ .Footnote("Note").Endnote("Endnote")
+ .Table("Caption", 1, headers, rows).TableStyle(TableStyles.LightGridAccent1)
+ .VariableTable("Variables", 1, variablePlanRows)
+ .Figure("Caption", 1).BarChart("Chart", cats, vals)
+ .Bookmark("_ref").CrossReference("_ref", "see Table 1")
+ .Hyperlink("https://example.com", "Link")
+ .BibHeading().References("Author. Title[J]. Journal, Year.");
+```
+
+### DocxTemplate — Fill Templates
+```csharp
+DocxTemplate.Fill("template.docx", "output.docx", new { Name = "Zhang", Score = 95 });
+// {{tag}} replacement + @if/@foreach blocks + table row data binding
+```
+
+### ImageEmbedder — Real Images
 ```csharp
 ImageEmbedder.EmbedImages(body, mainPart, new[] { "fig1.png", "fig2.png" });
-// 前两张图自动 1x2 无边框表格并排，第3张起纵向排列
-// 自动识别 png/jpeg/gif/bmp/tiff，宽度约束防溢出
+// First 2 side-by-side in borderless table, rest stacked vertically
+// ImageHeaderReader reads PNG/JPEG/GIF/BMP/TIFF dimensions — no external deps
 ```
 
-### TemplateEngine — 文档解剖
-```csharp
-var result = TemplateEngine.Analyze("paper.docx");
-// 返回：段落结构 + 格式指纹 + 格式污染检测
-
-var files = TemplateEngine.ExtractImages("paper.docx", "images/");
-// 提取文档中所有图片
-```
-
-### WordPreview — 生成即诊断
+### WordPreview — Generate + Diagnose
 ```csharp
 var r = WordPreview.Preview("paper.docx");
-Console.WriteLine(r.Text);       // 结构化文本预览
-// r.Warnings 检查：元素顺序、图片链接、CJK 字体、批注残留...
+// Text preview + 7-step diagnostics + OpenXmlValidator OOXML validation
 ```
 
-### ElementOrder.RectifyTree — 底层修复
-OpenXML 对元素顺序有严格要求。Word 宽容打开但 Google Docs/WPS 可能乱。Save 前自动修正。
+### SectionBuilder — Page Layout
+```csharp
+var sectPr = new SectionBuilder().A4().Margins("3cm", "2.5cm", "2.5cm", "2cm").Build();
+```
 
-## 快速开始
+### TableStyles — 90+ Built-in Designs
+```csharp
+w.TableStyle(TableStyles.LightGridAccent1);
+// Full set: LightShading, MediumGrid, Colorful, DarkList series...
+```
+
+## Paper Analysis (16 Types)
+
+```csharp
+var types = PaperTypeClassifier.Classify(text);           // Classify research design
+var struct = PaperStructureExtractor.BuildPaperStructure(text); // Extract sections
+var vars = VariablePlanGenerator.GenerateVariablePlan(text);    // Generate variable table
+var refs = ReferenceAnalyzer.CheckReferenceRisks(text);         // Check references
+var diag = PaperDiagnostics.DiagnosePaperQuality(text, ...);    // Quality diagnosis (A-E grade)
+```
+
+Diagnosis pipeline: evidence chain (10 items) → data requirements (9 items) → gap grade (A-E) → semantic diagnosis → 3-tier quality report.
+
+## Advanced Features
+
+```csharp
+AdvancedFeatures.InsertComment(doc, "reviewer", "Fix this", para);  // Comments
+AdvancedFeatures.AppendTrackedInsertion(para, "new text");           // Track changes
+body.Append(AdvancedFeatures.InsertPlainTextControl("name"));         // Content controls
+AdvancedFeatures.EmbedFont(doc, "font.ttf", "FontName");             // Font embedding
+AdvancedFeatures.AppendDocument(target, "source.docx");               // Document merge
+AdvancedFeatures.SetDocumentProperties(doc, title: "T", author: "A"); // Properties
+AdvancedFeatures.ProtectDocument(doc, "readOnly");                   // Protection
+```
+
+## Quick Start
 
 ```powershell
 dotnet add package Angri450.Nong.Docx
@@ -69,45 +102,42 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using DocxCore;
 
 using var doc = WordprocessingDocument.Create("paper.docx", WordprocessingDocumentType.Document);
-var body = new Body();
-doc.AddMainDocumentPart().Document = new Document(body);
+var main = doc.AddMainDocumentPart();
+main.Document = new Document(new Body());
+var body = main.Document.Body!;
 
-var sp = doc.MainDocumentPart!.AddNewPart<StyleDefinitionsPart>();
+// Styles from JSON
+var sp = main.AddNewPart<StyleDefinitionsPart>();
 sp.Styles = new Styles();
-StyleBuilder.BuildFromJson(sp.Styles, "formats/life-sciences-contest.json");
+StyleBuilder.BuildFromJson(sp.Styles, "formats/journal-paper.json");
+
+// Page layout
+var sectPr = StyleBuilder.LoadPageLayout("formats/journal-paper.json").Build();
 
 var w = new DocumentWriter(body);
-w.Title("论文标题").Abstract("摘要...").Keywords("A；B；C")
- .Heading("引言", 1).Body("正文[1]。")
- .BibHeading().References("作者. 标题[J]. 期刊, 年.");
+w.Title("Title").Abstract("Abstract...").Keywords("A; B; C")
+ .Heading("Introduction", 1).Body("Text[1].")
+ .BibHeading().References("Author. Title[J]. Journal, Year.");
 
-ImageEmbedder.EmbedImages(body, doc.MainDocumentPart, new[] { "fig1.png", "fig2.png" });
+// Images
+ImageEmbedder.EmbedImages(body, main, new[] { "fig1.png", "fig2.png" });
 
-body.Append(new SectionProperties(/* A4 2cm margin */));
+body.Append(sectPr);
 ElementOrder.RectifyTree(body);
-doc.MainDocumentPart.Document.Save();
+main.Document.Save();
 ```
 
-## 四件套
+## Format Templates
 
-| 包 | 用途 |
-|----|------|
-| `Angri450.Nong.Docx` | Word 文档（本包） |
-| `Angri450.Nong.Excel` | Excel 表格 |
-| `Angri450.Nong.Pptx` | PowerPoint 演示 |
-| `Angri450.Nong.Chart` | 统计分析 + 图表生成 |
+| Template | Body | Heading | Use Case |
+|----------|------|---------|----------|
+| life-sciences-contest | 宋体 10.5pt | 黑体 14pt | Contest (4-page limit) |
+| journal-paper | 宋体 10.5pt | 黑体 18pt | Journal (GB/T 7714) |
+| course-paper | 宋体 10.5pt | 黑体 14pt | Course paper |
+| degree-thesis | 宋体 12pt | 黑体 16pt | Degree thesis |
 
-统一 API 风格，统一 Preview→Build→Validate 流水线。Skill 做编排，.NET CLI 做确定性工作。
+Swap format = swap JSON. No code changes.
 
-## 支持的格式模板
+## License
 
-- 生命科学竞赛（限 4 页，无个人信息）
-- 中文期刊（GB/T 7714 顺序编码制）
-- 学位论文（小四宋体，1.5 倍行距）
-- 本科课程论文
-
-换格式 = 换 format.json，不改代码。
-
-## 协议
-
-Apache-2.0。基于开源的 [DocumentFormat.OpenXml SDK](https://github.com/dotnet/Open-XML-SDK)。
+Apache-2.0. Built on [Open XML SDK](https://github.com/dotnet/Open-XML-SDK).
