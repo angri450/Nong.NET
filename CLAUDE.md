@@ -138,7 +138,8 @@ NuGet API Key 已保存在仓库的 CLAUDE.md 之外（环境变量 `$env:NUGET_
 | `data/` | OpenXml 源生成器的数据文件（JSON/Schema） |
 | `common/` | 旧 TFM 的 polyfill（net8.0 不需要） |
 | `nupkg/` | 打包输出临时目录 |
-| `tests-output/` | 测试项目 + 生成文件 |
+| `Tests/` | xUnit 测试项目（`Tests.csproj`） |
+| `tests-output/` | 测试生成文件/输出 |
 | `DocumentFormat.OpenXml.Generator/` | Roslyn 源生成器（分析器项目） |
 | `DocumentFormat.OpenXml.Generator.Models/` | 源生成器模型 |
 | `UnicodeTrieGenerator/` | SixLabors 用到的 Unicode 状态机 |
