@@ -15,6 +15,8 @@ Chainable Excel generation API over ClosedXML. Build professional spreadsheets w
 dotnet add package Angri450.Nong.Excel
 ```
 
+> `ClosedXML.Excel` 等类型由 `Angri450.Nong.ThirdParty` 提供（已作为传递依赖自动安装）。**不要**额外安装 `ClosedXML` NuGet 包，否则会出现类型冲突（CS0433）。
+
 ## Quick Start
 
 ```csharp
