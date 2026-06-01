@@ -76,6 +76,13 @@ SkillManager → YamlDotNet (NuGet, 独立, CLI 工具)
 - 只推 `master`，`main` 由人工手动合并
 - 不要自动切到 `main`，也不要把 `main` 合并回 `master`（只允许把 `master` 合并到 `main`）
 
+### 双仓库同步 (GitHub + Gitee)
+- GitHub: `https://github.com/angri450/Nong.NET`（主仓库）
+- Gitee: `https://gitee.com/angri450/Nong.NET`（镜像）
+- 每次 push 完 GitHub master，同步执行 `git push gitee master`
+- Gitee remote 名称: `gitee`
+- 初始化（仅首次）: `git remote add gitee https://gitee.com/angri450/Nong.NET.git`
+
 ## 禁止事项
 - 不要引入 JavaScript 依赖
 - 不要用 Python 实现核心功能（仅 `MultiModal/scripts/ocr_local.py` 为辅助脚本）
@@ -96,3 +103,58 @@ SkillManager → YamlDotNet (NuGet, 独立, CLI 工具)
 - 在 GitHub 网页上手动把 master 合并到 main（你想合的时候）
 
 NuGet API Key 已保存在仓库的 CLAUDE.md 之外（环境变量 `$env:NUGET_API_KEY`），Claude 推送时会自动使用。
+
+## 完整目录地图（新人/新会话速览）
+
+### 你的代码（9 个项目，需要维护）
+
+| 目录 | 关键文件 | 依赖 |
+|------|---------|------|
+| `ThirdParty/` | `ThirdParty.csproj` + `GlobalUsings.cs` + `DelegateProxies*.cs` + `HashCodeExt.cs` | 7 个本地库 NuGet + 2 个分析器 |
+| `Excel/` | `ExcelBuilder.cs` + `AdvancedBuilder.cs` + `StylePresets.cs` + `FormulaValidator.cs` | ThirdParty + System.IO.Packaging |
+| `Chart/` | `ChartBuilder.cs` + `ChartTypes.cs` + `StatsEngine.cs` + `DataLoader.cs` | ThirdParty |
+| `Diagram/` | `DiagramBuilder.cs` + `Models/` + `Renderers/` + `Layout/` | ThirdParty + Bioicons |
+| `Docx/` | `Builders.cs` + `DocumentWriter.cs` + `StyleBuilder.cs` + `TemplateEngine.cs` + `PaperDiagnostics.cs` | ThirdParty |
+| `Pptx/` | `PresentationBuilder.cs` + `SlideBuilder.cs` + `ThemePreset.cs` + `LayoutSystem.cs` | ShapeCrawler (NuGet) |
+| `MultiModal/` | `PaddleOcrVlClient.cs` + `LocalOcrClient.cs` + `LayoutToWordConverter.cs` | Docx |
+| `Bioicons/` | `IconProvider.cs` + `*.svg` (40个) | 无 |
+| `SkillManager/` | `Program.cs` + `Models/` + `Tools/` + `assets/` | YamlDotNet (NuGet) |
+
+### 第三方源码（15 个目录，不要动）
+
+`ClosedXML/` `ClosedXML.IO/` `ClosedXML.Parser/` `ExcelNumberFormat/` `RBush/`
+`DocumentFormat.OpenXml/` `DocumentFormat.OpenXml.Framework/`
+`ScottPlot/` `SkiaSharp/` `HarfBuzzSharp/` `SkiaSharp.HarfBuzz/`
+`MSAGL/` `MSAGL.Drawing/` `SixLabors.Fonts/` `Binding.Shared/`
+
+这些目录只读。编译时 ThirdParty.csproj 通过 glob 自动引入。里面有 `bin/` 和 `obj/` 残留是正常的（.gitignore 已排除）。
+
+如果第三方源码有 bug 需要修：直接改 `.cs` 文件，但**不要**为它们创建 `.csproj`。
+
+### 基础设施（不用管）
+
+| 目录 | 用途 |
+|------|------|
+| `data/` | OpenXml 源生成器的数据文件（JSON/Schema） |
+| `common/` | 旧 TFM 的 polyfill（net10.0 不需要） |
+| `nupkg/` | 打包输出临时目录 |
+| `Tests/` | xUnit 测试项目（`Tests.csproj`） |
+| `tests-output/` | 测试生成文件/输出 |
+| `DocumentFormat.OpenXml.Generator/` | Roslyn 源生成器（分析器项目） |
+| `DocumentFormat.OpenXml.Generator.Models/` | 源生成器模型 |
+| `UnicodeTrieGenerator/` | SixLabors 用到的 Unicode 状态机 |
+| `.gitignore` | 排除 bin/obj/nupkg |
+| `CLAUDE.md` | 就是这个文件 |
+| `README.md` + `README.zh-CN.md` | 中英文仓库首页 |
+| `LICENSE` | MIT |
+
+## 已知问题与踩坑记录
+
+1. **SkiaSharp 版本不匹配**: 源码是 m145，NuGet 本地库最高只有 m119。`SKTypeface.cs`、`SKPathBuilder.cs`、`SkiaApi.cs`、`VersionConstants.cs`、`FlowchartRenderer.cs` 已手动降级适配。
+2. **字体资源命名**: ClosedXML 的 `DefaultGraphicEngine.cs` 硬编码了资源名 `ClosedXML.Graphics.Fonts.xxx.ttf`，ThirdParty.csproj 必须用 `LogicalName` 覆盖默认的 `ThirdParty.xxx.ttf`。
+3. **验证资源命名**: `ValidationResources.resx` 和 `ExceptionMessages.resx` 需要 `CustomToolNamespace` 对齐 `DocumentFormat.OpenXml` 命名空间。
+4. **HarfBuzz + SkiaSharp 共享 partial class**: `DelegateProxies.shared.cs` 原本用 `#if HARFBUZZ` 条件编译，合并后拆成两份：`DelegateProxiesSkia.cs` + `DelegateProxiesHarfBuzz.cs`。
+5. **ScottPlot 全局 usings**: `ScottPlot/Usings.cs` 包含 `global using System.IO;`，与 MSAGL 的 `Path` 类型冲突，已排除该文件，手动在 `GlobalUsings.cs` 中补回需要的 using。
+6. **MSAGL 命名冲突**: `Path` 与 `System.IO.Path` 冲突，在 `RectilinearEdgeRouter.cs` 和 `StaticGraphUtility.cs` 中加了 using alias。`Timer` 与 `System.Threading.Timer` 冲突，在 `GlobalUsings.cs` 中加了全局 alias。
+7. **OpenXml 源生成器**: 必须保留为独立项目（Roslyn 分析器），不能在 ThirdParty 中合入。`ThirdParty.csproj` 通过 `OutputItemType="Analyzer"` 引用。
+8. **PowerShell 批量编辑 csproj 会损坏 XML**: 已写入禁止事项。用 Edit 工具逐个文件改。
