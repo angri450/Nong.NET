@@ -81,6 +81,12 @@ SkillManager → YamlDotNet (NuGet, 独立, CLI 工具)
 - Gitee: `https://gitee.com/angri450/Nong.NET`（镜像）
 - 每次 push 完 GitHub master，同步执行 `git push gitee master`
 - Gitee remote 名称: `gitee`
+
+### 密钥配置（已持久化，Claude 自动读取）
+- **GitHub**: `gh auth` 已登录 angri450，token 保存在 Windows 凭据管理器
+- **NuGet**: 环境变量 `$env:NUGET_API_KEY` 已设为用户级持久变量（`oy2kh...`）
+- **Gitee**: 凭证已缓存在 Windows 凭据管理器，无需额外配置
+- 如果推送失败提示 401/403，告诉我刷新对应 token 即可
 - 初始化（仅首次）: `git remote add gitee https://gitee.com/angri450/Nong.NET.git`
 
 ## 禁止事项
