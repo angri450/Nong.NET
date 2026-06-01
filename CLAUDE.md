@@ -58,7 +58,7 @@ SkillManager → YamlDotNet (NuGet, 独立, CLI 工具)
 全部 9 个包统一改 `<Version>` → 批量 build + pack + push → 一个 GitHub Release 包含全部 nupkg。
 
 ### 编译
-- TargetFramework: `net10.0`（向前兼容 .NET 11+）
+- TargetFramework: `net8.0`（向前兼容 net9.0 / net10.0 / net11.0）
 - 无 `global.json` SDK 锁定
 - `ThirdParty.csproj` 通过 glob `**/*.cs` 包含第三方源码，排除 `bin/`、`obj/`、`common/` polyfill
 
@@ -136,9 +136,10 @@ NuGet API Key 已保存在仓库的 CLAUDE.md 之外（环境变量 `$env:NUGET_
 | 目录 | 用途 |
 |------|------|
 | `data/` | OpenXml 源生成器的数据文件（JSON/Schema） |
-| `common/` | 旧 TFM 的 polyfill（net10.0 不需要） |
+| `common/` | 旧 TFM 的 polyfill（net8.0 不需要） |
 | `nupkg/` | 打包输出临时目录 |
-| `tests-output/` | 测试项目 + 生成文件 |
+| `Tests/` | xUnit 测试项目（`Tests.csproj`） |
+| `tests-output/` | 测试生成文件/输出 |
 | `DocumentFormat.OpenXml.Generator/` | Roslyn 源生成器（分析器项目） |
 | `DocumentFormat.OpenXml.Generator.Models/` | 源生成器模型 |
 | `UnicodeTrieGenerator/` | SixLabors 用到的 Unicode 状态机 |
