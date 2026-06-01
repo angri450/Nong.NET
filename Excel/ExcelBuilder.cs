@@ -83,7 +83,7 @@ public class SheetBuilder
         return this;
     }
 
-    public SheetBuilder ColumnWidths(double[] widths)
+    public SheetBuilder ColumnWidths(params double[] widths)
     {
         for (var i = 0; i < widths.Length; i++)
             _ws.Column(_colOff + i + 1).Width = widths[i];
