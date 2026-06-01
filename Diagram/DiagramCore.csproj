@@ -11,11 +11,17 @@
     <Authors>angri450</Authors>
     <Description>Scientific diagram generator — flowcharts, network graphs, phylogenetic trees, mechanism diagrams. Pure .NET with MSAGL layout and SkiaSharp rendering, merged via ThirdParty.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/angri450/Nong.NET</RepositoryUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\ThirdParty\ThirdParty.csproj" />
     <ProjectReference Include="..\Bioicons\Bioicons.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 
 </Project>
