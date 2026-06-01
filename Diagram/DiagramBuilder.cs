@@ -50,7 +50,8 @@ public static class DiagramBuilder
     /// </summary>
     public static void FromDsl(string json, string outputPath, int width = 800, int height = 600)
     {
-        var dsl = System.Text.Json.JsonSerializer.Deserialize<DiagramDsl>(json);
+        var dsl = System.Text.Json.JsonSerializer.Deserialize<DiagramDsl>(json,
+            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
         if (dsl == null)
             throw new ArgumentException("Invalid DSL JSON");
 
