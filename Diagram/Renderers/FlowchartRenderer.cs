@@ -10,6 +10,7 @@ public class FlowchartRenderer : IRenderer
     private readonly Graph _graph;
     private readonly SugiyamaLayout _layout = new();
     private readonly BioIconRenderer _iconRenderer = new();
+    private const float Padding = 30f;
 
     public FlowchartRenderer(Graph graph)
     {
@@ -29,11 +30,32 @@ public class FlowchartRenderer : IRenderer
     {
         _layout.Layout(_graph, width);
 
-        var bitmap = new SKBitmap(width, height);
+        // 计算内容边界框（布局后的节点 + 标题）
+        double minX = double.MaxValue, minY = double.MaxValue;
+        double maxX = double.MinValue, maxY = double.MinValue;
+        foreach (var node in _graph.Nodes)
+        {
+            minX = Math.Min(minX, node.X);
+            minY = Math.Min(minY, node.Y);
+            maxX = Math.Max(maxX, node.X + node.Width);
+            maxY = Math.Max(maxY, node.Y + node.Height);
+        }
+        if (!string.IsNullOrEmpty(_graph.Title))
+            minY -= 30; // 标题在顶部
+
+        double ox = -minX + Padding;
+        double oy = -minY + Padding;
+        int outW = Math.Max(200, (int)Math.Ceiling(maxX - minX + Padding * 2));
+        int outH = Math.Max(100, (int)Math.Ceiling(maxY - minY + Padding * 2));
+
+        var bitmap = new SKBitmap(outW, outH);
         using var canvas = new SKCanvas(bitmap);
         canvas.Clear(SKColors.White);
+        canvas.Translate((float)ox, (float)oy);
 
-        // 绘制边
+        var cjkFont = SKTypeface.FromFamilyName(FontHelper.GetCjkFamilyName());
+
+        // 边
         using var edgePaint = new SKPaint
         {
             Style = SKPaintStyle.Stroke,
@@ -54,29 +76,22 @@ public class FlowchartRenderer : IRenderer
             var y2 = (float)to.Y;
 
             canvas.DrawLine(x1, y1, x2, y2, edgePaint);
-
             if (edge.HasArrow)
                 DrawArrow(canvas, x1, y1, x2, y2, edgePaint);
         }
 
-        // 绘制节点
-        using var nodePaint = new SKPaint
-        {
-            Style = SKPaintStyle.Fill,
-            IsAntialias = true
-        };
-
+        // 节点
+        using var nodePaint = new SKPaint { Style = SKPaintStyle.Fill, IsAntialias = true };
         using var textPaint = new SKPaint
         {
             IsAntialias = true,
             TextSize = 14,
             TextAlign = SKTextAlign.Center,
-            Typeface = SKTypeface.FromFamilyName(FontHelper.GetCjkFamilyName()),
+            Typeface = cjkFont,
         };
 
         foreach (var node in _graph.Nodes)
         {
-            // Check if this node uses a Bioicons icon shape
             if (TryParseIconShape(node, out var iconCat, out var iconNm))
             {
                 var iconSize = (float)Math.Min(node.Width, node.Height) * 0.7f;
@@ -89,10 +104,8 @@ public class FlowchartRenderer : IRenderer
                 nodePaint.Color = SKColor.Parse(node.FillColor);
                 var rect = new SKRect((float)node.X, (float)node.Y,
                     (float)(node.X + node.Width), (float)(node.Y + node.Height));
-
                 canvas.DrawRoundRect(rect, 8, 8, nodePaint);
 
-                // 边框
                 nodePaint.Style = SKPaintStyle.Stroke;
                 nodePaint.Color = SKColor.Parse(node.StrokeColor);
                 nodePaint.StrokeWidth = 2;
@@ -100,7 +113,6 @@ public class FlowchartRenderer : IRenderer
                 nodePaint.Style = SKPaintStyle.Fill;
             }
 
-            // 文本
             textPaint.Color = SKColor.Parse(node.TextColor);
             var textBounds = new SKRect();
             textPaint.MeasureText(node.Label, ref textBounds);
@@ -110,12 +122,15 @@ public class FlowchartRenderer : IRenderer
                 textPaint);
         }
 
-        // 标题
+        // 标题（画在裁剪后画布顶部中央）
         if (!string.IsNullOrEmpty(_graph.Title))
         {
+            canvas.Save();
+            canvas.ResetMatrix();
             textPaint.TextSize = 20;
             textPaint.Color = SKColors.Black;
-            canvas.DrawShapedText(_graph.Title, width / 2, 30, textPaint);
+            canvas.DrawShapedText(_graph.Title, outW / 2f, 24, textPaint);
+            canvas.Restore();
         }
 
         return bitmap;
@@ -126,32 +141,22 @@ public class FlowchartRenderer : IRenderer
         double angle = Math.Atan2(y2 - y1, x2 - x1);
         double arrowLength = 15;
         double arrowAngle = Math.PI / 6;
-
         var ax1 = (float)(x2 - arrowLength * Math.Cos(angle - arrowAngle));
         var ay1 = (float)(y2 - arrowLength * Math.Sin(angle - arrowAngle));
         var ax2 = (float)(x2 - arrowLength * Math.Cos(angle + arrowAngle));
         var ay2 = (float)(y2 - arrowLength * Math.Sin(angle + arrowAngle));
-
         canvas.DrawLine(x2, y2, ax1, ay1, paint);
         canvas.DrawLine(x2, y2, ax2, ay2, paint);
     }
 
-    /// <summary>
-    /// Parses icon shape from node. Supports two formats:
-    /// 1. Shape = "icon:category:name" (e.g. "icon:Biology:cell")
-    /// 2. Node.IconCategory and Node.IconName set directly
-    /// </summary>
     private static bool TryParseIconShape(GraphNode node, out string? category, out string? name)
     {
-        // Check direct properties first
         if (!string.IsNullOrEmpty(node.IconCategory) && !string.IsNullOrEmpty(node.IconName))
         {
             category = node.IconCategory;
             name = node.IconName;
             return true;
         }
-
-        // Check Shape string format "icon:category:name"
         if (node.Shape.StartsWith("icon:", StringComparison.OrdinalIgnoreCase))
         {
             var parts = node.Shape.Split(':');
@@ -162,7 +167,6 @@ public class FlowchartRenderer : IRenderer
                 return true;
             }
         }
-
         category = null;
         name = null;
         return false;
