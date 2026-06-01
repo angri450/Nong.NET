@@ -59,8 +59,8 @@ SkillManager → YamlDotNet (NuGet, 独立, CLI 工具)
 - `OpenXmlSourceGenerator` 保留为独立分析器项目（`netstandard2.0`），不在 ThirdParty 中合入
 
 ### 分支策略
-- `master` / `main` 保持同步
-- 发版前合并到 main：`git checkout main && git merge master && git push`
+- 只推 `master`，`main` 由人工手动合并
+- 不要自动切到 main 或 merge main
 
 ## 禁止事项
 - 不要引入 JavaScript 依赖
