@@ -58,7 +58,8 @@ public class TreeRenderer : IRenderer
         {
             IsAntialias = true,
             TextSize = 12,
-            Color = SKColors.Black
+            Color = SKColors.Black,
+            Typeface = SKTypeface.FromFamilyName(FontHelper.GetCjkFamilyName()),
         };
 
         DrawLabels(canvas, _root, textPaint);

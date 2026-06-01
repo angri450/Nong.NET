@@ -70,7 +70,8 @@ public class FlowchartRenderer : IRenderer
         {
             IsAntialias = true,
             TextSize = 14,
-            TextAlign = SKTextAlign.Center
+            TextAlign = SKTextAlign.Center,
+            Typeface = SKTypeface.FromFamilyName(FontHelper.GetCjkFamilyName()),
         };
 
         foreach (var node in _graph.Nodes)
