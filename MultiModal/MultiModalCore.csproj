@@ -6,7 +6,7 @@
     <RootNamespace>MultiModalCore</RootNamespace>
     <AssemblyName>Angri450.Nong.MultiModal</AssemblyName>
     <PackageId>Angri450.Nong.MultiModal</PackageId>
-    <Version>3.0.0</Version>
+    <Version>3.0.1</Version>
     <Authors>angri450</Authors>
     <Description>多模态文档处理库 — OCR、语音转文字、文字转语音。首个能力：PaddleOCR-VL-1.6 云端 API + 本地 PaddleOCR CPU 混合识别。</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
