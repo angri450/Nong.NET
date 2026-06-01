@@ -39,9 +39,23 @@ SkillManager → YamlDotNet (NuGet, 独立, CLI 工具)
 ## 开发约定
 
 ### 版本号
-- 全部 9 个包使用**同一版本号**（当前 3.0.1）
-- 发版时：改所有 `*.csproj` 的 `<Version>` → `dotnet build -c Release` → `dotnet pack` → `dotnet nuget push` → `gh release create`
-- GitHub Release 和 NuGet 版本同步
+- 当前大版本: **3.x.x**
+- 大版本号（3）全局统一，小版本号（x.x）各包独立
+- 改一个包 → 只 bump 那个包的次版本号（如 3.0.1 → 3.0.2）→ 只推送那个包
+- 大版本升级（3.x → 4.0.0）时才全部统一更新
+- 不要为了小改动 bump 全部 9 个包
+
+### NuGet 发布流程（单包更新）
+改一个包的代码后，按顺序：
+1. 改 `<Version>`（如 `3.0.1` → `3.0.2`）
+2. `dotnet build <那个项目>.csproj -c Release`
+3. `dotnet pack <那个项目>.csproj -c Release -o nupkg/ --no-build`
+4. `dotnet nuget push nupkg/<包名>.<新版>.nupkg --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json`
+5. `gh release create v<新版> nupkg/<包名>.<新版>.nupkg --title "v<新版>" --notes "<改动说明>" --latest`
+6. `git add -A && git commit -m "release: <包名> v<新版> — <改动摘要>" && git push`
+
+### NuGet 发布流程（大版本升级，极少用）
+全部 9 个包统一改 `<Version>` → 批量 build + pack + push → 一个 GitHub Release 包含全部 nupkg。
 
 ### 编译
 - TargetFramework: `net10.0`（向前兼容 .NET 11+）
@@ -67,3 +81,18 @@ SkillManager → YamlDotNet (NuGet, 独立, CLI 工具)
 - 不要用 Python 实现核心功能（仅 `MultiModal/scripts/ocr_local.py` 为辅助脚本）
 - 不要为第三方库创建独立的 `.csproj` — 已全部删掉，统一走 ThirdParty
 - 不要用 PowerShell 的 `-replace` 批量编辑 `.csproj` — 会损坏 XML，用 Edit 工具逐文件改
+
+## 对项目维护者的说明
+
+你不用自己写代码。告诉 Claude 要做什么，Claude 负责：
+- 写代码、修 bug、加功能
+- 改 csproj、build、pack、推送 NuGet
+- 创建 GitHub Release
+- 整理项目结构
+
+你只需要：
+- 决定方向（"加个饼图"、"发版"、"修那个 bug"）
+- 提供 API Key（NuGet 推送时）
+- 在 GitHub 网页上手动把 master 合并到 main（你想合的时候）
+
+NuGet API Key 已保存在仓库的 CLAUDE.md 之外（环境变量 `$env:NUGET_API_KEY`），Claude 推送时会自动使用。
