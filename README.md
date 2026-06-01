@@ -2,6 +2,8 @@
 
 Pure .NET scientific document generation toolkit. Zero JS dependencies.
 
+[中文说明（README.zh-CN.md）](./README.zh-CN.md)
+
 ## Packages
 
 | Package | Version | Description |

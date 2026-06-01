@@ -9,6 +9,8 @@
     <Authors>angri450</Authors>
     <Description>40 SVG scientific icons for biology, chemistry, medical, and lab equipment diagrams.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/angri450/Nong.NET</RepositoryUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
@@ -20,6 +22,10 @@
     <EmbeddedResource Include="LabEquipment\*.svg" />
     <EmbeddedResource Include="Arrows\*.svg" />
     <EmbeddedResource Include="Experimental\*.svg" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 
 </Project>
