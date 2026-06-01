@@ -12,7 +12,7 @@ internal static class FontHelper
             return _cached;
 
         // 已知中文字体候选，按优先级排列
-        string[] candidates = ["微软雅黑", "Microsoft YaHei", "Noto Sans SC", "SimHei", "SimSun", "PingFang SC"];
+        string[] candidates = ["Microsoft YaHei UI", "微软雅黑", "Microsoft YaHei", "Noto Sans SC", "SimHei", "SimSun", "PingFang SC"];
         foreach (var name in candidates)
         {
             using var tf = SKTypeface.FromFamilyName(name);

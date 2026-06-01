@@ -11,7 +11,7 @@ internal static class FontHelper
         if (_cached != null)
             return _cached;
 
-        string[] candidates = ["微软雅黑", "Microsoft YaHei", "Noto Sans SC", "SimHei", "SimSun", "PingFang SC"];
+        string[] candidates = ["Microsoft YaHei UI", "微软雅黑", "Microsoft YaHei", "Noto Sans SC", "SimHei", "SimSun", "PingFang SC"];
         foreach (var name in candidates)
         {
             using var tf = SKTypeface.FromFamilyName(name);
