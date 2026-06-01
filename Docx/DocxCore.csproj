@@ -1,12 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>DocxCore</RootNamespace>
     <AssemblyName>Angri450.Nong.Docx</AssemblyName>
     <PackageId>Angri450.Nong.Docx</PackageId>
-    <Version>3.0.1</Version>
+    <Version>3.0.2</Version>
     <Authors>angri450</Authors>
     <Description>OpenXML Word generation library with paper analysis, footnotes/endnotes, image embedding, JSON-driven formatting, and quality diagnosis. Not a COM wrapper.</Description>
     <DebugType>embedded</DebugType>

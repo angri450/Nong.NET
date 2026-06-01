@@ -1,13 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>ChartCore</RootNamespace>
     <AssemblyName>Angri450.Nong.Chart</AssemblyName>
     <PackageId>Angri450.Nong.Chart</PackageId>
-    <Version>3.0.1</Version>
+    <Version>3.0.4</Version>
     <Authors>angri450</Authors>
     <Description>Statistical chart generation for academic papers — ANOVA, Duncan MRT, publication-quality figures. ClosedXML, OpenXml SDK, ScottPlot, SkiaSharp and all dependencies merged via ThirdParty.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -16,7 +16,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ThirdParty\ThirdParty.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\ThirdParty\ThirdParty.csproj" />
   </ItemGroup>
 
   <ItemGroup>

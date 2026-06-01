@@ -275,12 +275,14 @@ public class BioIconRenderer
         using var canvas = new SKCanvas(bitmap);
         canvas.Clear(SKColors.White);
 
+        var cjkFont = SKTypeface.FromFamilyName(FontHelper.GetCjkFamilyName());
+
         using var titlePaint = new SKPaint
         {
             IsAntialias = true,
             TextSize = 24,
             Color = SKColor.Parse("#1A1A1A"),
-            Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold)
+            Typeface = SKTypeface.FromFamilyName(FontHelper.GetCjkFamilyName(), SKFontStyle.Bold)
         };
 
         using var categoryPaint = new SKPaint
@@ -288,7 +290,7 @@ public class BioIconRenderer
             IsAntialias = true,
             TextSize = 16,
             Color = SKColor.Parse("#2C5F7D"),
-            Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold)
+            Typeface = cjkFont
         };
 
         using var labelPaint = new SKPaint
@@ -296,7 +298,8 @@ public class BioIconRenderer
             IsAntialias = true,
             TextSize = 10,
             Color = SKColor.Parse("#666666"),
-            TextAlign = SKTextAlign.Center
+            TextAlign = SKTextAlign.Center,
+            Typeface = cjkFont,
         };
 
         canvas.DrawText("Bioicons Icon Sheet", width / 2 - 100, 35, titlePaint);

@@ -1,11 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <RootNamespace>Bioicons</RootNamespace>
     <AssemblyName>Bioicons</AssemblyName>
     <PackageId>Angri450.Nong.Bioicons</PackageId>
-    <Version>3.0.1</Version>
+    <Version>3.0.2</Version>
     <Authors>angri450</Authors>
     <Description>40 SVG scientific icons for biology, chemistry, medical, and lab equipment diagrams.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
