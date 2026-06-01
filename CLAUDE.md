@@ -143,12 +143,32 @@ NuGet API Key 已保存在仓库的 CLAUDE.md 之外（环境变量 `$env:NUGET_
 | `DocumentFormat.OpenXml.Generator/` | Roslyn 源生成器（分析器项目） |
 | `DocumentFormat.OpenXml.Generator.Models/` | 源生成器模型 |
 | `UnicodeTrieGenerator/` | SixLabors 用到的 Unicode 状态机 |
+| `changelog/` | 版本变更记录（NuGet 包 Agent ↔ Skill Agent 通讯） |
 | `.gitignore` | 排除 bin/obj/nupkg |
 | `CLAUDE.md` | 就是这个文件 |
 | `README.md` + `README.zh-CN.md` | 中英文仓库首页 |
 | `LICENSE` | MIT |
 
-## 已知问题与踩坑记录
+### changelog 目录约定
+
+`changelog/` 是 NuGet 包开发 Agent 与 Skill 开发 Agent 之间的**通讯桥梁**。
+
+**格式**：`changelog/YYYY-MM-DD-topic.md`
+
+**规则**：
+- 每次版本发布后，写入一个或多个 changelog 文件
+- 每个文件聚焦一个主题（TFM 变更、新功能、Bug 修复）
+- 文件名格式：`日期-主题.md`（日期为创建日期，主题用英文小写 + 连字符）
+- 文件内容包含：时间、影响包、变更类型、详细说明、技能须知
+
+**Skill Agent 职责**：
+- 每次接管时，先读取 `changelog/` 目录中比上次更新时间晚的文件
+- 根据"技能须知"更新对应 skill
+- 更新后记录已处理的文件
+
+**NuGet Agent 职责**：
+- 每次发版后，创建对应的 changelog 文件
+- 写清楚"影响哪个包"、"技能需要怎么改"
 
 1. **SkiaSharp 版本不匹配**: 源码是 m145，NuGet 本地库最高只有 m119。`SKTypeface.cs`、`SKPathBuilder.cs`、`SkiaApi.cs`、`VersionConstants.cs`、`FlowchartRenderer.cs` 已手动降级适配。
 2. **字体资源命名**: ClosedXML 的 `DefaultGraphicEngine.cs` 硬编码了资源名 `ClosedXML.Graphics.Fonts.xxx.ttf`，ThirdParty.csproj 必须用 `LogicalName` 覆盖默认的 `ThirdParty.xxx.ttf`。
