@@ -6,14 +6,14 @@
     <RootNamespace>DocxCore</RootNamespace>
     <AssemblyName>Angri450.Nong.Docx</AssemblyName>
     <PackageId>Angri450.Nong.Docx</PackageId>
-    <Version>2.0.0</Version>
+    <Version>1.0.0</Version>
     <Authors>angri450</Authors>
     <Description>OpenXML Word generation library with paper analysis, footnotes/endnotes, image embedding, JSON-driven formatting, and quality diagnosis. Not a COM wrapper.</Description>
     <DebugType>embedded</DebugType>
     <DeterministicSourcePaths>true</DeterministicSourcePaths>
-    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <RepositoryUrl>https://github.com/angri450/nong-docx</RepositoryUrl>
+    <RepositoryUrl>https://github.com/angri450/Nong.NET</RepositoryUrl>
     <PackageTags>nong agriculture docx paper word openxml document-generation thesis</PackageTags>
   </PropertyGroup>
   <ItemGroup>
