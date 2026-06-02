@@ -1,0 +1,31 @@
+﻿// Copyright (c) Six Labors.
+// Licensed under the Six Labors Split License.
+
+namespace SixLabors.ImageSharp.Processing.Processors.Normalization;
+
+/// <summary>
+/// Enumerates the different types of defined histogram equalization methods.
+/// </summary>
+public enum HistogramEqualizationMethod : int
+{
+    /// <summary>
+    /// A global histogram equalization.
+    /// </summary>
+    Global,
+
+    /// <summary>
+    /// Adaptive histogram equalization using a tile interpolation approach.
+    /// </summary>
+    AdaptiveTileInterpolation,
+
+    /// <summary>
+    /// Adaptive histogram equalization using sliding window. Slower then the tile interpolation mode, but can yield to better results.
+    /// </summary>
+    AdaptiveSlidingWindow,
+
+    /// <summary>
+    /// Adjusts the brightness levels of a particular image by scaling the
+    /// minimum and maximum values to the full brightness range.
+    /// </summary>
+    AutoLevel
+}
