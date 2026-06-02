@@ -34,7 +34,13 @@ public static class Manifest
         list.Add(new("inspect structure", "Extract paper structure", "inspect", ["paper structure"]));
         list.Add(new("inspect diagnose", "Full paper quality diagnosis", "inspect", ["paper diagnose"]));
         list.Add(new("inspect refs", "Reference analysis and risk check", "inspect", ["refs check"]));
+        list.Add(new("inspect refs resolve", "Resolve [@key] citations to [N]", "inspect", []));
+        list.Add(new("inspect refs generate", "Generate formatted reference list", "inspect", []));
         list.Add(new("inspect varplan", "Variable operationalization plan", "inspect", ["paper varplan"]));
+        list.Add(new("inspect evidence", "Evidence chain diagnosis", "inspect", []));
+        list.Add(new("inspect data-req", "Data requirements diagnosis", "inspect", []));
+        list.Add(new("inspect gap", "Gap grade assessment", "inspect", []));
+        list.Add(new("inspect semantics", "Semantic diagnosis", "inspect", []));
         list.Add(new("inspect write paper", "Generate paper from JSON spec", "inspect", ["paper write"]));
         list.Add(new("inspect write official", "Generate official document from JSON spec", "inspect", ["official write"]));
         list.Add(new("inspect write letter", "Generate letter from JSON spec", "inspect", []));

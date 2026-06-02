@@ -2,6 +2,7 @@ using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.Parsing;
 using System.Text.Json;
+using Nong.Cli.Commands;
 using Nong.Cli.Common;
 
 namespace Nong.Cli;
@@ -32,7 +33,7 @@ class Program
             if (json)
             {
                 var output = JsonOutput.Ok("commands", $"{manifest.Count} commands available", manifest);
-                Console.WriteLine(JsonSerializer.Serialize(output, new JsonSerializerOptions { WriteIndented = true }));
+                Console.WriteLine(JsonSerializer.Serialize(output, CliHelpers.JsonOpts));
             }
             else
             {
@@ -45,22 +46,85 @@ class Program
         }, jsonOpt);
         root.AddCommand(commandsCmd);
 
-        // === Register all subcommand groups ===
-        RegisterWord(root, jsonOpt);
-        RegisterInspect(root, jsonOpt);
-        RegisterChart(root, jsonOpt);
-        RegisterDiagram(root, jsonOpt);
-        RegisterExcel(root, jsonOpt);
-        RegisterPptx(root, jsonOpt);
-        RegisterOcr(root, jsonOpt);
-        RegisterIcons(root, jsonOpt);
-        RegisterGenre(root, jsonOpt);
+        // === Real command groups ===
+        root.AddCommand(WordCommands.Create(jsonOpt));
 
-        // === Workflow aliases (top-level shortcuts) ===
-        RegisterPaperAlias(root, jsonOpt);
-        RegisterRefsAlias(root, jsonOpt);
-        RegisterOfficialAlias(root, jsonOpt);
-        RegisterStatsAlias(root, jsonOpt);
+        // === Stub command groups ===
+        root.AddCommand(CreateStubGroup("inspect", "Content inspection and document writing", jsonOpt,
+            ("classify", "Classify paper type (16 types)"),
+            ("structure", "Extract paper structure"),
+            ("diagnose", "Full paper quality diagnosis"),
+            ("refs", "Reference analysis and risk check"),
+            ("varplan", "Variable operationalization plan"),
+            ("evidence", "Evidence chain diagnosis"),
+            ("data-req", "Data requirements diagnosis"),
+            ("gap", "Gap grade assessment"),
+            ("semantics", "Semantic diagnosis")
+        ));
+
+        root.AddCommand(CreateStubGroup("chart", "Statistical charts and analysis", jsonOpt,
+            ("bar", "Bar chart with error bars and significance"),
+            ("line", "Line chart"),
+            ("scatter", "Scatter plot"),
+            ("pie", "Pie chart"),
+            ("anova", "One-way ANOVA"),
+            ("duncan", "Duncan MRT post-hoc test")
+        ));
+
+        root.AddCommand(CreateStubGroup("diagram", "Scientific diagrams", jsonOpt,
+            ("flowchart", "Flowchart from JSON spec"),
+            ("network", "Network graph from JSON spec"),
+            ("tree", "Phylogenetic tree from Newick")
+        ));
+
+        root.AddCommand(CreateStubGroup("excel", "Excel spreadsheet operations", jsonOpt,
+            ("read", "Read xlsx content"),
+            ("sheets", "List worksheets"),
+            ("create", "Create blank xlsx")
+        ));
+
+        root.AddCommand(CreateStubGroup("pptx", "PowerPoint operations", jsonOpt,
+            ("read", "Extract slide text"),
+            ("slides", "List slide structure")
+        ));
+
+        root.AddCommand(CreateStubGroup("ocr", "OCR operations", jsonOpt,
+            ("local", "Local PaddleOCR"),
+            ("cloud", "Cloud PaddleOCR-VL")
+        ));
+
+        root.AddCommand(CreateStubGroup("icons", "Bioicons operations", jsonOpt,
+            ("list", "List all Bioicons"),
+            ("search", "Search Bioicons")
+        ));
+
+        root.AddCommand(CreateStubGroup("genre", "Format template library", jsonOpt,
+            ("list", "List format templates"),
+            ("show", "Show template content")
+        ));
+
+        // === Workflow aliases ===
+        root.AddCommand(CreateStubGroup("paper", "Paper operations (alias: inspect)", jsonOpt,
+            ("classify", "Classify paper type"),
+            ("structure", "Extract paper structure"),
+            ("diagnose", "Full paper quality diagnosis"),
+            ("varplan", "Variable operationalization plan"),
+            ("write", "Generate paper from JSON spec")
+        ));
+
+        root.AddCommand(CreateStubGroup("refs", "Reference operations (alias: inspect refs)", jsonOpt,
+            ("check", "Reference analysis and risk check")
+        ));
+
+        root.AddCommand(CreateStubGroup("official", "Official document operations", jsonOpt,
+            ("write", "Generate official document"),
+            ("format", "Format docx to GB/T 9704 standard")
+        ));
+
+        root.AddCommand(CreateStubGroup("stats", "Statistical operations (alias: chart)", jsonOpt,
+            ("anova", "One-way ANOVA"),
+            ("duncan", "Duncan MRT")
+        ));
 
         var builder = new CommandLineBuilder(root)
             .UseDefaults()
@@ -68,197 +132,16 @@ class Program
         return await builder.InvokeAsync(args);
     }
 
-    // ===== Word =====
-
-    static void RegisterWord(RootCommand root, Option<bool> jsonOpt)
-    {
-        var cmd = new Command("word", "Word document operations");
-        AddEmptySub(cmd, "read", "Extract plain text from a .docx file", jsonOpt);
-        AddEmptySub(cmd, "preview", "7-step document structure diagnostic", jsonOpt);
-        AddEmptySub(cmd, "extract", "Extract embedded images", jsonOpt);
-        AddEmptySub(cmd, "dissect", "Format fingerprint to JSON", jsonOpt);
-        AddEmptySub(cmd, "rebuild", "Clean OOXML style pollution", jsonOpt);
-        AddEmptySub(cmd, "fill", "Template fill from JSON data", jsonOpt);
-        AddEmptySub(cmd, "stats", "Document statistics", jsonOpt);
-        AddEmptySub(cmd, "fonts", "List all fonts", jsonOpt);
-        AddEmptySub(cmd, "styles", "List all style definitions", jsonOpt);
-        AddEmptySub(cmd, "validate", "OOXML schema validation", jsonOpt);
-        AddEmptySub(cmd, "merge", "Merge two docx files", jsonOpt);
-        root.AddCommand(cmd);
-    }
-
-    // ===== Inspect =====
-
-    static void RegisterInspect(RootCommand root, Option<bool> jsonOpt)
-    {
-        var cmd = new Command("inspect", "Content inspection and document writing");
-        AddEmptySub(cmd, "classify", "Classify paper type (16 types)", jsonOpt);
-        AddEmptySub(cmd, "structure", "Extract paper structure", jsonOpt);
-        AddEmptySub(cmd, "diagnose", "Full paper quality diagnosis", jsonOpt);
-        AddEmptySub(cmd, "refs", "Reference analysis and risk check", jsonOpt);
-        AddEmptySub(cmd, "varplan", "Variable operationalization plan", jsonOpt);
-        AddEmptySub(cmd, "evidence", "Evidence chain diagnosis", jsonOpt);
-        AddEmptySub(cmd, "data-req", "Data requirements diagnosis", jsonOpt);
-        AddEmptySub(cmd, "gap", "Gap grade assessment", jsonOpt);
-        AddEmptySub(cmd, "semantics", "Semantic diagnosis", jsonOpt);
-        root.AddCommand(cmd);
-
-        // inspect write subcommands
-        var writeCmd = new Command("write", "Generate documents from JSON spec");
-        AddEmptySub(writeCmd, "paper", "Generate paper docx from JSON spec", jsonOpt);
-        AddEmptySub(writeCmd, "official", "Generate official document docx from JSON spec", jsonOpt);
-        AddEmptySub(writeCmd, "letter", "Generate letter docx from JSON spec", jsonOpt);
-        cmd.AddCommand(writeCmd);
-
-        // inspect refs subcommands
-        var refsCmd = cmd.Subcommands.First(c => c.Name == "refs");
-        AddEmptySub(refsCmd, "resolve", "Resolve [@key] citations to [N]", jsonOpt);
-        AddEmptySub(refsCmd, "generate", "Generate formatted reference list", jsonOpt);
-    }
-
-    // ===== Chart =====
-
-    static void RegisterChart(RootCommand root, Option<bool> jsonOpt)
-    {
-        var cmd = new Command("chart", "Statistical charts and analysis");
-        AddEmptySub(cmd, "bar", "Bar chart with error bars and significance", jsonOpt);
-        AddEmptySub(cmd, "line", "Line chart", jsonOpt);
-        AddEmptySub(cmd, "scatter", "Scatter plot", jsonOpt);
-        AddEmptySub(cmd, "pie", "Pie chart", jsonOpt);
-        AddEmptySub(cmd, "anova", "One-way ANOVA", jsonOpt);
-        AddEmptySub(cmd, "duncan", "Duncan MRT post-hoc test", jsonOpt);
-        root.AddCommand(cmd);
-    }
-
-    // ===== Diagram =====
-
-    static void RegisterDiagram(RootCommand root, Option<bool> jsonOpt)
-    {
-        var cmd = new Command("diagram", "Scientific diagrams");
-        AddEmptySub(cmd, "flowchart", "Flowchart from JSON spec", jsonOpt);
-        AddEmptySub(cmd, "network", "Network graph from JSON spec", jsonOpt);
-        AddEmptySub(cmd, "tree", "Phylogenetic tree from Newick", jsonOpt);
-        root.AddCommand(cmd);
-    }
-
-    // ===== Excel =====
-
-    static void RegisterExcel(RootCommand root, Option<bool> jsonOpt)
-    {
-        var cmd = new Command("excel", "Excel spreadsheet operations");
-        AddEmptySub(cmd, "read", "Read xlsx content", jsonOpt);
-        AddEmptySub(cmd, "sheets", "List worksheets", jsonOpt);
-        AddEmptySub(cmd, "create", "Create blank xlsx", jsonOpt);
-        root.AddCommand(cmd);
-    }
-
-    // ===== Pptx =====
-
-    static void RegisterPptx(RootCommand root, Option<bool> jsonOpt)
-    {
-        var cmd = new Command("pptx", "PowerPoint operations");
-        AddEmptySub(cmd, "read", "Extract slide text", jsonOpt);
-        AddEmptySub(cmd, "slides", "List slide structure", jsonOpt);
-        root.AddCommand(cmd);
-    }
-
-    // ===== OCR =====
-
-    static void RegisterOcr(RootCommand root, Option<bool> jsonOpt)
-    {
-        var cmd = new Command("ocr", "OCR operations");
-        AddEmptySub(cmd, "local", "Local PaddleOCR", jsonOpt);
-        AddEmptySub(cmd, "cloud", "Cloud PaddleOCR-VL", jsonOpt);
-        root.AddCommand(cmd);
-    }
-
-    // ===== Icons =====
-
-    static void RegisterIcons(RootCommand root, Option<bool> jsonOpt)
-    {
-        var cmd = new Command("icons", "Bioicons operations");
-        AddEmptySub(cmd, "list", "List all Bioicons", jsonOpt);
-        AddEmptySub(cmd, "search", "Search Bioicons", jsonOpt);
-        root.AddCommand(cmd);
-    }
-
-    // ===== Genre =====
-
-    static void RegisterGenre(RootCommand root, Option<bool> jsonOpt)
-    {
-        var cmd = new Command("genre", "Format template library");
-        AddEmptySub(cmd, "list", "List format templates", jsonOpt);
-        AddEmptySub(cmd, "show", "Show template content", jsonOpt);
-        root.AddCommand(cmd);
-    }
-
-    // ===== Workflow Aliases =====
-
-    static void RegisterPaperAlias(RootCommand root, Option<bool> jsonOpt)
-    {
-        var cmd = new Command("paper", "Paper operations (alias: inspect)");
-        AddEmptySub(cmd, "classify", "Classify paper type", jsonOpt);
-        AddEmptySub(cmd, "structure", "Extract paper structure", jsonOpt);
-        AddEmptySub(cmd, "diagnose", "Full paper quality diagnosis", jsonOpt);
-        AddEmptySub(cmd, "varplan", "Variable operationalization plan", jsonOpt);
-        AddEmptySub(cmd, "write", "Generate paper from JSON spec", jsonOpt);
-        root.AddCommand(cmd);
-    }
-
-    static void RegisterRefsAlias(RootCommand root, Option<bool> jsonOpt)
-    {
-        var cmd = new Command("refs", "Reference operations (alias: inspect refs)");
-        AddEmptySub(cmd, "check", "Reference analysis and risk check", jsonOpt);
-        root.AddCommand(cmd);
-    }
-
-    static void RegisterOfficialAlias(RootCommand root, Option<bool> jsonOpt)
-    {
-        var cmd = new Command("official", "Official document operations (alias: inspect)");
-        AddEmptySub(cmd, "write", "Generate official document", jsonOpt);
-        AddEmptySub(cmd, "format", "Format docx to GB/T 9704 standard", jsonOpt);
-        root.AddCommand(cmd);
-    }
-
-    static void RegisterStatsAlias(RootCommand root, Option<bool> jsonOpt)
-    {
-        var cmd = new Command("stats", "Statistical operations (alias: chart)");
-        AddEmptySub(cmd, "anova", "One-way ANOVA", jsonOpt);
-        AddEmptySub(cmd, "duncan", "Duncan MRT", jsonOpt);
-        root.AddCommand(cmd);
-    }
-
-    // ===== Helper =====
-
-    static void AddEmptySub(Command parent, string name, string description, Option<bool> jsonOpt)
+    static Command CreateStubGroup(string name, string description, Option<bool> jsonOpt,
+        params (string name, string desc)[] subs)
     {
         var cmd = new Command(name, description);
-        cmd.SetHandler((bool json) =>
+        foreach (var (n, d) in subs)
         {
-            if (json)
-            {
-                var output = JsonOutput.Ok(
-                    $"{GetFullName(cmd)}",
-                    $"(not yet implemented) {description}");
-                Console.WriteLine(JsonSerializer.Serialize(output, new JsonSerializerOptions { WriteIndented = true }));
-            }
-            else
-            {
-                Console.WriteLine($"[nong {GetFullName(cmd)}] Not yet implemented. {description}");
-            }
-        }, jsonOpt);
-        parent.AddCommand(cmd);
-    }
-
-    static string GetFullName(Command cmd)
-    {
-        var parts = new List<string>();
-        var current = cmd;
-        while (current != null && current is not RootCommand)
-        {
-            parts.Insert(0, current.Name);
-            current = current.Parents.OfType<Command>().FirstOrDefault();
+            var sub = new Command(n, d);
+            CliHelpers.SetNotImplemented(sub, d, jsonOpt);
+            cmd.AddCommand(sub);
         }
-        return string.Join(" ", parts);
+        return cmd;
     }
 }
