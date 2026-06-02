@@ -31,4 +31,4 @@ StyleBuilder.BuildFromJson(styles, doc.RootElement);
 
 ## License
 
-MIT
+Apache-2.0
