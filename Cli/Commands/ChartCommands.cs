@@ -14,12 +14,13 @@ public static class ChartCommands
     {
         var cmd = new Command("chart", "Statistical charts and analysis");
 
+        cmd.AddCommand(CreateAnalyze(jsonOpt));
         cmd.AddCommand(CreateAnova(jsonOpt));
         cmd.AddCommand(CreateDuncan(jsonOpt));
+        cmd.AddCommand(CreateBarChart(jsonOpt));
 
         var stubs = new (string name, string desc)[]
         {
-            ("bar", "Bar chart with error bars and significance"),
             ("line", "Line chart"),
             ("scatter", "Scatter plot"),
             ("pie", "Pie chart"),
@@ -171,6 +172,151 @@ public static class ChartCommands
 
             Environment.ExitCode = 0;
         }, fileArg, alphaOpt, jsonOpt);
+
+        return cmd;
+    }
+
+    // ===== chart analyze (P0: one-shot ANOVA + Duncan + stats) =====
+
+    static Command CreateAnalyze(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to data file (.json)");
+        var alphaOpt = new Option<double>("--alpha", () => 0.05, "Significance level");
+        var cmd = new Command("analyze", "Full statistical analysis (ANOVA + Duncan + descriptive stats)") { fileArg, alphaOpt };
+
+        cmd.SetHandler((string file, double alpha, bool json) =>
+        {
+            var err = CliHelpers.ValidateTextFile(file);
+            if (err != null) { Environment.ExitCode = CliHelpers.WriteError("chart analyze", err, json); return; }
+
+            try
+            {
+                var (result, elapsed) = CliHelpers.Time(() =>
+                {
+                    var groups = DataLoader.FromJson(file);
+                    return StatsEngine.FullAnalysis(groups, alpha);
+                });
+
+                if (json)
+                {
+                    var data = new
+                    {
+                        anova = new
+                        {
+                            f = result.Anova.F, p = result.Anova.P,
+                            ssb = result.Anova.SSB, ssw = result.Anova.SSW,
+                            msb = result.Anova.MSB, msw = result.Anova.MSW,
+                            dfb = result.Anova.dfB, dfw = result.Anova.dfW
+                        },
+                        duncan = new
+                        {
+                            alpha = result.Duncan.Alpha,
+                            mse = result.Duncan.MSE,
+                            dfError = result.Duncan.dfError,
+                            groups = result.Duncan.Groups.Select(g => new
+                            {
+                                label = g.Label, mean = g.Mean, sd = g.SD,
+                                significance = g.Significance
+                            })
+                        },
+                        groups = result.Anova.GroupStats.Select(g => new
+                        {
+                            name = g.Key, n = g.Value.N, mean = g.Value.Mean,
+                            sd = g.Value.SD, sem = g.Value.SEM, min = g.Value.Min, max = g.Value.Max
+                        })
+                    };
+
+                    var sigGroups = string.Join(", ", result.Duncan.Groups.Select(g => $"{g.Label}{g.Significance}"));
+                    var output = JsonOutput.Ok("chart analyze",
+                        $"F={result.Anova.F:F2}, P={result.Anova.P:F4}, Duncan groups: {sigGroups}", data);
+                    output.Meta.DurationMs = elapsed;
+                    Console.WriteLine(JsonSerializer.Serialize(output, CliHelpers.JsonOpts));
+                }
+                else
+                {
+                    result.Print();
+                }
+            }
+            catch (Exception ex)
+            {
+                Environment.ExitCode = CliHelpers.WriteError("chart analyze",
+                    ErrorCodes.InternalError with { Message = ex.Message }, json);
+            }
+
+            Environment.ExitCode = 0;
+        }, fileArg, alphaOpt, jsonOpt);
+
+        return cmd;
+    }
+
+    // ===== chart bar (P0: bar chart with error bars and significance) =====
+
+    static Command CreateBarChart(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to data file (.json)");
+        var outOpt = new Option<string>("-o", "Output PNG path") { IsRequired = true };
+        var titleOpt = new Option<string>("--title", () => "", "Chart title");
+        var ylabelOpt = new Option<string>("--ylabel", () => "", "Y-axis label");
+        var errorOpt = new Option<string>("--error", () => "sem", "Error bar type: sd, sem, or none");
+        var noSigOpt = new Option<bool>("--no-significance", () => false, "Disable Duncan significance letters");
+        var cmd = new Command("bar", "Bar chart with error bars and significance letters") { fileArg, outOpt, titleOpt, ylabelOpt, errorOpt, noSigOpt };
+
+        cmd.SetHandler((string file, string output, string title, string ylabel, string error, bool noSig, bool json) =>
+        {
+            var err = CliHelpers.ValidateTextFile(file);
+            if (err != null) { Environment.ExitCode = CliHelpers.WriteError("chart bar", err, json); return; }
+
+            try
+            {
+                var showError = error != "none";
+                var showSem = error == "sem";
+
+                var (result, elapsed) = CliHelpers.Time(() =>
+                {
+                    var groups = DataLoader.FromJson(file);
+
+                    // Run Duncan for significance letters if enabled
+                    Dictionary<string, string>? sigLabels = null;
+                    if (!noSig)
+                    {
+                        var anova = StatsEngine.OneWayAnova(groups);
+                        if (anova.P < 0.05)
+                        {
+                            var duncan = StatsEngine.DuncanMRT(groups, anova.MSW, anova.dfW, 0.05);
+                            sigLabels = duncan.Groups.ToDictionary(g => g.Label, g => g.Significance);
+                        }
+                    }
+
+                    if (sigLabels != null)
+                        ChartBuilder.BarChartWithSignificance(groups, sigLabels, title, ylabel, output, colors: null, width: 800, height: 600);
+                    else
+                        ChartBuilder.BarChart(groups, title, ylabel, output, colors: null, width: 800, height: 600, showErrorBar: showError, showGrid: true);
+
+                    return (groups.Count, sigLabels);
+                });
+
+                if (json)
+                {
+                    var outputJson = JsonOutput.Ok("chart bar",
+                        $"Bar chart saved: {output}",
+                        new { groups = result.Count, hasSignificance = result.sigLabels != null });
+                    outputJson.Artifacts["png"] = Path.GetFullPath(output);
+                    outputJson.Meta.DurationMs = elapsed;
+                    Console.WriteLine(JsonSerializer.Serialize(outputJson, CliHelpers.JsonOpts));
+                }
+                else
+                {
+                    Console.WriteLine($"Bar chart saved: {Path.GetFullPath(output)}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Environment.ExitCode = CliHelpers.WriteError("chart bar",
+                    ErrorCodes.InternalError with { Message = ex.Message }, json);
+            }
+
+            Environment.ExitCode = 0;
+        }, fileArg, outOpt, titleOpt, ylabelOpt, errorOpt, noSigOpt, jsonOpt);
 
         return cmd;
     }
