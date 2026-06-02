@@ -32,6 +32,18 @@ public static class CliHelpers
     }
 
     /// <summary>
+    /// Validate that a file path is a real .txt file.
+    /// </summary>
+    public static ErrorEntry? ValidateTextFile(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return ErrorCodes.MissingArgument with { Message = "File path is required." };
+        if (!File.Exists(path))
+            return ErrorCodes.FileNotFound with { Message = $"File not found: {path}" };
+        return null;
+    }
+
+    /// <summary>
     /// Write a JSON error response to stdout and return exit code 1.
     /// </summary>
     public static int WriteError(string command, ErrorEntry error, bool json)

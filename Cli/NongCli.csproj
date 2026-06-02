@@ -24,6 +24,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Docx\DocxCore.csproj" />
     <ProjectReference Include="..\Inspect\Inspect.csproj" />
+    <ProjectReference Include="..\Chart\ChartCore.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="/" />

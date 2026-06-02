@@ -48,29 +48,10 @@ class Program
 
         // === Real command groups ===
         root.AddCommand(WordCommands.Create(jsonOpt));
+        root.AddCommand(InspectCommands.Create(jsonOpt));
+        root.AddCommand(ChartCommands.Create(jsonOpt));
 
         // === Stub command groups ===
-        root.AddCommand(CreateStubGroup("inspect", "Content inspection and document writing", jsonOpt,
-            ("classify", "Classify paper type (16 types)"),
-            ("structure", "Extract paper structure"),
-            ("diagnose", "Full paper quality diagnosis"),
-            ("refs", "Reference analysis and risk check"),
-            ("varplan", "Variable operationalization plan"),
-            ("evidence", "Evidence chain diagnosis"),
-            ("data-req", "Data requirements diagnosis"),
-            ("gap", "Gap grade assessment"),
-            ("semantics", "Semantic diagnosis")
-        ));
-
-        root.AddCommand(CreateStubGroup("chart", "Statistical charts and analysis", jsonOpt,
-            ("bar", "Bar chart with error bars and significance"),
-            ("line", "Line chart"),
-            ("scatter", "Scatter plot"),
-            ("pie", "Pie chart"),
-            ("anova", "One-way ANOVA"),
-            ("duncan", "Duncan MRT post-hoc test")
-        ));
-
         root.AddCommand(CreateStubGroup("diagram", "Scientific diagrams", jsonOpt,
             ("flowchart", "Flowchart from JSON spec"),
             ("network", "Network graph from JSON spec"),
@@ -104,7 +85,7 @@ class Program
         ));
 
         // === Workflow aliases ===
-        root.AddCommand(CreateStubGroup("paper", "Paper operations (alias: inspect)", jsonOpt,
+        root.AddCommand(CreateStubGroup("paper", "Paper operations (use: nong inspect <cmd>)", jsonOpt,
             ("classify", "Classify paper type"),
             ("structure", "Extract paper structure"),
             ("diagnose", "Full paper quality diagnosis"),
@@ -112,7 +93,7 @@ class Program
             ("write", "Generate paper from JSON spec")
         ));
 
-        root.AddCommand(CreateStubGroup("refs", "Reference operations (alias: inspect refs)", jsonOpt,
+        root.AddCommand(CreateStubGroup("refs", "Reference operations (use: nong inspect refs)", jsonOpt,
             ("check", "Reference analysis and risk check")
         ));
 
@@ -121,7 +102,7 @@ class Program
             ("format", "Format docx to GB/T 9704 standard")
         ));
 
-        root.AddCommand(CreateStubGroup("stats", "Statistical operations (alias: chart)", jsonOpt,
+        root.AddCommand(CreateStubGroup("stats", "Statistical operations (use: nong chart <cmd>)", jsonOpt,
             ("anova", "One-way ANOVA"),
             ("duncan", "Duncan MRT")
         ));
