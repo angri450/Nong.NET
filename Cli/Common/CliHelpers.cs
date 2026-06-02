@@ -88,6 +88,15 @@ public static class CliHelpers
         return (result, sw.ElapsedMilliseconds);
     }
 
+    /// <summary>Time a void action, return elapsed ms.</summary>
+    public static long Time(Action action)
+    {
+        var sw = Stopwatch.StartNew();
+        action();
+        sw.Stop();
+        return sw.ElapsedMilliseconds;
+    }
+
     /// <summary>
     /// Shorthand to add a not-implemented handler to a command.
     /// </summary>

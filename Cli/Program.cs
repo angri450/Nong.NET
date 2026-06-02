@@ -50,38 +50,16 @@ class Program
         root.AddCommand(WordCommands.Create(jsonOpt));
         root.AddCommand(InspectCommands.Create(jsonOpt));
         root.AddCommand(ChartCommands.Create(jsonOpt));
+        root.AddCommand(ExcelCommands.Create(jsonOpt));
+        root.AddCommand(DiagramCommands.Create(jsonOpt));
+        root.AddCommand(PptxCommands.Create(jsonOpt));
+        root.AddCommand(GenreCommands.Create(jsonOpt));
+        root.AddCommand(IconsCommands.Create(jsonOpt));
 
         // === Stub command groups ===
-        root.AddCommand(CreateStubGroup("diagram", "Scientific diagrams", jsonOpt,
-            ("flowchart", "Flowchart from JSON spec"),
-            ("network", "Network graph from JSON spec"),
-            ("tree", "Phylogenetic tree from Newick")
-        ));
-
-        root.AddCommand(CreateStubGroup("excel", "Excel spreadsheet operations", jsonOpt,
-            ("read", "Read xlsx content"),
-            ("sheets", "List worksheets"),
-            ("create", "Create blank xlsx")
-        ));
-
-        root.AddCommand(CreateStubGroup("pptx", "PowerPoint operations", jsonOpt,
-            ("read", "Extract slide text"),
-            ("slides", "List slide structure")
-        ));
-
         root.AddCommand(CreateStubGroup("ocr", "OCR operations", jsonOpt,
             ("local", "Local PaddleOCR"),
             ("cloud", "Cloud PaddleOCR-VL")
-        ));
-
-        root.AddCommand(CreateStubGroup("icons", "Bioicons operations", jsonOpt,
-            ("list", "List all Bioicons"),
-            ("search", "Search Bioicons")
-        ));
-
-        root.AddCommand(CreateStubGroup("genre", "Format template library", jsonOpt,
-            ("list", "List format templates"),
-            ("show", "Show template content")
         ));
 
         // === Workflow aliases ===

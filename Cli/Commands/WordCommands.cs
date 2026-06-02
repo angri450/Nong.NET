@@ -18,13 +18,15 @@ public static class WordCommands
         cmd.AddCommand(CreateRead(jsonOpt));
         cmd.AddCommand(CreatePreview(jsonOpt));
 
+        // === Real commands (phase 6) ===
+        cmd.AddCommand(CreateFill(jsonOpt));
+        cmd.AddCommand(CreateRebuild(jsonOpt));
+
         // === Stub commands ===
         var stubs = new (string name, string desc)[]
         {
             ("extract", "Extract embedded images"),
             ("dissect", "Format fingerprint to JSON"),
-            ("rebuild", "Clean OOXML style pollution"),
-            ("fill", "Template fill from JSON data"),
             ("stats", "Document statistics"),
             ("fonts", "List all fonts"),
             ("styles", "List all style definitions"),
@@ -164,6 +166,96 @@ public static class WordCommands
 
             Environment.ExitCode = 0;
         }, fileArg, jsonOpt);
+
+        return cmd;
+    }
+
+    // ===== word fill (phase 6) =====
+
+    static Command CreateFill(Option<bool> jsonOpt)
+    {
+        var tmplArg = new Argument<string>("template", "Path to template .docx");
+        var dataArg = new Argument<string>("data", "Path to data .json");
+        var outOpt = new Option<string>("-o", "Output path") { IsRequired = true };
+        var cmd = new Command("fill", "Template fill from JSON data") { tmplArg, dataArg, outOpt };
+
+        cmd.SetHandler((string template, string data, string output, bool json) =>
+        {
+            var err = CliHelpers.ValidateDocxFile(template) ?? CliHelpers.ValidateTextFile(data);
+            if (err != null) { Environment.ExitCode = CliHelpers.WriteError("word fill", err, json); return; }
+
+            try
+            {
+                var dataObj = JsonSerializer.Deserialize<Dictionary<string, object>>(File.ReadAllText(data));
+                var elapsed = CliHelpers.Time(() =>
+                    DocxCore.DocxTemplate.Fill(template, output, dataObj!));
+
+                if (json)
+                {
+                    var outputJson = JsonOutput.Ok("word fill", $"Filled template: {output}");
+                    outputJson.Artifacts["docx"] = Path.GetFullPath(output);
+                    outputJson.Meta.DurationMs = elapsed;
+                    Console.WriteLine(JsonSerializer.Serialize(outputJson, CliHelpers.JsonOpts));
+                }
+                else
+                {
+                    Console.WriteLine($"OK: {Path.GetFullPath(output)}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Environment.ExitCode = CliHelpers.WriteError("word fill",
+                    ErrorCodes.InternalError with { Message = ex.Message }, json);
+            }
+
+            Environment.ExitCode = 0;
+        }, tmplArg, dataArg, outOpt, jsonOpt);
+
+        return cmd;
+    }
+
+    // ===== word rebuild (phase 6) =====
+
+    static Command CreateRebuild(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to .docx file");
+        var outOpt = new Option<string>("-o", "Output path") { IsRequired = true };
+        var cmd = new Command("rebuild", "Clean OOXML style pollution") { fileArg, outOpt };
+
+        cmd.SetHandler((string file, string output, bool json) =>
+        {
+            var err = CliHelpers.ValidateDocxFile(file);
+            if (err != null) { Environment.ExitCode = CliHelpers.WriteError("word rebuild", err, json); return; }
+
+            try
+            {
+                File.Copy(file, output, true);
+                var elapsed = CliHelpers.Time(() =>
+                {
+                    using var doc = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(output, true);
+                    DocxCore.StyleRebuilder.RebuildAllParagraphs(doc);
+                });
+
+                if (json)
+                {
+                    var outputJson = JsonOutput.Ok("word rebuild", $"Rebuilt: {output}");
+                    outputJson.Artifacts["docx"] = Path.GetFullPath(output);
+                    outputJson.Meta.DurationMs = elapsed;
+                    Console.WriteLine(JsonSerializer.Serialize(outputJson, CliHelpers.JsonOpts));
+                }
+                else
+                {
+                    Console.WriteLine($"OK: {Path.GetFullPath(output)}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Environment.ExitCode = CliHelpers.WriteError("word rebuild",
+                    ErrorCodes.InternalError with { Message = ex.Message }, json);
+            }
+
+            Environment.ExitCode = 0;
+        }, fileArg, outOpt, jsonOpt);
 
         return cmd;
     }

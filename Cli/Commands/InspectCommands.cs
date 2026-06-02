@@ -16,6 +16,7 @@ public static class InspectCommands
 
         cmd.AddCommand(CreateDiagnose(jsonOpt));
         cmd.AddCommand(CreateRefsCheck(jsonOpt));
+        cmd.AddCommand(CreateWritePaper(jsonOpt));
 
         var stubs = new (string name, string desc)[]
         {
@@ -284,5 +285,94 @@ public static class InspectCommands
             refs.Count, refRisks,
             text.Length
         );
+    }
+
+    // ===== inspect write paper (phase 6) =====
+
+    static Command CreateWritePaper(Option<bool> jsonOpt)
+    {
+        var specArg = new Argument<string>("spec", "Path to paper spec JSON");
+        var outOpt = new Option<string>("-o", "Output docx path") { IsRequired = true };
+        var cmd = new Command("write-paper", "Generate paper docx from JSON spec") { specArg, outOpt };
+
+        cmd.SetHandler((string spec, string output, bool json) =>
+        {
+            var err = CliHelpers.ValidateTextFile(spec);
+            if (err != null) { Environment.ExitCode = CliHelpers.WriteError("inspect write paper", err, json); return; }
+
+            try
+            {
+                var elapsed = CliHelpers.Time(() =>
+                {
+                    var specJson = File.ReadAllText(spec);
+                    using var docEl = JsonDocument.Parse(specJson);
+                    var root = docEl.RootElement;
+
+                    using var doc = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Create(output,
+                        DocumentFormat.OpenXml.WordprocessingDocumentType.Document);
+                    var main = doc.AddMainDocumentPart();
+                    main.Document = new DocumentFormat.OpenXml.Wordprocessing.Document(
+                        new DocumentFormat.OpenXml.Wordprocessing.Body());
+                    var body = main.Document.Body!;
+
+                    var sp = main.AddNewPart<DocumentFormat.OpenXml.Packaging.StyleDefinitionsPart>();
+                    sp.Styles = new DocumentFormat.OpenXml.Wordprocessing.Styles();
+                    Gbt7714Style.BuildAll(sp.Styles);
+
+                    var np = main.AddNewPart<DocumentFormat.OpenXml.Packaging.NumberingDefinitionsPart>();
+                    np.Numbering = new DocumentFormat.OpenXml.Wordprocessing.Numbering();
+                    Gbt7714Style.BuildNumbering(np.Numbering);
+
+                    var w = new PaperWriter(body, doc);
+                    if (root.TryGetProperty("title", out var t)) w.Title(t.GetString()!);
+                    if (root.TryGetProperty("abstract", out var a)) { w.AbstractTitle(); w.Abstract(a.GetString()!); }
+                    if (root.TryGetProperty("keywords", out var kw)) w.Keywords(kw.GetString()!);
+
+                    if (root.TryGetProperty("sections", out var secs))
+                    {
+                        foreach (var sec in secs.EnumerateArray())
+                        {
+                            var heading = sec.GetProperty("heading").GetString()!;
+                            var level = sec.TryGetProperty("level", out var l) ? l.GetInt32() : 1;
+                            w.Heading(heading, level);
+                            if (sec.TryGetProperty("body", out var bodyArr))
+                            {
+                                foreach (var bp in bodyArr.EnumerateArray())
+                                    w.Body(bp.GetString()!);
+                            }
+                        }
+                    }
+
+                    if (root.TryGetProperty("references", out var refs))
+                    {
+                        w.BibHeading();
+                        w.References(refs.EnumerateArray().Select(r => r.GetString()!).ToArray());
+                    }
+
+                    main.Document.Save();
+                });
+
+                if (json)
+                {
+                    var outputJson = JsonOutput.Ok("inspect write paper", $"Paper saved: {output}");
+                    outputJson.Artifacts["docx"] = Path.GetFullPath(output);
+                    outputJson.Meta.DurationMs = elapsed;
+                    Console.WriteLine(JsonSerializer.Serialize(outputJson, CliHelpers.JsonOpts));
+                }
+                else
+                {
+                    Console.WriteLine($"OK: {Path.GetFullPath(output)}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Environment.ExitCode = CliHelpers.WriteError("inspect write paper",
+                    ErrorCodes.InternalError with { Message = ex.Message }, json);
+            }
+
+            Environment.ExitCode = 0;
+        }, specArg, outOpt, jsonOpt);
+
+        return cmd;
     }
 }
