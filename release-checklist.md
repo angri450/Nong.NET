@@ -65,3 +65,7 @@ Date: 2026-06-03
 | nong icons search | 8 |
 
 **20 real commands across 8 groups.**
+
+Note: pptx read is a stub (not counted). PptxCore needs further adaptation.
+
+Naming: `inspect write-paper` (with hyphen) is the canonical name, consistent with AGENT.md and commands --json.

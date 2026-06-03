@@ -41,7 +41,7 @@ public static class Manifest
         list.Add(new("inspect data-req", "Data requirements diagnosis", "inspect", []));
         list.Add(new("inspect gap", "Gap grade assessment", "inspect", []));
         list.Add(new("inspect semantics", "Semantic diagnosis", "inspect", []));
-        list.Add(new("inspect write paper", "Generate paper from JSON spec", "inspect", ["paper write"]));
+        list.Add(new("inspect write-paper", "Generate paper from JSON spec", "inspect", ["paper write"]));
         list.Add(new("inspect write official", "Generate official document from JSON spec", "inspect", ["official write"]));
         list.Add(new("inspect write letter", "Generate letter from JSON spec", "inspect", []));
         list.Add(new("official format", "Format docx to GB/T 9704 standard", "inspect", []));
