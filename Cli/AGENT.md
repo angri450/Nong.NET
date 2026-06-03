@@ -27,6 +27,9 @@ Use this first in any session to know what's available.
 | `diagram flowchart/network` | spec .json |
 | `genre list/show` | N/A |
 | `icons list/search` | N/A |
+| `skill validate/scan/inventory/package` | directory path |
+
+**Note:** Use `nong skill` instead of the deprecated `skill-manager` global tool.
 
 ## Groups JSON Format
 
@@ -69,6 +72,7 @@ Every command with `--json` returns:
 | E006 | validation_failed | Content check failed |
 | E007 | read_failed | Could not read document |
 | E008 | write_failed | Could not write output |
+| E009 | not_implemented | Command is not yet implemented |
 
 ## Common Workflows
 
