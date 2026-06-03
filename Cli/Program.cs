@@ -68,7 +68,8 @@ class Program
         var builder = new CommandLineBuilder(root)
             .UseDefaults()
             .Build();
-        return await builder.InvokeAsync(args);
+        var code = await builder.InvokeAsync(args);
+        return Environment.ExitCode != 0 ? Environment.ExitCode : code;
     }
 
     static Command CreateStubGroup(string name, string description, Option<bool> jsonOpt,

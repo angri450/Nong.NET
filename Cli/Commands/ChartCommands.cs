@@ -131,9 +131,12 @@ public static class ChartCommands
 
             try
             {
+                var groups = DataLoader.FromJson(file);
+                var verr2 = StatsValidation.Validate(groups, "chart");
+                if (verr2 != null) { CliHelpers.WriteError("chart", verr2, json); return; }
+
                 var (result, elapsed) = CliHelpers.Time(() =>
                 {
-                    var groups = DataLoader.FromJson(file);
                     var anova = StatsEngine.OneWayAnova(groups);
                     return StatsEngine.DuncanMRT(groups, anova.MSW, anova.dfW, alpha);
                 });
@@ -195,9 +198,12 @@ public static class ChartCommands
 
             try
             {
+                var groups = DataLoader.FromJson(file);
+                var verr3 = StatsValidation.Validate(groups, "chart");
+                if (verr3 != null) { CliHelpers.WriteError("chart", verr3, json); return; }
+
                 var (result, elapsed) = CliHelpers.Time(() =>
                 {
-                    var groups = DataLoader.FromJson(file);
                     return StatsEngine.FullAnalysis(groups, alpha);
                 });
 
@@ -261,7 +267,7 @@ public static class ChartCommands
         var outOpt = new Option<string>("-o", "Output PNG path") { IsRequired = true };
         var titleOpt = new Option<string>("--title", () => "", "Chart title");
         var ylabelOpt = new Option<string>("--ylabel", () => "", "Y-axis label");
-        var errorOpt = new Option<string>("--error", () => "sem", "Error bar type: sd, sem, or none");
+        var errorOpt = new Option<string>("--error", () => "sem", "Error bar type: sem or none");
         var noSigOpt = new Option<bool>("--no-significance", () => false, "Disable Duncan significance letters");
         var cmd = new Command("bar", "Bar chart with error bars and significance letters") { fileArg, outOpt, titleOpt, ylabelOpt, errorOpt, noSigOpt };
 
@@ -273,11 +279,13 @@ public static class ChartCommands
             try
             {
                 var showError = error != "none";
-                var showSem = error == "sem";
+
+                var groups = DataLoader.FromJson(file);
+                var verr4 = StatsValidation.Validate(groups, "chart");
+                if (verr4 != null) { CliHelpers.WriteError("chart", verr4, json); return; }
 
                 var (result, elapsed) = CliHelpers.Time(() =>
                 {
-                    var groups = DataLoader.FromJson(file);
 
                     // Run Duncan for significance letters if enabled
                     Dictionary<string, string>? sigLabels = null;
@@ -301,6 +309,9 @@ public static class ChartCommands
 
                 if (json)
                 {
+                    var aerr = CliHelpers.CheckArtifact(output, "PNG");
+                    if (aerr != null) { CliHelpers.WriteError("chart bar", aerr, json); return; }
+
                     var outputJson = JsonOutput.Ok("chart bar",
                         $"Bar chart saved: {output}",
                         new { groups = result.Count, hasSignificance = result.sigLabels != null });

@@ -90,6 +90,8 @@ public static class ExcelCommands
             var err = ValidateXlsx(file);
             if (err != null) { CliHelpers.WriteError("excel read", err, json); return; }
 
+            try
+            {
             var (result, elapsed) = CliHelpers.Time(() =>
             {
                 using var wb = new XLWorkbook(file);
@@ -138,7 +140,12 @@ public static class ExcelCommands
                     Console.WriteLine(string.Join("\t", row));
             }
 
-
+            }
+            catch (Exception ex)
+            {
+                CliHelpers.WriteError("excel read",
+                    ErrorCodes.InternalError with { Message = ex.Message }, json);
+            }
         }, fileArg, sheetOpt, rangeOpt, jsonOpt);
 
         return cmd;
@@ -218,7 +225,7 @@ public static class ExcelCommands
             }
 
 
-        }, fileArg, sheetOpt, groupOpt, valueOpt, rawOpt, jsonOpt);
+        }, fileArg, sheetOpt, groupOpt, valueOpt, jsonOpt, rawOpt);
 
         return cmd;
     }
