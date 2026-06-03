@@ -32,7 +32,7 @@ public static class DiagramCommands
         cmd.SetHandler((string spec, string output, bool json) =>
         {
             var err = CliHelpers.ValidateTextFile(spec);
-            if (err != null) { Environment.ExitCode = CliHelpers.WriteError("diagram flowchart", err, json); return; }
+            if (err != null) { CliHelpers.WriteError("diagram flowchart", err, json); return; }
 
             try
             {
@@ -53,9 +53,10 @@ public static class DiagramCommands
             }
             catch (Exception ex)
             {
-                Environment.ExitCode = CliHelpers.WriteError("diagram flowchart", ErrorCodes.InternalError with { Message = ex.Message }, json);
+                CliHelpers.WriteError("diagram flowchart", ErrorCodes.InternalError with { Message = ex.Message }, json);
+                return;
             }
-            Environment.ExitCode = 0;
+
         }, specArg, outOpt, jsonOpt);
 
         return cmd;
@@ -70,7 +71,7 @@ public static class DiagramCommands
         cmd.SetHandler((string spec, string output, bool json) =>
         {
             var err = CliHelpers.ValidateTextFile(spec);
-            if (err != null) { Environment.ExitCode = CliHelpers.WriteError("diagram network", err, json); return; }
+            if (err != null) { CliHelpers.WriteError("diagram network", err, json); return; }
 
             try
             {
@@ -92,9 +93,10 @@ public static class DiagramCommands
             }
             catch (Exception ex)
             {
-                Environment.ExitCode = CliHelpers.WriteError("diagram network", ErrorCodes.InternalError with { Message = ex.Message }, json);
+                CliHelpers.WriteError("diagram network", ErrorCodes.InternalError with { Message = ex.Message }, json);
+                return;
             }
-            Environment.ExitCode = 0;
+
         }, specArg, outOpt, jsonOpt);
 
         return cmd;

@@ -50,7 +50,7 @@ public static class InspectCommands
             var err = CliHelpers.ValidateTextFile(file);
             if (err != null)
             {
-                Environment.ExitCode = CliHelpers.WriteError("paper diagnose", err, json);
+                CliHelpers.WriteError("paper diagnose", err, json);
                 return;
             }
 
@@ -74,12 +74,12 @@ public static class InspectCommands
                     },
                     evidence = result.Evidence.Select(e => new
                     {
-                        item = e.诊断项目, adequate = e.是否充分 == "充分",
+                        item = e.诊断项目, adequate = e.是否充分 == "是",
                         issue = e.主要问题, suggestion = e.修改建议, priority = e.优先级
                     }),
                     dataRequirements = result.DataReqs.Select(d => new
                     {
-                        item = d.项目, adequate = d.是否充分 == "充分",
+                        item = d.项目, adequate = d.是否充分 == "是",
                         gap = d.缺口说明, requirement = d.最低补充要求
                     }),
                     gapGrade = result.GapGrade.等级,
@@ -105,9 +105,9 @@ public static class InspectCommands
                 {
                     ["textLength"] = result.TextLength,
                     ["paperTypeMatch"] = result.TypeMatchPercent,
-                    ["evidenceAdequate"] = result.Evidence.Count(e => e.是否充分 == "充分"),
+                    ["evidenceAdequate"] = result.Evidence.Count(e => e.是否充分 == "是"),
                     ["evidenceTotal"] = result.Evidence.Count,
-                    ["dataReqsAdequate"] = result.DataReqs.Count(d => d.是否充分 == "充分"),
+                    ["dataReqsAdequate"] = result.DataReqs.Count(d => d.是否充分 == "是"),
                     ["dataReqsTotal"] = result.DataReqs.Count,
                     ["gapLevel"] = result.GapGrade.等级,
                     ["referenceCount"] = result.ReferenceCount,
@@ -116,7 +116,7 @@ public static class InspectCommands
                 };
 
                 var output = JsonOutput.Ok("paper diagnose",
-                    $"Type: {result.PaperType} ({result.TypeMatchPercent}%), Gap: {result.GapGrade.等级}, Evidences: {result.Evidence.Count(e => e.是否充分 == "充分")}/{result.Evidence.Count}",
+                    $"Type: {result.PaperType} ({result.TypeMatchPercent}%), Gap: {result.GapGrade.等级}, Evidences: {result.Evidence.Count(e => e.是否充分 == "是")}/{result.Evidence.Count}",
                     data);
                 foreach (var kv in metrics) output.Metrics[kv.Key] = kv.Value;
                 output.Meta.DurationMs = elapsed;
@@ -130,18 +130,18 @@ public static class InspectCommands
                 Console.WriteLine($"Recommended methods: {result.RecommendedMethods}");
                 Console.WriteLine();
 
-                Console.WriteLine($"--- Evidence Chain ({result.Evidence.Count(e => e.是否充分 == "充分")}/{result.Evidence.Count} adequate) ---");
+                Console.WriteLine($"--- Evidence Chain ({result.Evidence.Count(e => e.是否充分 == "是")}/{result.Evidence.Count} adequate) ---");
                 foreach (var e in result.Evidence)
                 {
-                    var status = e.是否充分 == "充分" ? "[OK]" : "[!!]";
+                    var status = e.是否充分 == "是" ? "[OK]" : "[!!]";
                     Console.WriteLine($"{status} {e.诊断项目}: {e.修改建议}");
                 }
                 Console.WriteLine();
 
-                Console.WriteLine($"--- Data Requirements ({result.DataReqs.Count(d => d.是否充分 == "充分")}/{result.DataReqs.Count} adequate) ---");
+                Console.WriteLine($"--- Data Requirements ({result.DataReqs.Count(d => d.是否充分 == "是")}/{result.DataReqs.Count} adequate) ---");
                 foreach (var d in result.DataReqs)
                 {
-                    var status = d.是否充分 == "充分" ? "[OK]" : "[!!]";
+                    var status = d.是否充分 == "是" ? "[OK]" : "[!!]";
                     Console.WriteLine($"{status} {d.项目}: {d.最低补充要求}");
                 }
                 Console.WriteLine();
@@ -167,7 +167,7 @@ public static class InspectCommands
                 }
             }
 
-            Environment.ExitCode = 0;
+
         }, fileArg, jsonOpt);
 
         return cmd;
@@ -185,7 +185,7 @@ public static class InspectCommands
             var err = CliHelpers.ValidateTextFile(file);
             if (err != null)
             {
-                Environment.ExitCode = CliHelpers.WriteError("refs check", err, json);
+                CliHelpers.WriteError("refs check", err, json);
                 return;
             }
 
@@ -246,7 +246,7 @@ public static class InspectCommands
                 Console.WriteLine(result.strategy);
             }
 
-            Environment.ExitCode = 0;
+
         }, fileArg, jsonOpt);
 
         return cmd;
@@ -298,7 +298,7 @@ public static class InspectCommands
         cmd.SetHandler((string spec, string output, bool json) =>
         {
             var err = CliHelpers.ValidateTextFile(spec);
-            if (err != null) { Environment.ExitCode = CliHelpers.WriteError("inspect write paper", err, json); return; }
+            if (err != null) { CliHelpers.WriteError("inspect write-paper", err, json); return; }
 
             try
             {
@@ -354,7 +354,7 @@ public static class InspectCommands
 
                 if (json)
                 {
-                    var outputJson = JsonOutput.Ok("inspect write paper", $"Paper saved: {output}");
+                    var outputJson = JsonOutput.Ok("inspect write-paper", $"Paper saved: {output}");
                     outputJson.Artifacts["docx"] = Path.GetFullPath(output);
                     outputJson.Meta.DurationMs = elapsed;
                     Console.WriteLine(JsonSerializer.Serialize(outputJson, CliHelpers.JsonOpts));
@@ -366,11 +366,11 @@ public static class InspectCommands
             }
             catch (Exception ex)
             {
-                Environment.ExitCode = CliHelpers.WriteError("inspect write paper",
+                CliHelpers.WriteError("inspect write-paper",
                     ErrorCodes.InternalError with { Message = ex.Message }, json);
             }
 
-            Environment.ExitCode = 0;
+
         }, specArg, outOpt, jsonOpt);
 
         return cmd;

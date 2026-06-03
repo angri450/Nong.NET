@@ -40,7 +40,7 @@ public static class IconsCommands
                     Console.WriteLine($"{cat} ({icons.Count}): {string.Join(", ", icons)}");
                 }
             }
-            Environment.ExitCode = 0;
+
         }, jsonOpt);
         return cmd;
     }
@@ -73,7 +73,7 @@ public static class IconsCommands
             {
                 foreach (var r in results) Console.WriteLine(r);
             }
-            Environment.ExitCode = 0;
+
         }, queryArg, jsonOpt);
         return cmd;
     }

@@ -42,7 +42,7 @@ public static class ExcelCommands
         cmd.SetHandler((string file, bool json) =>
         {
             var err = ValidateXlsx(file);
-            if (err != null) { Environment.ExitCode = CliHelpers.WriteError("excel sheets", err, json); return; }
+            if (err != null) { CliHelpers.WriteError("excel sheets", err, json); return; }
 
             var (result, elapsed) = CliHelpers.Time(() =>
             {
@@ -69,7 +69,7 @@ public static class ExcelCommands
                     Console.WriteLine($"{s.name,-20} {s.position,3} {s.rows,6} {s.columns,6}");
             }
 
-            Environment.ExitCode = 0;
+
         }, fileArg, jsonOpt);
 
         return cmd;
@@ -87,7 +87,7 @@ public static class ExcelCommands
         cmd.SetHandler((string file, string sheet, string range, bool json) =>
         {
             var err = ValidateXlsx(file);
-            if (err != null) { Environment.ExitCode = CliHelpers.WriteError("excel read", err, json); return; }
+            if (err != null) { CliHelpers.WriteError("excel read", err, json); return; }
 
             var (result, elapsed) = CliHelpers.Time(() =>
             {
@@ -137,7 +137,7 @@ public static class ExcelCommands
                     Console.WriteLine(string.Join("\t", row));
             }
 
-            Environment.ExitCode = 0;
+
         }, fileArg, sheetOpt, rangeOpt, jsonOpt);
 
         return cmd;
@@ -152,11 +152,13 @@ public static class ExcelCommands
         var groupOpt = new Option<string>("--group", "Group column (letter or name)") { IsRequired = true };
         var valueOpt = new Option<string>("--value", "Value column (letter or name)") { IsRequired = true };
         var cmd = new Command("to-groups", "Convert Excel columns to grouped data") { fileArg, sheetOpt, groupOpt, valueOpt };
+        var rawOpt = new Option<bool>("--raw", () => false, "Output bare JSON (for piping to chart commands)");
+        cmd.AddOption(rawOpt);
 
-        cmd.SetHandler((string file, string sheet, string group, string value, bool json) =>
+        cmd.SetHandler((string file, string sheet, string group, string value, bool json, bool raw) =>
         {
             var err = ValidateXlsx(file);
-            if (err != null) { Environment.ExitCode = CliHelpers.WriteError("excel to-groups", err, json); return; }
+            if (err != null) { CliHelpers.WriteError("excel to-groups", err, json); return; }
 
             var (result, elapsed) = CliHelpers.Time(() =>
             {
@@ -182,7 +184,11 @@ public static class ExcelCommands
                 return groups;
             });
 
-            if (json)
+            if (raw)
+            {
+                Console.WriteLine(JsonSerializer.Serialize(result));
+            }
+            else if (json)
             {
                 int obs = result.Values.Sum(v => v.Count);
                 var output = JsonOutput.Ok("excel to-groups",
@@ -198,8 +204,8 @@ public static class ExcelCommands
                 Console.WriteLine(JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true }));
             }
 
-            Environment.ExitCode = 0;
-        }, fileArg, sheetOpt, groupOpt, valueOpt, jsonOpt);
+
+        }, fileArg, sheetOpt, groupOpt, valueOpt, rawOpt, jsonOpt);
 
         return cmd;
     }

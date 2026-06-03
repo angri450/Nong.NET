@@ -47,7 +47,7 @@ public static class ChartCommands
             var err = CliHelpers.ValidateTextFile(file);
             if (err != null)
             {
-                Environment.ExitCode = CliHelpers.WriteError("stats anova", err, json);
+                CliHelpers.WriteError("stats anova", err, json);
                 return;
             }
 
@@ -97,12 +97,12 @@ public static class ChartCommands
             }
             catch (Exception ex)
             {
-                Environment.ExitCode = CliHelpers.WriteError("stats anova",
+                CliHelpers.WriteError("stats anova",
                     ErrorCodes.InternalError with { Message = ex.Message }, json);
                 return;
             }
 
-            Environment.ExitCode = 0;
+
         }, fileArg, jsonOpt);
 
         return cmd;
@@ -121,7 +121,7 @@ public static class ChartCommands
             var err = CliHelpers.ValidateTextFile(file);
             if (err != null)
             {
-                Environment.ExitCode = CliHelpers.WriteError("stats duncan", err, json);
+                CliHelpers.WriteError("stats duncan", err, json);
                 return;
             }
 
@@ -165,12 +165,12 @@ public static class ChartCommands
             }
             catch (Exception ex)
             {
-                Environment.ExitCode = CliHelpers.WriteError("stats duncan",
+                CliHelpers.WriteError("stats duncan",
                     ErrorCodes.InternalError with { Message = ex.Message }, json);
                 return;
             }
 
-            Environment.ExitCode = 0;
+
         }, fileArg, alphaOpt, jsonOpt);
 
         return cmd;
@@ -187,7 +187,7 @@ public static class ChartCommands
         cmd.SetHandler((string file, double alpha, bool json) =>
         {
             var err = CliHelpers.ValidateTextFile(file);
-            if (err != null) { Environment.ExitCode = CliHelpers.WriteError("chart analyze", err, json); return; }
+            if (err != null) { CliHelpers.WriteError("chart analyze", err, json); return; }
 
             try
             {
@@ -239,11 +239,11 @@ public static class ChartCommands
             }
             catch (Exception ex)
             {
-                Environment.ExitCode = CliHelpers.WriteError("chart analyze",
+                CliHelpers.WriteError("chart analyze",
                     ErrorCodes.InternalError with { Message = ex.Message }, json);
             }
 
-            Environment.ExitCode = 0;
+
         }, fileArg, alphaOpt, jsonOpt);
 
         return cmd;
@@ -264,7 +264,7 @@ public static class ChartCommands
         cmd.SetHandler((string file, string output, string title, string ylabel, string error, bool noSig, bool json) =>
         {
             var err = CliHelpers.ValidateTextFile(file);
-            if (err != null) { Environment.ExitCode = CliHelpers.WriteError("chart bar", err, json); return; }
+            if (err != null) { CliHelpers.WriteError("chart bar", err, json); return; }
 
             try
             {
@@ -311,11 +311,11 @@ public static class ChartCommands
             }
             catch (Exception ex)
             {
-                Environment.ExitCode = CliHelpers.WriteError("chart bar",
+                CliHelpers.WriteError("chart bar",
                     ErrorCodes.InternalError with { Message = ex.Message }, json);
             }
 
-            Environment.ExitCode = 0;
+
         }, fileArg, outOpt, titleOpt, ylabelOpt, errorOpt, noSigOpt, jsonOpt);
 
         return cmd;

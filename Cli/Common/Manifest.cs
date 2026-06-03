@@ -9,7 +9,8 @@ public static class Manifest
         string Name,
         string Description,
         string Group,
-        string[] Aliases
+        string[] Aliases,
+        string Status = "implemented" // implemented | stub | planned
     );
 
     public static List<CommandInfo> All()

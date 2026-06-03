@@ -26,24 +26,27 @@ class Program
         });
 
         // === nong commands --json ===
-        var commandsCmd = new Command("commands", "List all available commands");
-        commandsCmd.SetHandler((bool json) =>
+        var allOpt = new Option<bool>("--all", () => false, "Include stub commands");
+        var commandsCmd = new Command("commands", "List available commands") { allOpt };
+        commandsCmd.SetHandler((bool json, bool all) =>
         {
             var manifest = Manifest.All();
+            var filtered = all ? manifest : manifest.Where(c => c.Status == "implemented").ToList();
             if (json)
             {
-                var output = JsonOutput.Ok("commands", $"{manifest.Count} commands available", manifest);
+                var output = JsonOutput.Ok("commands", $"{filtered.Count} commands available", filtered);
                 Console.WriteLine(JsonSerializer.Serialize(output, CliHelpers.JsonOpts));
             }
             else
             {
-                foreach (var c in manifest)
+                foreach (var c in filtered)
                 {
                     var aliasStr = c.Aliases.Length > 0 ? $" (alias: {string.Join(", ", c.Aliases)})" : "";
-                    Console.WriteLine($"{c.Name,-35} {c.Description}{aliasStr}");
+                    var stubTag = c.Status == "stub" ? " [stub]" : "";
+                    Console.WriteLine($"{c.Name,-35} {c.Description}{aliasStr}{stubTag}");
                 }
             }
-        }, jsonOpt);
+        }, jsonOpt, allOpt);
         root.AddCommand(commandsCmd);
 
         // === Real command groups ===
@@ -60,29 +63,6 @@ class Program
         root.AddCommand(CreateStubGroup("ocr", "OCR operations", jsonOpt,
             ("local", "Local PaddleOCR"),
             ("cloud", "Cloud PaddleOCR-VL")
-        ));
-
-        // === Workflow aliases ===
-        root.AddCommand(CreateStubGroup("paper", "Paper operations (use: nong inspect <cmd>)", jsonOpt,
-            ("classify", "Classify paper type"),
-            ("structure", "Extract paper structure"),
-            ("diagnose", "Full paper quality diagnosis"),
-            ("varplan", "Variable operationalization plan"),
-            ("write", "Generate paper from JSON spec")
-        ));
-
-        root.AddCommand(CreateStubGroup("refs", "Reference operations (use: nong inspect refs)", jsonOpt,
-            ("check", "Reference analysis and risk check")
-        ));
-
-        root.AddCommand(CreateStubGroup("official", "Official document operations", jsonOpt,
-            ("write", "Generate official document"),
-            ("format", "Format docx to GB/T 9704 standard")
-        ));
-
-        root.AddCommand(CreateStubGroup("stats", "Statistical operations (use: nong chart <cmd>)", jsonOpt,
-            ("anova", "One-way ANOVA"),
-            ("duncan", "Duncan MRT")
         ));
 
         var builder = new CommandLineBuilder(root)

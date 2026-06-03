@@ -86,7 +86,7 @@ nong inspect diagnose paper.txt --json
 
 ### Excel → Statistics → Chart
 ```
-nong excel to-groups data.xlsx --group A --value B --json > groups.json
+nong excel to-groups data.xlsx --group A --value B --raw > groups.json
 nong chart analyze groups.json --json
 nong chart bar groups.json -o fig.png --json
 → Read: artifacts.png for the generated chart
