@@ -55,7 +55,7 @@ public static class ChartCommands
             try
             {
                 var groups = DataLoader.FromJson(file);
-                var verr = StatsValidation.Validate(groups, "chart");
+                var verr = StatsValidation.Validate(groups, "chart anova");
                 if (verr != null) { CliHelpers.WriteError("chart", verr, json); return; }
 
                 var (result, elapsed) = CliHelpers.Time(() =>
@@ -132,7 +132,7 @@ public static class ChartCommands
             try
             {
                 var groups = DataLoader.FromJson(file);
-                var verr2 = StatsValidation.Validate(groups, "chart");
+                var verr2 = StatsValidation.Validate(groups, "chart duncan");
                 if (verr2 != null) { CliHelpers.WriteError("chart", verr2, json); return; }
 
                 var (result, elapsed) = CliHelpers.Time(() =>
@@ -199,7 +199,7 @@ public static class ChartCommands
             try
             {
                 var groups = DataLoader.FromJson(file);
-                var verr3 = StatsValidation.Validate(groups, "chart");
+                var verr3 = StatsValidation.Validate(groups, "chart analyze");
                 if (verr3 != null) { CliHelpers.WriteError("chart", verr3, json); return; }
 
                 var (result, elapsed) = CliHelpers.Time(() =>
@@ -281,7 +281,7 @@ public static class ChartCommands
                 var showError = error != "none";
 
                 var groups = DataLoader.FromJson(file);
-                var verr4 = StatsValidation.Validate(groups, "chart");
+                var verr4 = StatsValidation.Validate(groups, "chart bar");
                 if (verr4 != null) { CliHelpers.WriteError("chart", verr4, json); return; }
 
                 CliHelpers.EnsureParentDir(output);

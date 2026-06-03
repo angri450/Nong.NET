@@ -120,15 +120,7 @@ public static class CliHelpers
         cmd.SetHandler((bool json) =>
         {
             var name = GetFullName(cmd);
-            if (json)
-            {
-                var output = JsonOutput.Ok(name, $"(not yet implemented) {description}");
-                Console.WriteLine(JsonSerializer.Serialize(output, JsonOpts));
-            }
-            else
-            {
-                Console.WriteLine($"[nong {name}] Not yet implemented. {description}");
-            }
+            WriteError(name, ErrorCodes.NotImplemented with { Message = $"{name}: {description}" }, json);
         }, jsonOpt);
     }
 

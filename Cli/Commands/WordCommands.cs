@@ -193,6 +193,9 @@ public static class WordCommands
 
                 if (json)
                 {
+                    var aerr = CliHelpers.CheckArtifact(output, "DOCX");
+                    if (aerr != null) { CliHelpers.WriteError("word fill", aerr, json); return; }
+
                     var outputJson = JsonOutput.Ok("word fill", $"Filled template: {output}");
                     outputJson.Artifacts["docx"] = Path.GetFullPath(output);
                     outputJson.Meta.DurationMs = elapsed;
@@ -246,6 +249,9 @@ public static class WordCommands
 
                 if (json)
                 {
+                    var aerr = CliHelpers.CheckArtifact(output, "DOCX");
+                    if (aerr != null) { CliHelpers.WriteError("word rebuild", aerr, json); return; }
+
                     var outputJson = JsonOutput.Ok("word rebuild", $"Rebuilt: {output}");
                     outputJson.Artifacts["docx"] = Path.GetFullPath(output);
                     outputJson.Meta.DurationMs = elapsed;

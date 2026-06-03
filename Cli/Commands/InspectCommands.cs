@@ -50,7 +50,7 @@ public static class InspectCommands
             var err = CliHelpers.ValidateTextFile(file);
             if (err != null)
             {
-                CliHelpers.WriteError("paper diagnose", err, json);
+                CliHelpers.WriteError("inspect diagnose", err, json);
                 return;
             }
 
@@ -115,7 +115,7 @@ public static class InspectCommands
                     ["qualityIssueCount"] = result.QualityIssues.Count
                 };
 
-                var output = JsonOutput.Ok("paper diagnose",
+                var output = JsonOutput.Ok("inspect diagnose",
                     $"Type: {result.PaperType} ({result.TypeMatchPercent}%), Gap: {result.GapGrade.等级}, Evidences: {result.Evidence.Count(e => e.是否充分 == "是")}/{result.Evidence.Count}",
                     data);
                 foreach (var kv in metrics) output.Metrics[kv.Key] = kv.Value;
@@ -185,7 +185,7 @@ public static class InspectCommands
             var err = CliHelpers.ValidateTextFile(file);
             if (err != null)
             {
-                CliHelpers.WriteError("refs check", err, json);
+                CliHelpers.WriteError("inspect refs", err, json);
                 return;
             }
 
@@ -218,7 +218,7 @@ public static class InspectCommands
                     searchStrategy = result.strategy
                 };
 
-                var output = JsonOutput.Ok("refs check",
+                var output = JsonOutput.Ok("inspect refs",
                     $"{result.refs.Count} references, {result.risks.Count} risks",
                     data);
                 output.Metrics["referenceCount"] = result.refs.Count;
@@ -302,10 +302,13 @@ public static class InspectCommands
 
             try
             {
+                var specJson = File.ReadAllText(spec);
+                var verr = ValidatePaperSpec(specJson);
+                if (verr != null) { CliHelpers.WriteError("inspect write-paper", verr, json); return; }
+
                 CliHelpers.EnsureParentDir(output);
                 var elapsed = CliHelpers.Time(() =>
                 {
-                    var specJson = File.ReadAllText(spec);
                     using var docEl = JsonDocument.Parse(specJson);
                     var root = docEl.RootElement;
 
@@ -367,6 +370,7 @@ public static class InspectCommands
             }
             catch (Exception ex)
             {
+                try { if (File.Exists(output)) File.Delete(output); } catch { }
                 CliHelpers.WriteError("inspect write-paper",
                     ErrorCodes.InternalError with { Message = ex.Message }, json);
             }
@@ -375,5 +379,62 @@ public static class InspectCommands
         }, specArg, outOpt, jsonOpt);
 
         return cmd;
+    }
+
+    static ErrorEntry? ValidatePaperSpec(string json)
+    {
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+        if (root.ValueKind != JsonValueKind.Object)
+            return ErrorCodes.ValidationFailed with { Message = "Spec must be a JSON object." };
+
+        if (root.TryGetProperty("title", out var t) && t.ValueKind != JsonValueKind.String)
+            return ErrorCodes.ValidationFailed with { Message = "title must be a string." };
+        if (root.TryGetProperty("abstract", out var a) && a.ValueKind != JsonValueKind.String)
+            return ErrorCodes.ValidationFailed with { Message = "abstract must be a string." };
+        if (root.TryGetProperty("keywords", out var kw) && kw.ValueKind != JsonValueKind.String)
+            return ErrorCodes.ValidationFailed with { Message = "keywords must be a string." };
+
+        if (root.TryGetProperty("sections", out var secs))
+        {
+            if (secs.ValueKind != JsonValueKind.Array)
+                return ErrorCodes.ValidationFailed with { Message = "sections must be an array." };
+            int i = 0;
+            foreach (var sec in secs.EnumerateArray())
+            {
+                if (!sec.TryGetProperty("heading", out var h) || h.ValueKind != JsonValueKind.String)
+                    return ErrorCodes.ValidationFailed with { Message = $"sections[{i}].heading is required and must be a string." };
+                if (sec.TryGetProperty("level", out var lv) && lv.ValueKind != JsonValueKind.Number)
+                    return ErrorCodes.ValidationFailed with { Message = $"sections[{i}].level must be a number." };
+                if (sec.TryGetProperty("body", out var bd))
+                {
+                    if (bd.ValueKind != JsonValueKind.Array)
+                        return ErrorCodes.ValidationFailed with { Message = $"sections[{i}].body must be an array." };
+                    int j = 0;
+                    foreach (var bp in bd.EnumerateArray())
+                    {
+                        if (bp.ValueKind != JsonValueKind.String)
+                            return ErrorCodes.ValidationFailed with { Message = $"sections[{i}].body[{j}] must be a string." };
+                        j++;
+                    }
+                }
+                i++;
+            }
+        }
+
+        if (root.TryGetProperty("references", out var refs))
+        {
+            if (refs.ValueKind != JsonValueKind.Array)
+                return ErrorCodes.ValidationFailed with { Message = "references must be an array." };
+            int k = 0;
+            foreach (var r in refs.EnumerateArray())
+            {
+                if (r.ValueKind != JsonValueKind.String)
+                    return ErrorCodes.ValidationFailed with { Message = $"references[{k}] must be a string." };
+                k++;
+            }
+        }
+
+        return null;
     }
 }
