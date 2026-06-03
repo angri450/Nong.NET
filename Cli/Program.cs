@@ -58,6 +58,7 @@ class Program
         root.AddCommand(PptxCommands.Create(jsonOpt));
         root.AddCommand(GenreCommands.Create(jsonOpt));
         root.AddCommand(IconsCommands.Create(jsonOpt));
+        root.AddCommand(SkillCommands.Create(jsonOpt));
 
         // === Stub command groups ===
         root.AddCommand(CreateStubGroup("ocr", "OCR operations", jsonOpt,

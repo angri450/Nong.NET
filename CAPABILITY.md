@@ -15,7 +15,7 @@ nong word read file.docx   # 第一核心命令
 
 ---
 
-## 已实现命令（20 个）
+## 已实现命令（24 个）
 
 ### word —— Word 文档引擎
 
@@ -127,6 +127,17 @@ nong inspect refs paper.txt --json
 | E007 | read_failed | can't read |
 | E008 | write_failed | can't write |
 | E009 | not_implemented | command not done yet |
+
+### skill —— Skill 生命周期管理
+
+| 命令 | 功能 | 输入 | 示例 |
+|------|------|------|------|
+| `nong skill validate <dir>` | 验证 SKILL.md 结构和引用 | 目录 | `nong skill validate ./word --json` |
+| `nong skill scan <dir>` | 安全扫描 skill/插件目录 | 目录 | `nong skill scan ./GroundPA-Toolkit --json` |
+| `nong skill inventory <dir>` | 列出 skill 目录内容 | 目录 | `nong skill inventory ./GroundPA-Toolkit --json` |
+| `nong skill package <dir>` | validate+scan+打包为 .zip | 目录 | `nong skill package ./word --json` |
+
+注意：请使用 `nong skill` 命令，不要使用旧版 `skill-manager` global tool。
 
 ---
 

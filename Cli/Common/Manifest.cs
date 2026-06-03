@@ -81,6 +81,12 @@ public static class Manifest
         list.Add(new("icons list", "List all Bioicons", "icons", []));
         list.Add(new("icons search", "Search Bioicons", "icons", []));
 
+        // === skill (implemented: validate, scan, inventory, package) ===
+        list.Add(new("skill validate", "Validate SKILL.md structure and references", "skill", []));
+        list.Add(new("skill scan", "Security scan for skill directories", "skill", []));
+        list.Add(new("skill inventory", "List skill directory contents", "skill", []));
+        list.Add(new("skill package", "Validate + scan + package skill into .zip", "skill", []));
+
         // === stub groups ===
         list.Add(new("pptx read", "Extract slide text", "pptx", [], "stub"));
         list.Add(new("pptx slides", "List slide structure", "pptx", [], "stub"));
