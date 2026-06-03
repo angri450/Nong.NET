@@ -13,6 +13,7 @@ public static class ErrorCodes
     public static readonly ErrorEntry ValidationFailed = new("E006", "validation_failed", "Validation check failed.");
     public static readonly ErrorEntry ReadFailed = new("E007", "read_failed", "Failed to read the document.");
     public static readonly ErrorEntry WriteFailed = new("E008", "write_failed", "Failed to write the output file.");
+    public static readonly ErrorEntry NotImplemented = new("E009", "not_implemented", "This command is not yet implemented.");
 
     public static ErrorEntry FromCode(string code) => code switch
     {
@@ -24,6 +25,7 @@ public static class ErrorCodes
         "E006" => ValidationFailed,
         "E007" => ReadFailed,
         "E008" => WriteFailed,
+        "E009" => NotImplemented,
         _ => new ErrorEntry(code, "unknown", $"Unknown error code: {code}")
     };
 }

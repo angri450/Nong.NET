@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.CommandLine;
 using System.Text.Json;
 using ClosedXML.Excel;
@@ -42,7 +43,7 @@ public static class ExcelCommands
         cmd.SetHandler((string file, bool json) =>
         {
             var err = ValidateXlsx(file);
-            if (err != null) { Environment.ExitCode = CliHelpers.WriteError("excel sheets", err, json); return; }
+            if (err != null) { CliHelpers.WriteError("excel sheets", err, json); return; }
 
             var (result, elapsed) = CliHelpers.Time(() =>
             {
@@ -69,7 +70,7 @@ public static class ExcelCommands
                     Console.WriteLine($"{s.name,-20} {s.position,3} {s.rows,6} {s.columns,6}");
             }
 
-            Environment.ExitCode = 0;
+
         }, fileArg, jsonOpt);
 
         return cmd;
@@ -87,8 +88,10 @@ public static class ExcelCommands
         cmd.SetHandler((string file, string sheet, string range, bool json) =>
         {
             var err = ValidateXlsx(file);
-            if (err != null) { Environment.ExitCode = CliHelpers.WriteError("excel read", err, json); return; }
+            if (err != null) { CliHelpers.WriteError("excel read", err, json); return; }
 
+            try
+            {
             var (result, elapsed) = CliHelpers.Time(() =>
             {
                 using var wb = new XLWorkbook(file);
@@ -137,7 +140,12 @@ public static class ExcelCommands
                     Console.WriteLine(string.Join("\t", row));
             }
 
-            Environment.ExitCode = 0;
+            }
+            catch (Exception ex)
+            {
+                CliHelpers.WriteError("excel read",
+                    ErrorCodes.InternalError with { Message = ex.Message }, json);
+            }
         }, fileArg, sheetOpt, rangeOpt, jsonOpt);
 
         return cmd;
@@ -152,11 +160,28 @@ public static class ExcelCommands
         var groupOpt = new Option<string>("--group", "Group column (letter or name)") { IsRequired = true };
         var valueOpt = new Option<string>("--value", "Value column (letter or name)") { IsRequired = true };
         var cmd = new Command("to-groups", "Convert Excel columns to grouped data") { fileArg, sheetOpt, groupOpt, valueOpt };
+        var rawOpt = new Option<bool>("--raw", () => false, "Output bare JSON (for piping to chart commands)");
+        cmd.AddOption(rawOpt);
 
-        cmd.SetHandler((string file, string sheet, string group, string value, bool json) =>
+        cmd.SetHandler((string file, string sheet, string group, string value, bool json, bool raw) =>
         {
             var err = ValidateXlsx(file);
-            if (err != null) { Environment.ExitCode = CliHelpers.WriteError("excel to-groups", err, json); return; }
+            if (err != null) { CliHelpers.WriteError("excel to-groups", err, json); return; }
+
+            // Pre-validate columns before data load
+            int groupCol, valueCol;
+            using (var wbInit = new XLWorkbook(file))
+            {
+                var wsInit = string.IsNullOrEmpty(sheet) ? wbInit.Worksheet(1) : wbInit.Worksheet(sheet);
+                groupCol = ResolveColumn(wsInit, group);
+                valueCol = ResolveColumn(wsInit, value);
+            }
+            if (groupCol < 1 || valueCol < 1)
+            {
+                CliHelpers.WriteError("excel to-groups",
+                    ErrorCodes.ValidationFailed with { Message = $"Column not found: {(groupCol < 1 ? group : value)}" }, json);
+                return;
+            }
 
             var (result, elapsed) = CliHelpers.Time(() =>
             {
@@ -166,14 +191,11 @@ public static class ExcelCommands
                 var lastRow = ws.LastRowUsed()?.RowNumber() ?? 0;
                 var groups = new Dictionary<string, List<double>>();
 
-                int groupCol = ResolveColumn(ws, group);
-                int valueCol = ResolveColumn(ws, value);
-
                 for (int r = 2; r <= lastRow; r++) // skip header row
                 {
                     var g = ws.Cell(r, groupCol).GetString().Trim();
                     if (string.IsNullOrEmpty(g)) continue;
-                    if (double.TryParse(ws.Cell(r, valueCol).GetString(), out var v))
+                    if (double.TryParse(ws.Cell(r, valueCol).GetString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var v))
                     {
                         if (!groups.ContainsKey(g)) groups[g] = new List<double>();
                         groups[g].Add(v);
@@ -182,7 +204,11 @@ public static class ExcelCommands
                 return groups;
             });
 
-            if (json)
+            if (raw)
+            {
+                Console.WriteLine(JsonSerializer.Serialize(result));
+            }
+            else if (json)
             {
                 int obs = result.Values.Sum(v => v.Count);
                 var output = JsonOutput.Ok("excel to-groups",
@@ -198,8 +224,8 @@ public static class ExcelCommands
                 Console.WriteLine(JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true }));
             }
 
-            Environment.ExitCode = 0;
-        }, fileArg, sheetOpt, groupOpt, valueOpt, jsonOpt);
+
+        }, fileArg, sheetOpt, groupOpt, valueOpt, jsonOpt, rawOpt);
 
         return cmd;
     }
@@ -227,7 +253,7 @@ public static class ExcelCommands
             if (string.Equals(ws.Cell(1, c).GetString().Trim(), col, StringComparison.OrdinalIgnoreCase))
                 return c;
         }
-        return 1; // fallback
+        return -1; // not found — caller must validate
     }
 
     static string ColToRef(int col)

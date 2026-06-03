@@ -20,7 +20,7 @@ Use this first in any session to know what's available.
 | `word read/preview/rebuild` | .docx |
 | `word fill` | template .docx + data .json |
 | `inspect diagnose/refs/structure` | .txt (plain text) |
-| `inspect write paper` | spec .json |
+| `inspect write-paper` | spec .json |
 | `chart analyze/anova/duncan/bar` | groups .json (see below) |
 | `chart bar` | groups .json + output .png |
 | `excel sheets/read/to-groups` | .xlsx |
@@ -86,7 +86,7 @@ nong inspect diagnose paper.txt --json
 
 ### Excel → Statistics → Chart
 ```
-nong excel to-groups data.xlsx --group A --value B --json > groups.json
+nong excel to-groups data.xlsx --group A --value B --raw > groups.json
 nong chart analyze groups.json --json
 nong chart bar groups.json -o fig.png --json
 → Read: artifacts.png for the generated chart
@@ -94,7 +94,7 @@ nong chart bar groups.json -o fig.png --json
 
 ### Generate a paper from spec
 ```
-nong inspect write paper spec.json -o paper.docx --json
+nong inspect write-paper spec.json -o paper.docx --json
 → Read: artifacts.docx
 ```
 

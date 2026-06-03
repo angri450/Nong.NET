@@ -50,7 +50,7 @@ public static class InspectCommands
             var err = CliHelpers.ValidateTextFile(file);
             if (err != null)
             {
-                Environment.ExitCode = CliHelpers.WriteError("paper diagnose", err, json);
+                CliHelpers.WriteError("inspect diagnose", err, json);
                 return;
             }
 
@@ -74,12 +74,12 @@ public static class InspectCommands
                     },
                     evidence = result.Evidence.Select(e => new
                     {
-                        item = e.诊断项目, adequate = e.是否充分 == "充分",
+                        item = e.诊断项目, adequate = e.是否充分 == "是",
                         issue = e.主要问题, suggestion = e.修改建议, priority = e.优先级
                     }),
                     dataRequirements = result.DataReqs.Select(d => new
                     {
-                        item = d.项目, adequate = d.是否充分 == "充分",
+                        item = d.项目, adequate = d.是否充分 == "是",
                         gap = d.缺口说明, requirement = d.最低补充要求
                     }),
                     gapGrade = result.GapGrade.等级,
@@ -105,9 +105,9 @@ public static class InspectCommands
                 {
                     ["textLength"] = result.TextLength,
                     ["paperTypeMatch"] = result.TypeMatchPercent,
-                    ["evidenceAdequate"] = result.Evidence.Count(e => e.是否充分 == "充分"),
+                    ["evidenceAdequate"] = result.Evidence.Count(e => e.是否充分 == "是"),
                     ["evidenceTotal"] = result.Evidence.Count,
-                    ["dataReqsAdequate"] = result.DataReqs.Count(d => d.是否充分 == "充分"),
+                    ["dataReqsAdequate"] = result.DataReqs.Count(d => d.是否充分 == "是"),
                     ["dataReqsTotal"] = result.DataReqs.Count,
                     ["gapLevel"] = result.GapGrade.等级,
                     ["referenceCount"] = result.ReferenceCount,
@@ -115,8 +115,8 @@ public static class InspectCommands
                     ["qualityIssueCount"] = result.QualityIssues.Count
                 };
 
-                var output = JsonOutput.Ok("paper diagnose",
-                    $"Type: {result.PaperType} ({result.TypeMatchPercent}%), Gap: {result.GapGrade.等级}, Evidences: {result.Evidence.Count(e => e.是否充分 == "充分")}/{result.Evidence.Count}",
+                var output = JsonOutput.Ok("inspect diagnose",
+                    $"Type: {result.PaperType} ({result.TypeMatchPercent}%), Gap: {result.GapGrade.等级}, Evidences: {result.Evidence.Count(e => e.是否充分 == "是")}/{result.Evidence.Count}",
                     data);
                 foreach (var kv in metrics) output.Metrics[kv.Key] = kv.Value;
                 output.Meta.DurationMs = elapsed;
@@ -130,18 +130,18 @@ public static class InspectCommands
                 Console.WriteLine($"Recommended methods: {result.RecommendedMethods}");
                 Console.WriteLine();
 
-                Console.WriteLine($"--- Evidence Chain ({result.Evidence.Count(e => e.是否充分 == "充分")}/{result.Evidence.Count} adequate) ---");
+                Console.WriteLine($"--- Evidence Chain ({result.Evidence.Count(e => e.是否充分 == "是")}/{result.Evidence.Count} adequate) ---");
                 foreach (var e in result.Evidence)
                 {
-                    var status = e.是否充分 == "充分" ? "[OK]" : "[!!]";
+                    var status = e.是否充分 == "是" ? "[OK]" : "[!!]";
                     Console.WriteLine($"{status} {e.诊断项目}: {e.修改建议}");
                 }
                 Console.WriteLine();
 
-                Console.WriteLine($"--- Data Requirements ({result.DataReqs.Count(d => d.是否充分 == "充分")}/{result.DataReqs.Count} adequate) ---");
+                Console.WriteLine($"--- Data Requirements ({result.DataReqs.Count(d => d.是否充分 == "是")}/{result.DataReqs.Count} adequate) ---");
                 foreach (var d in result.DataReqs)
                 {
-                    var status = d.是否充分 == "充分" ? "[OK]" : "[!!]";
+                    var status = d.是否充分 == "是" ? "[OK]" : "[!!]";
                     Console.WriteLine($"{status} {d.项目}: {d.最低补充要求}");
                 }
                 Console.WriteLine();
@@ -167,7 +167,7 @@ public static class InspectCommands
                 }
             }
 
-            Environment.ExitCode = 0;
+
         }, fileArg, jsonOpt);
 
         return cmd;
@@ -185,7 +185,7 @@ public static class InspectCommands
             var err = CliHelpers.ValidateTextFile(file);
             if (err != null)
             {
-                Environment.ExitCode = CliHelpers.WriteError("refs check", err, json);
+                CliHelpers.WriteError("inspect refs", err, json);
                 return;
             }
 
@@ -218,7 +218,7 @@ public static class InspectCommands
                     searchStrategy = result.strategy
                 };
 
-                var output = JsonOutput.Ok("refs check",
+                var output = JsonOutput.Ok("inspect refs",
                     $"{result.refs.Count} references, {result.risks.Count} risks",
                     data);
                 output.Metrics["referenceCount"] = result.refs.Count;
@@ -246,7 +246,7 @@ public static class InspectCommands
                 Console.WriteLine(result.strategy);
             }
 
-            Environment.ExitCode = 0;
+
         }, fileArg, jsonOpt);
 
         return cmd;
@@ -298,13 +298,17 @@ public static class InspectCommands
         cmd.SetHandler((string spec, string output, bool json) =>
         {
             var err = CliHelpers.ValidateTextFile(spec);
-            if (err != null) { Environment.ExitCode = CliHelpers.WriteError("inspect write paper", err, json); return; }
+            if (err != null) { CliHelpers.WriteError("inspect write-paper", err, json); return; }
 
             try
             {
+                var specJson = File.ReadAllText(spec);
+                var verr = ValidatePaperSpec(specJson);
+                if (verr != null) { CliHelpers.WriteError("inspect write-paper", verr, json); return; }
+
+                CliHelpers.EnsureParentDir(output);
                 var elapsed = CliHelpers.Time(() =>
                 {
-                    var specJson = File.ReadAllText(spec);
                     using var docEl = JsonDocument.Parse(specJson);
                     var root = docEl.RootElement;
 
@@ -354,7 +358,7 @@ public static class InspectCommands
 
                 if (json)
                 {
-                    var outputJson = JsonOutput.Ok("inspect write paper", $"Paper saved: {output}");
+                    var outputJson = JsonOutput.Ok("inspect write-paper", $"Paper saved: {output}");
                     outputJson.Artifacts["docx"] = Path.GetFullPath(output);
                     outputJson.Meta.DurationMs = elapsed;
                     Console.WriteLine(JsonSerializer.Serialize(outputJson, CliHelpers.JsonOpts));
@@ -366,13 +370,78 @@ public static class InspectCommands
             }
             catch (Exception ex)
             {
-                Environment.ExitCode = CliHelpers.WriteError("inspect write paper",
+                try { if (File.Exists(output)) File.Delete(output); } catch { }
+                CliHelpers.WriteError("inspect write-paper",
                     ErrorCodes.InternalError with { Message = ex.Message }, json);
             }
 
-            Environment.ExitCode = 0;
+
         }, specArg, outOpt, jsonOpt);
 
         return cmd;
+    }
+
+    static ErrorEntry? ValidatePaperSpec(string json)
+    {
+        JsonDocument doc;
+        try { doc = JsonDocument.Parse(json); }
+        catch (JsonException) { return ErrorCodes.ValidationFailed with { Message = "Spec is not valid JSON." }; }
+        using (doc)
+        {
+        var root = doc.RootElement;
+        if (root.ValueKind != JsonValueKind.Object)
+            return ErrorCodes.ValidationFailed with { Message = "Spec must be a JSON object." };
+
+        if (root.TryGetProperty("title", out var t) && t.ValueKind != JsonValueKind.String)
+            return ErrorCodes.ValidationFailed with { Message = "title must be a string." };
+        if (root.TryGetProperty("abstract", out var a) && a.ValueKind != JsonValueKind.String)
+            return ErrorCodes.ValidationFailed with { Message = "abstract must be a string." };
+        if (root.TryGetProperty("keywords", out var kw) && kw.ValueKind != JsonValueKind.String)
+            return ErrorCodes.ValidationFailed with { Message = "keywords must be a string." };
+
+        if (root.TryGetProperty("sections", out var secs))
+        {
+            if (secs.ValueKind != JsonValueKind.Array)
+                return ErrorCodes.ValidationFailed with { Message = "sections must be an array." };
+            int i = 0;
+            foreach (var sec in secs.EnumerateArray())
+            {
+                if (!sec.TryGetProperty("heading", out var h) || h.ValueKind != JsonValueKind.String)
+                    return ErrorCodes.ValidationFailed with { Message = $"sections[{i}].heading is required and must be a string." };
+                if (sec.TryGetProperty("level", out var lv) && lv.ValueKind != JsonValueKind.Number)
+                    return ErrorCodes.ValidationFailed with { Message = $"sections[{i}].level must be a number (1-3)." };
+                if (sec.TryGetProperty("level", out var lv2) && lv2.GetInt32() is var lvi && (lvi < 1 || lvi > 3))
+                    return ErrorCodes.ValidationFailed with { Message = $"sections[{i}].level must be 1-3, got {lvi}." };
+                if (sec.TryGetProperty("body", out var bd))
+                {
+                    if (bd.ValueKind != JsonValueKind.Array)
+                        return ErrorCodes.ValidationFailed with { Message = $"sections[{i}].body must be an array." };
+                    int j = 0;
+                    foreach (var bp in bd.EnumerateArray())
+                    {
+                        if (bp.ValueKind != JsonValueKind.String)
+                            return ErrorCodes.ValidationFailed with { Message = $"sections[{i}].body[{j}] must be a string." };
+                        j++;
+                    }
+                }
+                i++;
+            }
+        }
+
+        if (root.TryGetProperty("references", out var refs))
+        {
+            if (refs.ValueKind != JsonValueKind.Array)
+                return ErrorCodes.ValidationFailed with { Message = "references must be an array." };
+            int k = 0;
+            foreach (var r in refs.EnumerateArray())
+            {
+                if (r.ValueKind != JsonValueKind.String)
+                    return ErrorCodes.ValidationFailed with { Message = $"references[{k}] must be a string." };
+                k++;
+            }
+        }
+
+        return null;
+        }
     }
 }

@@ -44,10 +44,11 @@ public static class CliHelpers
     }
 
     /// <summary>
-    /// Write a JSON error response to stdout and return exit code 1.
+    /// Write a JSON error response, set Environment.ExitCode to 1.
     /// </summary>
-    public static int WriteError(string command, ErrorEntry error, bool json)
+    public static void WriteError(string command, ErrorEntry error, bool json)
     {
+        Environment.ExitCode = 1;
         if (json)
         {
             var output = JsonOutput.Fail(command, new List<ErrorEntry> { error });
@@ -57,24 +58,22 @@ public static class CliHelpers
         {
             Console.Error.WriteLine($"[{error.Code}] {error.Name}: {error.Message}");
         }
-        return 1;
     }
 
     /// <summary>
-    /// Write a JSON success response to stdout and return exit code 0.
+    /// Write a JSON success response and set Environment.ExitCode to 0.
     /// </summary>
-    public static int WriteSuccess(string command, string summary, object? data, Dictionary<string, object>? metrics, bool json)
+    public static void WriteSuccess(string command, string summary, object? data, Dictionary<string, object>? metrics, bool json, long durationMs = 0)
     {
+        Environment.ExitCode = 0;
         if (json)
         {
             var output = JsonOutput.Ok(command, summary, data);
             if (metrics != null)
-            {
                 foreach (var kv in metrics) output.Metrics[kv.Key] = kv.Value;
-            }
+            output.Meta.DurationMs = durationMs;
             Console.WriteLine(JsonSerializer.Serialize(output, JsonOpts));
         }
-        return 0;
     }
 
     /// <summary>
@@ -86,6 +85,22 @@ public static class CliHelpers
         var result = action();
         sw.Stop();
         return (result, sw.ElapsedMilliseconds);
+    }
+
+    /// <summary>Ensure the parent directory of a file path exists.</summary>
+    public static void EnsureParentDir(string path)
+    {
+        var dir = Path.GetDirectoryName(Path.GetFullPath(path));
+        if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+            Directory.CreateDirectory(dir);
+    }
+
+    /// <summary>Verify artifact file exists and is non-empty. Returns error or null.</summary>
+    public static ErrorEntry? CheckArtifact(string path, string kind)
+    {
+        if (!File.Exists(path)) return ErrorCodes.WriteFailed with { Message = $"{kind} not created: {path}" };
+        if (new FileInfo(path).Length == 0) return ErrorCodes.WriteFailed with { Message = $"{kind} is empty: {path}" };
+        return null;
     }
 
     /// <summary>Time a void action, return elapsed ms.</summary>
@@ -105,15 +120,7 @@ public static class CliHelpers
         cmd.SetHandler((bool json) =>
         {
             var name = GetFullName(cmd);
-            if (json)
-            {
-                var output = JsonOutput.Ok(name, $"(not yet implemented) {description}");
-                Console.WriteLine(JsonSerializer.Serialize(output, JsonOpts));
-            }
-            else
-            {
-                Console.WriteLine($"[nong {name}] Not yet implemented. {description}");
-            }
+            WriteError(name, ErrorCodes.NotImplemented with { Message = $"{name}: {description}" }, json);
         }, jsonOpt);
     }
 

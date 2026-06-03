@@ -38,10 +38,10 @@ public static class GenreCommands
             }
             catch (Exception ex)
             {
-                Environment.ExitCode = CliHelpers.WriteError("genre list",
+                CliHelpers.WriteError("genre list",
                     ErrorCodes.InternalError with { Message = ex.Message }, json);
             }
-            Environment.ExitCode = 0;
+
         }, jsonOpt);
         return cmd;
     }
@@ -65,15 +65,15 @@ public static class GenreCommands
             }
             catch (FileNotFoundException)
             {
-                Environment.ExitCode = CliHelpers.WriteError("genre show",
+                CliHelpers.WriteError("genre show",
                     ErrorCodes.FileNotFound with { Message = $"Template not found: {name}. Available: {string.Join(", ", GenreTemplate.List())}" }, json);
             }
             catch (Exception ex)
             {
-                Environment.ExitCode = CliHelpers.WriteError("genre show",
+                CliHelpers.WriteError("genre show",
                     ErrorCodes.InternalError with { Message = ex.Message }, json);
             }
-            Environment.ExitCode = 0;
+
         }, nameArg, jsonOpt);
         return cmd;
     }

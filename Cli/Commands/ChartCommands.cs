@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.CommandLine;
 using System.Text.Json;
 using ChartCore;
@@ -47,15 +48,18 @@ public static class ChartCommands
             var err = CliHelpers.ValidateTextFile(file);
             if (err != null)
             {
-                Environment.ExitCode = CliHelpers.WriteError("stats anova", err, json);
+                CliHelpers.WriteError("chart anova", err, json);
                 return;
             }
 
             try
             {
+                var groups = DataLoader.FromJson(file);
+                var verr = StatsValidation.Validate(groups, "chart anova");
+                if (verr != null) { CliHelpers.WriteError("chart anova", verr, json); return; }
+
                 var (result, elapsed) = CliHelpers.Time(() =>
                 {
-                    var groups = DataLoader.FromJson(file);
                     return StatsEngine.OneWayAnova(groups);
                 });
 
@@ -74,7 +78,7 @@ public static class ChartCommands
                             min = g.Value.Min, max = g.Value.Max
                         })
                     };
-                    var output = JsonOutput.Ok("stats anova",
+                    var output = JsonOutput.Ok("chart anova",
                         $"F={result.F:F2}, P={result.P:F4}, df=({result.dfB},{result.dfW})",
                         data);
                     output.Metrics["groups"] = result.GroupStats.Count;
@@ -97,12 +101,12 @@ public static class ChartCommands
             }
             catch (Exception ex)
             {
-                Environment.ExitCode = CliHelpers.WriteError("stats anova",
+                CliHelpers.WriteError("chart anova",
                     ErrorCodes.InternalError with { Message = ex.Message }, json);
                 return;
             }
 
-            Environment.ExitCode = 0;
+
         }, fileArg, jsonOpt);
 
         return cmd;
@@ -121,15 +125,18 @@ public static class ChartCommands
             var err = CliHelpers.ValidateTextFile(file);
             if (err != null)
             {
-                Environment.ExitCode = CliHelpers.WriteError("stats duncan", err, json);
+                CliHelpers.WriteError("chart duncan", err, json);
                 return;
             }
 
             try
             {
+                var groups = DataLoader.FromJson(file);
+                var verr2 = StatsValidation.Validate(groups, "chart duncan");
+                if (verr2 != null) { CliHelpers.WriteError("chart duncan", verr2, json); return; }
+
                 var (result, elapsed) = CliHelpers.Time(() =>
                 {
-                    var groups = DataLoader.FromJson(file);
                     var anova = StatsEngine.OneWayAnova(groups);
                     return StatsEngine.DuncanMRT(groups, anova.MSW, anova.dfW, alpha);
                 });
@@ -147,7 +154,7 @@ public static class ChartCommands
                             significance = g.Significance
                         })
                     };
-                    var output = JsonOutput.Ok("stats duncan",
+                    var output = JsonOutput.Ok("chart duncan",
                         $"Duncan MRT: {result.Groups.Count} groups, alpha={alpha}",
                         data);
                     output.Meta.DurationMs = elapsed;
@@ -165,12 +172,12 @@ public static class ChartCommands
             }
             catch (Exception ex)
             {
-                Environment.ExitCode = CliHelpers.WriteError("stats duncan",
+                CliHelpers.WriteError("chart duncan",
                     ErrorCodes.InternalError with { Message = ex.Message }, json);
                 return;
             }
 
-            Environment.ExitCode = 0;
+
         }, fileArg, alphaOpt, jsonOpt);
 
         return cmd;
@@ -187,13 +194,16 @@ public static class ChartCommands
         cmd.SetHandler((string file, double alpha, bool json) =>
         {
             var err = CliHelpers.ValidateTextFile(file);
-            if (err != null) { Environment.ExitCode = CliHelpers.WriteError("chart analyze", err, json); return; }
+            if (err != null) { CliHelpers.WriteError("chart analyze", err, json); return; }
 
             try
             {
+                var groups = DataLoader.FromJson(file);
+                var verr3 = StatsValidation.Validate(groups, "chart analyze");
+                if (verr3 != null) { CliHelpers.WriteError("chart analyze", verr3, json); return; }
+
                 var (result, elapsed) = CliHelpers.Time(() =>
                 {
-                    var groups = DataLoader.FromJson(file);
                     return StatsEngine.FullAnalysis(groups, alpha);
                 });
 
@@ -239,11 +249,11 @@ public static class ChartCommands
             }
             catch (Exception ex)
             {
-                Environment.ExitCode = CliHelpers.WriteError("chart analyze",
+                CliHelpers.WriteError("chart analyze",
                     ErrorCodes.InternalError with { Message = ex.Message }, json);
             }
 
-            Environment.ExitCode = 0;
+
         }, fileArg, alphaOpt, jsonOpt);
 
         return cmd;
@@ -257,23 +267,26 @@ public static class ChartCommands
         var outOpt = new Option<string>("-o", "Output PNG path") { IsRequired = true };
         var titleOpt = new Option<string>("--title", () => "", "Chart title");
         var ylabelOpt = new Option<string>("--ylabel", () => "", "Y-axis label");
-        var errorOpt = new Option<string>("--error", () => "sem", "Error bar type: sd, sem, or none");
+        var errorOpt = new Option<string>("--error", () => "sem", "Error bar type: sem or none");
         var noSigOpt = new Option<bool>("--no-significance", () => false, "Disable Duncan significance letters");
         var cmd = new Command("bar", "Bar chart with error bars and significance letters") { fileArg, outOpt, titleOpt, ylabelOpt, errorOpt, noSigOpt };
 
         cmd.SetHandler((string file, string output, string title, string ylabel, string error, bool noSig, bool json) =>
         {
             var err = CliHelpers.ValidateTextFile(file);
-            if (err != null) { Environment.ExitCode = CliHelpers.WriteError("chart bar", err, json); return; }
+            if (err != null) { CliHelpers.WriteError("chart bar", err, json); return; }
 
             try
             {
                 var showError = error != "none";
-                var showSem = error == "sem";
 
+                var groups = DataLoader.FromJson(file);
+                var verr4 = StatsValidation.Validate(groups, "chart bar");
+                if (verr4 != null) { CliHelpers.WriteError("chart bar", verr4, json); return; }
+
+                CliHelpers.EnsureParentDir(output);
                 var (result, elapsed) = CliHelpers.Time(() =>
                 {
-                    var groups = DataLoader.FromJson(file);
 
                     // Run Duncan for significance letters if enabled
                     Dictionary<string, string>? sigLabels = null;
@@ -297,6 +310,9 @@ public static class ChartCommands
 
                 if (json)
                 {
+                    var aerr = CliHelpers.CheckArtifact(output, "PNG");
+                    if (aerr != null) { CliHelpers.WriteError("chart bar", aerr, json); return; }
+
                     var outputJson = JsonOutput.Ok("chart bar",
                         $"Bar chart saved: {output}",
                         new { groups = result.Count, hasSignificance = result.sigLabels != null });
@@ -311,11 +327,11 @@ public static class ChartCommands
             }
             catch (Exception ex)
             {
-                Environment.ExitCode = CliHelpers.WriteError("chart bar",
+                CliHelpers.WriteError("chart bar",
                     ErrorCodes.InternalError with { Message = ex.Message }, json);
             }
 
-            Environment.ExitCode = 0;
+
         }, fileArg, outOpt, titleOpt, ylabelOpt, errorOpt, noSigOpt, jsonOpt);
 
         return cmd;

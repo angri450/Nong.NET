@@ -55,7 +55,7 @@ public static class WordCommands
             var err = CliHelpers.ValidateDocxFile(file);
             if (err != null)
             {
-                Environment.ExitCode = CliHelpers.WriteError("word read", err, json);
+                CliHelpers.WriteError("word read", err, json);
                 return;
             }
 
@@ -89,7 +89,7 @@ public static class WordCommands
                 Console.Write(result.Text);
             }
 
-            Environment.ExitCode = 0;
+
         }, fileArg, jsonOpt);
 
         return cmd;
@@ -107,7 +107,7 @@ public static class WordCommands
             var err = CliHelpers.ValidateDocxFile(file);
             if (err != null)
             {
-                Environment.ExitCode = CliHelpers.WriteError("word preview", err, json);
+                CliHelpers.WriteError("word preview", err, json);
                 return;
             }
 
@@ -164,7 +164,7 @@ public static class WordCommands
                 Console.Error.WriteLine($"Stats: {pr.Statistics.Paragraphs}p {pr.Statistics.Tables}t {pr.Statistics.Images}i | OOXML errors={pr.Statistics.OoxmlErrors} warnings={pr.Statistics.OoxmlWarnings}");
             }
 
-            Environment.ExitCode = 0;
+
         }, fileArg, jsonOpt);
 
         return cmd;
@@ -182,16 +182,20 @@ public static class WordCommands
         cmd.SetHandler((string template, string data, string output, bool json) =>
         {
             var err = CliHelpers.ValidateDocxFile(template) ?? CliHelpers.ValidateTextFile(data);
-            if (err != null) { Environment.ExitCode = CliHelpers.WriteError("word fill", err, json); return; }
+            if (err != null) { CliHelpers.WriteError("word fill", err, json); return; }
 
             try
             {
+                CliHelpers.EnsureParentDir(output);
                 var dataObj = JsonSerializer.Deserialize<Dictionary<string, object>>(File.ReadAllText(data));
                 var elapsed = CliHelpers.Time(() =>
                     DocxCore.DocxTemplate.Fill(template, output, dataObj!));
 
                 if (json)
                 {
+                    var aerr = CliHelpers.CheckArtifact(output, "DOCX");
+                    if (aerr != null) { CliHelpers.WriteError("word fill", aerr, json); return; }
+
                     var outputJson = JsonOutput.Ok("word fill", $"Filled template: {output}");
                     outputJson.Artifacts["docx"] = Path.GetFullPath(output);
                     outputJson.Meta.DurationMs = elapsed;
@@ -204,11 +208,11 @@ public static class WordCommands
             }
             catch (Exception ex)
             {
-                Environment.ExitCode = CliHelpers.WriteError("word fill",
+                CliHelpers.WriteError("word fill",
                     ErrorCodes.InternalError with { Message = ex.Message }, json);
             }
 
-            Environment.ExitCode = 0;
+
         }, tmplArg, dataArg, outOpt, jsonOpt);
 
         return cmd;
@@ -225,10 +229,17 @@ public static class WordCommands
         cmd.SetHandler((string file, string output, bool json) =>
         {
             var err = CliHelpers.ValidateDocxFile(file);
-            if (err != null) { Environment.ExitCode = CliHelpers.WriteError("word rebuild", err, json); return; }
+            if (err != null) { CliHelpers.WriteError("word rebuild", err, json); return; }
+            if (string.Equals(Path.GetFullPath(file), Path.GetFullPath(output), StringComparison.OrdinalIgnoreCase))
+            {
+                CliHelpers.WriteError("word rebuild",
+                    ErrorCodes.ValidationFailed with { Message = "Input and output paths must be different." }, json);
+                return;
+            }
 
             try
             {
+                CliHelpers.EnsureParentDir(output);
                 File.Copy(file, output, true);
                 var elapsed = CliHelpers.Time(() =>
                 {
@@ -238,6 +249,9 @@ public static class WordCommands
 
                 if (json)
                 {
+                    var aerr = CliHelpers.CheckArtifact(output, "DOCX");
+                    if (aerr != null) { CliHelpers.WriteError("word rebuild", aerr, json); return; }
+
                     var outputJson = JsonOutput.Ok("word rebuild", $"Rebuilt: {output}");
                     outputJson.Artifacts["docx"] = Path.GetFullPath(output);
                     outputJson.Meta.DurationMs = elapsed;
@@ -250,11 +264,11 @@ public static class WordCommands
             }
             catch (Exception ex)
             {
-                Environment.ExitCode = CliHelpers.WriteError("word rebuild",
+                CliHelpers.WriteError("word rebuild",
                     ErrorCodes.InternalError with { Message = ex.Message }, json);
             }
 
-            Environment.ExitCode = 0;
+
         }, fileArg, outOpt, jsonOpt);
 
         return cmd;
