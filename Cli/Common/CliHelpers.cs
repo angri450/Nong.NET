@@ -87,6 +87,14 @@ public static class CliHelpers
         return (result, sw.ElapsedMilliseconds);
     }
 
+    /// <summary>Verify artifact file exists and is non-empty. Returns error or null.</summary>
+    public static ErrorEntry? CheckArtifact(string path, string kind)
+    {
+        if (!File.Exists(path)) return ErrorCodes.WriteFailed with { Message = $"{kind} not created: {path}" };
+        if (new FileInfo(path).Length == 0) return ErrorCodes.WriteFailed with { Message = $"{kind} is empty: {path}" };
+        return null;
+    }
+
     /// <summary>Time a void action, return elapsed ms.</summary>
     public static long Time(Action action)
     {

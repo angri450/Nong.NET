@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.CommandLine;
 using System.Text.Json;
 using ClosedXML.Excel;
@@ -160,6 +161,21 @@ public static class ExcelCommands
             var err = ValidateXlsx(file);
             if (err != null) { CliHelpers.WriteError("excel to-groups", err, json); return; }
 
+            // Pre-validate columns before data load
+            int groupCol, valueCol;
+            using (var wbInit = new XLWorkbook(file))
+            {
+                var wsInit = string.IsNullOrEmpty(sheet) ? wbInit.Worksheet(1) : wbInit.Worksheet(sheet);
+                groupCol = ResolveColumn(wsInit, group);
+                valueCol = ResolveColumn(wsInit, value);
+            }
+            if (groupCol < 1 || valueCol < 1)
+            {
+                CliHelpers.WriteError("excel to-groups",
+                    ErrorCodes.ValidationFailed with { Message = $"Column not found: {(groupCol < 1 ? group : value)}" }, json);
+                return;
+            }
+
             var (result, elapsed) = CliHelpers.Time(() =>
             {
                 using var wb = new XLWorkbook(file);
@@ -168,14 +184,11 @@ public static class ExcelCommands
                 var lastRow = ws.LastRowUsed()?.RowNumber() ?? 0;
                 var groups = new Dictionary<string, List<double>>();
 
-                int groupCol = ResolveColumn(ws, group);
-                int valueCol = ResolveColumn(ws, value);
-
                 for (int r = 2; r <= lastRow; r++) // skip header row
                 {
                     var g = ws.Cell(r, groupCol).GetString().Trim();
                     if (string.IsNullOrEmpty(g)) continue;
-                    if (double.TryParse(ws.Cell(r, valueCol).GetString(), out var v))
+                    if (double.TryParse(ws.Cell(r, valueCol).GetString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var v))
                     {
                         if (!groups.ContainsKey(g)) groups[g] = new List<double>();
                         groups[g].Add(v);
@@ -233,7 +246,7 @@ public static class ExcelCommands
             if (string.Equals(ws.Cell(1, c).GetString().Trim(), col, StringComparison.OrdinalIgnoreCase))
                 return c;
         }
-        return 1; // fallback
+        return -1; // not found — caller must validate
     }
 
     static string ColToRef(int col)

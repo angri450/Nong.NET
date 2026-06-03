@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.CommandLine;
 using System.Text.Json;
 using ChartCore;
@@ -53,9 +54,12 @@ public static class ChartCommands
 
             try
             {
+                var groups = DataLoader.FromJson(file);
+                var verr = StatsValidation.Validate(groups, "chart");
+                if (verr != null) { CliHelpers.WriteError("chart", verr, json); return; }
+
                 var (result, elapsed) = CliHelpers.Time(() =>
                 {
-                    var groups = DataLoader.FromJson(file);
                     return StatsEngine.OneWayAnova(groups);
                 });
 
