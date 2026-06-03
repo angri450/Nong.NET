@@ -25,6 +25,7 @@ public static class ErrorCodes
         "E006" => ValidationFailed,
         "E007" => ReadFailed,
         "E008" => WriteFailed,
+        "E009" => NotImplemented,
         _ => new ErrorEntry(code, "unknown", $"Unknown error code: {code}")
     };
 }

@@ -383,7 +383,11 @@ public static class InspectCommands
 
     static ErrorEntry? ValidatePaperSpec(string json)
     {
-        using var doc = JsonDocument.Parse(json);
+        JsonDocument doc;
+        try { doc = JsonDocument.Parse(json); }
+        catch (JsonException) { return ErrorCodes.ValidationFailed with { Message = "Spec is not valid JSON." }; }
+        using (doc)
+        {
         var root = doc.RootElement;
         if (root.ValueKind != JsonValueKind.Object)
             return ErrorCodes.ValidationFailed with { Message = "Spec must be a JSON object." };
@@ -405,7 +409,9 @@ public static class InspectCommands
                 if (!sec.TryGetProperty("heading", out var h) || h.ValueKind != JsonValueKind.String)
                     return ErrorCodes.ValidationFailed with { Message = $"sections[{i}].heading is required and must be a string." };
                 if (sec.TryGetProperty("level", out var lv) && lv.ValueKind != JsonValueKind.Number)
-                    return ErrorCodes.ValidationFailed with { Message = $"sections[{i}].level must be a number." };
+                    return ErrorCodes.ValidationFailed with { Message = $"sections[{i}].level must be a number (1-3)." };
+                if (sec.TryGetProperty("level", out var lv2) && lv2.GetInt32() is var lvi && (lvi < 1 || lvi > 3))
+                    return ErrorCodes.ValidationFailed with { Message = $"sections[{i}].level must be 1-3, got {lvi}." };
                 if (sec.TryGetProperty("body", out var bd))
                 {
                     if (bd.ValueKind != JsonValueKind.Array)
@@ -436,5 +442,6 @@ public static class InspectCommands
         }
 
         return null;
+        }
     }
 }
