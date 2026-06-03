@@ -36,6 +36,7 @@ public static class DiagramCommands
 
             try
             {
+                CliHelpers.EnsureParentDir(output);
                 var elapsed = CliHelpers.Time(() =>
                 {
                     var jsonText = File.ReadAllText(spec);
@@ -75,6 +76,7 @@ public static class DiagramCommands
 
             try
             {
+                CliHelpers.EnsureParentDir(output);
                 var elapsed = CliHelpers.Time(() =>
                 {
                     var graph = JsonSerializer.Deserialize<Graph>(File.ReadAllText(spec),

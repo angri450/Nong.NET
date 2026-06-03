@@ -186,6 +186,7 @@ public static class WordCommands
 
             try
             {
+                CliHelpers.EnsureParentDir(output);
                 var dataObj = JsonSerializer.Deserialize<Dictionary<string, object>>(File.ReadAllText(data));
                 var elapsed = CliHelpers.Time(() =>
                     DocxCore.DocxTemplate.Fill(template, output, dataObj!));
@@ -226,9 +227,16 @@ public static class WordCommands
         {
             var err = CliHelpers.ValidateDocxFile(file);
             if (err != null) { CliHelpers.WriteError("word rebuild", err, json); return; }
+            if (string.Equals(Path.GetFullPath(file), Path.GetFullPath(output), StringComparison.OrdinalIgnoreCase))
+            {
+                CliHelpers.WriteError("word rebuild",
+                    ErrorCodes.ValidationFailed with { Message = "Input and output paths must be different." }, json);
+                return;
+            }
 
             try
             {
+                CliHelpers.EnsureParentDir(output);
                 File.Copy(file, output, true);
                 var elapsed = CliHelpers.Time(() =>
                 {

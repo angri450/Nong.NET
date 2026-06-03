@@ -48,7 +48,7 @@ public static class ChartCommands
             var err = CliHelpers.ValidateTextFile(file);
             if (err != null)
             {
-                CliHelpers.WriteError("stats anova", err, json);
+                CliHelpers.WriteError("chart anova", err, json);
                 return;
             }
 
@@ -78,7 +78,7 @@ public static class ChartCommands
                             min = g.Value.Min, max = g.Value.Max
                         })
                     };
-                    var output = JsonOutput.Ok("stats anova",
+                    var output = JsonOutput.Ok("chart anova",
                         $"F={result.F:F2}, P={result.P:F4}, df=({result.dfB},{result.dfW})",
                         data);
                     output.Metrics["groups"] = result.GroupStats.Count;
@@ -101,7 +101,7 @@ public static class ChartCommands
             }
             catch (Exception ex)
             {
-                CliHelpers.WriteError("stats anova",
+                CliHelpers.WriteError("chart anova",
                     ErrorCodes.InternalError with { Message = ex.Message }, json);
                 return;
             }
@@ -125,7 +125,7 @@ public static class ChartCommands
             var err = CliHelpers.ValidateTextFile(file);
             if (err != null)
             {
-                CliHelpers.WriteError("stats duncan", err, json);
+                CliHelpers.WriteError("chart duncan", err, json);
                 return;
             }
 
@@ -154,7 +154,7 @@ public static class ChartCommands
                             significance = g.Significance
                         })
                     };
-                    var output = JsonOutput.Ok("stats duncan",
+                    var output = JsonOutput.Ok("chart duncan",
                         $"Duncan MRT: {result.Groups.Count} groups, alpha={alpha}",
                         data);
                     output.Meta.DurationMs = elapsed;
@@ -172,7 +172,7 @@ public static class ChartCommands
             }
             catch (Exception ex)
             {
-                CliHelpers.WriteError("stats duncan",
+                CliHelpers.WriteError("chart duncan",
                     ErrorCodes.InternalError with { Message = ex.Message }, json);
                 return;
             }
@@ -284,6 +284,7 @@ public static class ChartCommands
                 var verr4 = StatsValidation.Validate(groups, "chart");
                 if (verr4 != null) { CliHelpers.WriteError("chart", verr4, json); return; }
 
+                CliHelpers.EnsureParentDir(output);
                 var (result, elapsed) = CliHelpers.Time(() =>
                 {
 

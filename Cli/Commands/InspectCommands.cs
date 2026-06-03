@@ -302,6 +302,7 @@ public static class InspectCommands
 
             try
             {
+                CliHelpers.EnsureParentDir(output);
                 var elapsed = CliHelpers.Time(() =>
                 {
                     var specJson = File.ReadAllText(spec);

@@ -87,6 +87,14 @@ public static class CliHelpers
         return (result, sw.ElapsedMilliseconds);
     }
 
+    /// <summary>Ensure the parent directory of a file path exists.</summary>
+    public static void EnsureParentDir(string path)
+    {
+        var dir = Path.GetDirectoryName(Path.GetFullPath(path));
+        if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+            Directory.CreateDirectory(dir);
+    }
+
     /// <summary>Verify artifact file exists and is non-empty. Returns error or null.</summary>
     public static ErrorEntry? CheckArtifact(string path, string kind)
     {
