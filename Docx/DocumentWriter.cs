@@ -1,16 +1,16 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-using System.Text.RegularExpressions;
 
 namespace DocxCore;
 
 /// <summary>
-/// Word 文档写入器。每个方法对应论文中一种元素。
-/// 用法：new DocumentWriter(body).Heading("引言", 1).Body("正文内容[1]")...
+/// Word 文档写入器。原子操作级别的链式 API，不绑定任何特定文体。
+/// 论文写作请使用 Nong.Genre.PaperWriter。
+/// 用法：new DocumentWriter(body, doc).Table(...).Footnote("脚注").Hyperlink(url, text)
 ///
 /// 如需脚注/尾注支持，传入 WordprocessingDocument：
-/// new DocumentWriter(body, doc).Body("文本").Footnote("脚注内容")
+/// new DocumentWriter(body, doc).Footnote("脚注内容")
 /// </summary>
 public class DocumentWriter
 {
@@ -18,7 +18,7 @@ public class DocumentWriter
     readonly WordprocessingDocument? _doc;
     FootnotesPart? _fnPart;
     EndnotesPart? _enPart;
-    int _h1, _h2, _fnId, _enId;
+    int _fnId, _enId;
 
     /// <summary>基础构造（无脚注/尾注支持）。</summary>
     public DocumentWriter(Body body)
@@ -34,84 +34,60 @@ public class DocumentWriter
         _doc = doc;
     }
 
-    // ===== 中文标题/摘要 =====
+    // ===== 标题 / 段落 =====
 
-    public DocumentWriter Title(string text) { P(text, "Title"); return this; }
-    public DocumentWriter SubTitle(string text) { P(text, "SubTitle"); return this; }
-    public DocumentWriter AbstractTitle(string text = "摘  要") { P(text, "AbstractTitle"); return this; }
-    public DocumentWriter Abstract(string text) { P(text, "Abstract"); return this; }
-    public DocumentWriter Keywords(string kw)
+    /// <summary>文档主标题。居中、加粗、大号。</summary>
+    public DocumentWriter Title(string text)
     {
-        var p = NewP("Abstract");
-        p.Append(RunBold("关键词："));
-        p.Append(Run(" " + kw));
+        var p = new Paragraph(new ParagraphProperties(
+            new ParagraphStyleId { Val = "Title" }));
+        p.Append(new Run(new RunProperties(
+            new RunFonts { Ascii = "Times New Roman", HighAnsi = "Times New Roman", EastAsia = "黑体" },
+            new FontSize { Val = "32" },
+            new Bold()),
+            new Text(text)));
         _body.Append(p);
         return this;
     }
 
-    // ===== 英文标题/摘要 =====
-
-    /// <summary>英文标题（使用 EnglishTitle 样式）。</summary>
-    public DocumentWriter EnglishTitle(string text) { P(text, "EnglishTitle"); return this; }
-
-    /// <summary>英文摘要标题。</summary>
-    public DocumentWriter EnglishAbstractTitle(string text = "Abstract") { P(text, "AbstractTitle"); return this; }
-
-    /// <summary>英文摘要正文。</summary>
-    public DocumentWriter EnglishAbstract(string text) { P(text, "Abstract"); return this; }
-
-    /// <summary>英文关键词。</summary>
-    public DocumentWriter EnglishKeywords(string kw)
-    {
-        var p = NewP("Abstract");
-        p.Append(RunBold("Key words: "));
-        p.Append(Run(kw));
-        _body.Append(p);
-        return this;
-    }
-
-    // ===== 标题 =====
-
+    /// <summary>标题段落。level 1-3 对应 Heading1-Heading3。</summary>
     public DocumentWriter Heading(string text, int level = 1)
     {
-        string sid = level switch { 1 => "Heading1", 2 => "Heading2", _ => "Heading3" };
-        string prefix = level switch { 1 => $"{++_h1}  ", 2 => $"{_h1}.{++_h2}  ", _ => "" };
-        if (level == 1) _h2 = 0;
-        P(prefix + text, sid);
+        var styleId = level switch
+        {
+            1 => "Heading1",
+            2 => "Heading2",
+            3 => "Heading3",
+            _ => "Heading1"
+        };
+        var fontSize = level switch
+        {
+            1 => "28",
+            2 => "24",
+            3 => "22",
+            _ => "28"
+        };
+        var p = new Paragraph(new ParagraphProperties(
+            new ParagraphStyleId { Val = styleId }));
+        p.Append(new Run(new RunProperties(
+            new RunFonts { Ascii = "Times New Roman", HighAnsi = "Times New Roman", EastAsia = "黑体" },
+            new FontSize { Val = fontSize },
+            new Bold()),
+            new Text(text)));
+        _body.Append(p);
         return this;
     }
 
-    /// <summary>参考文献标题。</summary>
-    public DocumentWriter BibHeading(string text = "参考文献") { P(text, "BibHeading"); return this; }
-
-    // ===== 正文 =====
-
-    /// <summary>正文段落，自动检测 [N] 引用并上标。</summary>
+    /// <summary>正文段落。</summary>
     public DocumentWriter Body(string text)
     {
-        var p = NewP("Normal");
-        foreach (Match m in Regex.Matches(text, @"\[\d+(?:[,-]\d+)*\]|."))
-            if (m.Value.StartsWith('['))
-                p.Append(new Run(new RunProperties(new VerticalTextAlignment { Val = VerticalPositionValues.Superscript }, new FontSize { Val = "18" }), new Text(m.Value)));
-            else
-                p.Append(Run(m.Value));
+        var p = new Paragraph(new ParagraphProperties(
+            new ParagraphStyleId { Val = "Normal" }));
+        p.Append(new Run(new RunProperties(
+            new RunFonts { Ascii = "Times New Roman", HighAnsi = "Times New Roman", EastAsia = "宋体" },
+            new FontSize { Val = "21" }),
+            new Text(text) { Space = SpaceProcessingModeValues.Preserve }));
         _body.Append(p);
-        return this;
-    }
-
-    // ===== 图表 =====
-
-    /// <summary>图占位符。</summary>
-    public DocumentWriter Figure(string caption, int? num = null)
-    {
-        int n = num ?? 1;
-        var p = NewP("BodyTextNoIndent", JustificationValues.Center);
-        p.Append(Run("[在此处插入图片]", "18"));
-        _body.Append(p);
-        var c = NewP("BodyTextNoIndent", JustificationValues.Center);
-        c.Append(new Run(new RunProperties(new RunFonts { Ascii = "Times New Roman", HighAnsi = "Times New Roman", EastAsia = "宋体" }, new FontSize { Val = "16" }), new Text($"图{n}  {caption}")));
-        _body.Append(c);
-        _body.Append(new Paragraph());
         return this;
     }
 
@@ -148,32 +124,6 @@ public class DocumentWriter
         }
         _body.Append(t);
         _body.Append(new Paragraph());
-        return this;
-    }
-
-    /// <summary>变量操作化三线表。</summary>
-    public DocumentWriter VariableTable(string caption, int num, List<VariablePlanRow> variables)
-    {
-        var headers = VariablePlanGenerator.Columns;
-        var rows = variables.Select(v => new[] {
-            v.变量名称, v.中文标签, v.变量角色, v.理论含义, v.操作化方式,
-            v.数据类型, v.测量题项指标, v.取值范围, v.数据来源, v.是否必须,
-            v.分析用途, v.缺失风险,
-        }).ToArray();
-        return Table(caption, num, headers, rows);
-    }
-
-    // ===== 参考文献 =====
-
-    /// <summary>参考文献列表（Word 自动编号 [1][2]...）。</summary>
-    public DocumentWriter References(params string[] refs)
-    {
-        foreach (var txt in refs)
-        {
-            var p = NewP("ReferenceText");
-            p.Append(Run(txt));
-            _body.Append(p);
-        }
         return this;
     }
 
@@ -256,8 +206,8 @@ public class DocumentWriter
         if (_doc == null)
         {
             // Fallback: just output the URL as text
-            var p = NewP("Normal");
-            p.Append(Run($"{displayText} ({url})"));
+            var p = new Paragraph(new ParagraphProperties(new ParagraphStyleId { Val = "Normal" }));
+            p.Append(new Run(new Text($"{displayText} ({url})")));
             _body.Append(p);
             return this;
         }
@@ -358,26 +308,6 @@ public class DocumentWriter
         }
         return _enPart;
     }
-
-    void P(string t, string sid)
-    {
-        var p = NewP(sid);
-        p.Append(Run(t));
-        _body.Append(p);
-    }
-
-    static Paragraph NewP(string sid, JustificationValues? align = null)
-    {
-        var ppr = new ParagraphProperties(new ParagraphStyleId { Val = sid });
-        if (align != null) ppr.Justification = new Justification { Val = align.Value };
-        return new Paragraph(ppr);
-    }
-
-    static Run Run(string t, string? fs = null) => fs != null
-        ? new Run(new RunProperties(new RunFonts { Ascii = "Times New Roman", HighAnsi = "Times New Roman", EastAsia = "宋体" }, new FontSize { Val = fs }), new Text(t))
-        : new Run(new Text(t));
-
-    static Run RunBold(string t) => new Run(new RunProperties(new Bold()), new Text(t));
 
     static TopBorder Top(BorderValues v, uint sz = 6) => new() { Val = v, Size = sz, Color = "000000" };
     static BottomBorder Bottom(BorderValues v, uint sz = 6) => new() { Val = v, Size = sz, Color = "000000" };
