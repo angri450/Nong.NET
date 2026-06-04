@@ -2,6 +2,7 @@ using System.Globalization;
 using System.CommandLine;
 using System.Text.Json;
 using ChartCore;
+using ScottPlot;
 using Nong.Cli.Common;
 
 namespace Nong.Cli.Commands;
@@ -19,19 +20,9 @@ public static class ChartCommands
         cmd.AddCommand(CreateAnova(jsonOpt));
         cmd.AddCommand(CreateDuncan(jsonOpt));
         cmd.AddCommand(CreateBarChart(jsonOpt));
-
-        var stubs = new (string name, string desc)[]
-        {
-            ("line", "Line chart"),
-            ("scatter", "Scatter plot"),
-            ("pie", "Pie chart"),
-        };
-        foreach (var (n, d) in stubs)
-        {
-            var c = new Command(n, d);
-            CliHelpers.SetNotImplemented(c, d, jsonOpt);
-            cmd.AddCommand(c);
-        }
+        cmd.AddCommand(CreateLineChart(jsonOpt));
+        cmd.AddCommand(CreateScatterChart(jsonOpt));
+        cmd.AddCommand(CreatePieChart(jsonOpt));
 
         return cmd;
     }
@@ -336,4 +327,379 @@ public static class ChartCommands
 
         return cmd;
     }
+
+    // ===== chart line =====
+
+    static Command CreateLineChart(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to spec JSON");
+        var outOpt = new Option<string>("-o", "Output PNG path") { IsRequired = true };
+        var cmd = new Command("line", "Line chart") { fileArg, outOpt };
+
+        cmd.SetHandler((string file, string output, bool json) =>
+        {
+            var err = CliHelpers.ValidateTextFile(file);
+            if (err != null) { CliHelpers.WriteError("chart line", err, json); return; }
+
+            try
+            {
+                var jsonText = File.ReadAllText(file);
+                var spec = JsonSerializer.Deserialize<LineSpec>(jsonText, CliHelpers.JsonOpts);
+                if (spec?.Series == null || spec.Series.Count == 0)
+                {
+                    CliHelpers.WriteError("chart line",
+                        ErrorCodes.ValidationFailed with { Message = "series array must be non-empty." }, json);
+                    return;
+                }
+
+                for (int i = 0; i < spec.Series.Count; i++)
+                {
+                    var s = spec.Series[i];
+                    if (string.IsNullOrWhiteSpace(s.Name))
+                    {
+                        CliHelpers.WriteError("chart line",
+                            ErrorCodes.ValidationFailed with { Message = $"Series [{i}]: name is required." }, json);
+                        return;
+                    }
+                    if (s.X == null || s.Y == null || s.X.Length != s.Y.Length)
+                    {
+                        CliHelpers.WriteError("chart line",
+                            ErrorCodes.ValidationFailed with { Message = $"Series '{s.Name}': x and y arrays must have the same length." }, json);
+                        return;
+                    }
+                    if (s.X.Length == 0)
+                    {
+                        CliHelpers.WriteError("chart line",
+                            ErrorCodes.ValidationFailed with { Message = $"Series '{s.Name}': x and y arrays must be non-empty." }, json);
+                        return;
+                    }
+                    if (s.X.Any(double.IsNaN) || s.X.Any(double.IsInfinity) ||
+                        s.Y.Any(double.IsNaN) || s.Y.Any(double.IsInfinity))
+                    {
+                        CliHelpers.WriteError("chart line",
+                            ErrorCodes.ValidationFailed with { Message = $"Series '{s.Name}': values must not be NaN or Infinity." }, json);
+                        return;
+                    }
+                }
+
+                int seriesCount = spec.Series.Count;
+                int totalPoints = spec.Series.Sum(s => s.X!.Length);
+
+                CliHelpers.EnsureParentDir(output);
+                var elapsed = CliHelpers.Time(() =>
+                {
+                    var plt = new Plot();
+                    plt.Font.Set(ChartBuilder.GetCjkFontFamily());
+                    plt.Title(spec.Title ?? "");
+                    plt.XLabel(spec.XLabel ?? "");
+                    plt.YLabel(spec.YLabel ?? "");
+
+                    var colors = BarChartConfig.DefaultColors;
+                    for (int i = 0; i < spec.Series.Count; i++)
+                    {
+                        var s = spec.Series[i];
+                        var scatter = plt.Add.Scatter(s.X!, s.Y!, colors[i % colors.Length]);
+                        scatter.LegendText = s.Name;
+                        scatter.MarkerSize = 6;
+                        scatter.LineWidth = 2;
+                    }
+
+                    if (spec.Series.Count > 1) plt.ShowLegend();
+                    plt.SavePng(output, 800, 600);
+                });
+
+                var aerr = CliHelpers.CheckArtifact(output, "PNG");
+                if (aerr != null) { CliHelpers.WriteError("chart line", aerr, json); return; }
+
+                if (json)
+                {
+                    var outputJson = JsonOutput.Ok("chart line",
+                        $"Line chart saved: {output}",
+                        new { series = seriesCount, points = totalPoints });
+                    outputJson.Artifacts["png"] = Path.GetFullPath(output);
+                    outputJson.Meta.DurationMs = elapsed;
+                    Console.WriteLine(JsonSerializer.Serialize(outputJson, CliHelpers.JsonOpts));
+                }
+                else
+                {
+                    Console.WriteLine($"Line chart saved: {Path.GetFullPath(output)}");
+                }
+            }
+            catch (JsonException jex)
+            {
+                CliHelpers.WriteError("chart line",
+                    ErrorCodes.ValidationFailed with { Message = $"Invalid JSON spec: {jex.Message}" }, json);
+            }
+            catch (Exception ex)
+            {
+                CliHelpers.WriteError("chart line",
+                    ErrorCodes.InternalError with { Message = ex.Message }, json);
+            }
+        }, fileArg, outOpt, jsonOpt);
+
+        return cmd;
+    }
+
+    // ===== chart scatter =====
+
+    static Command CreateScatterChart(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to spec JSON");
+        var outOpt = new Option<string>("-o", "Output PNG path") { IsRequired = true };
+        var cmd = new Command("scatter", "Scatter plot") { fileArg, outOpt };
+
+        cmd.SetHandler((string file, string output, bool json) =>
+        {
+            var err = CliHelpers.ValidateTextFile(file);
+            if (err != null) { CliHelpers.WriteError("chart scatter", err, json); return; }
+
+            try
+            {
+                var jsonText = File.ReadAllText(file);
+                var spec = JsonSerializer.Deserialize<ScatterSpec>(jsonText, CliHelpers.JsonOpts);
+                if (spec?.Points == null || spec.Points.Count == 0)
+                {
+                    CliHelpers.WriteError("chart scatter",
+                        ErrorCodes.ValidationFailed with { Message = "points array must be non-empty." }, json);
+                    return;
+                }
+
+                foreach (var p in spec.Points)
+                {
+                    if (double.IsNaN(p.X) || double.IsInfinity(p.X) ||
+                        double.IsNaN(p.Y) || double.IsInfinity(p.Y))
+                    {
+                        CliHelpers.WriteError("chart scatter",
+                            ErrorCodes.ValidationFailed with { Message = "Point coordinates must not be NaN or Infinity." }, json);
+                        return;
+                    }
+                }
+
+                // Group points by group name
+                var groups = new Dictionary<string, (List<double> Xs, List<double> Ys)>();
+                foreach (var p in spec.Points)
+                {
+                    var key = string.IsNullOrWhiteSpace(p.Group) ? "default" : p.Group!;
+                    if (!groups.ContainsKey(key))
+                        groups[key] = (new List<double>(), new List<double>());
+                    groups[key].Xs.Add(p.X);
+                    groups[key].Ys.Add(p.Y);
+                }
+
+                int pointCount = spec.Points.Count;
+                bool hasTrendline = spec.Trendline && spec.Points.Count >= 2;
+
+                CliHelpers.EnsureParentDir(output);
+                var elapsed = CliHelpers.Time(() =>
+                {
+                    var plt = new Plot();
+                    plt.Font.Set(ChartBuilder.GetCjkFontFamily());
+                    plt.Title(spec.Title ?? "");
+                    plt.XLabel(spec.XLabel ?? "");
+                    plt.YLabel(spec.YLabel ?? "");
+
+                    var colors = BarChartConfig.DefaultColors;
+                    int gi = 0;
+                    bool showLegend = groups.Count > 1 || (groups.Count == 1 && !groups.ContainsKey("default"));
+
+                    foreach (var kv in groups)
+                    {
+                        var xs = kv.Value.Xs.ToArray();
+                        var ys = kv.Value.Ys.ToArray();
+                        var scatter = plt.Add.ScatterPoints(xs, ys, colors[gi % colors.Length]);
+                        scatter.MarkerSize = 8;
+                        if (showLegend)
+                            scatter.LegendText = kv.Key;
+                        gi++;
+                    }
+
+                    // Trendline: overall linear regression across all points
+                    if (hasTrendline)
+                    {
+                        var allX = spec.Points.Select(p => p.X).ToArray();
+                        var allY = spec.Points.Select(p => p.Y).ToArray();
+                        double sumX = allX.Sum(), sumY = allY.Sum();
+                        double sumXY = allX.Zip(allY, (a, b) => a * b).Sum();
+                        double sumX2 = allX.Select(a => a * a).Sum();
+                        int n = allX.Length;
+                        double slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+                        double intercept = (sumY - slope * sumX) / n;
+
+                        double xMin = allX.Min(), xMax = allX.Max();
+                        var regLine = plt.Add.Scatter(
+                            new double[] { xMin, xMax },
+                            new double[] { slope * xMin + intercept, slope * xMax + intercept });
+                        regLine.MarkerSize = 0;
+                        regLine.LineWidth = 2;
+                        regLine.LineColor = new Color(200, 50, 50);
+                        regLine.LegendText = $"y={slope:F3}x+{intercept:F3}";
+                    }
+
+                    if (showLegend || hasTrendline) plt.ShowLegend();
+                    plt.SavePng(output, 800, 600);
+                });
+
+                var aerr = CliHelpers.CheckArtifact(output, "PNG");
+                if (aerr != null) { CliHelpers.WriteError("chart scatter", aerr, json); return; }
+
+                if (json)
+                {
+                    var outputJson = JsonOutput.Ok("chart scatter",
+                        $"Scatter plot saved: {output}",
+                        new { points = pointCount, groups = groups.Count, trendline = spec.Trendline });
+                    outputJson.Artifacts["png"] = Path.GetFullPath(output);
+                    outputJson.Meta.DurationMs = elapsed;
+                    Console.WriteLine(JsonSerializer.Serialize(outputJson, CliHelpers.JsonOpts));
+                }
+                else
+                {
+                    Console.WriteLine($"Scatter plot saved: {Path.GetFullPath(output)}");
+                }
+            }
+            catch (JsonException jex)
+            {
+                CliHelpers.WriteError("chart scatter",
+                    ErrorCodes.ValidationFailed with { Message = $"Invalid JSON spec: {jex.Message}" }, json);
+            }
+            catch (Exception ex)
+            {
+                CliHelpers.WriteError("chart scatter",
+                    ErrorCodes.InternalError with { Message = ex.Message }, json);
+            }
+        }, fileArg, outOpt, jsonOpt);
+
+        return cmd;
+    }
+
+    // ===== chart pie =====
+
+    static Command CreatePieChart(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to spec JSON");
+        var outOpt = new Option<string>("-o", "Output PNG path") { IsRequired = true };
+        var cmd = new Command("pie", "Pie chart") { fileArg, outOpt };
+
+        cmd.SetHandler((string file, string output, bool json) =>
+        {
+            var err = CliHelpers.ValidateTextFile(file);
+            if (err != null) { CliHelpers.WriteError("chart pie", err, json); return; }
+
+            try
+            {
+                var jsonText = File.ReadAllText(file);
+                var spec = JsonSerializer.Deserialize<PieSpec>(jsonText, CliHelpers.JsonOpts);
+                if (spec?.Values == null || spec.Values.Count < 2)
+                {
+                    CliHelpers.WriteError("chart pie",
+                        ErrorCodes.ValidationFailed with { Message = "values array must have at least 2 entries." }, json);
+                    return;
+                }
+
+                foreach (var v in spec.Values)
+                {
+                    if (string.IsNullOrWhiteSpace(v.Label))
+                    {
+                        CliHelpers.WriteError("chart pie",
+                            ErrorCodes.ValidationFailed with { Message = "Each value must have a label." }, json);
+                        return;
+                    }
+                    if (v.Value <= 0)
+                    {
+                        CliHelpers.WriteError("chart pie",
+                            ErrorCodes.ValidationFailed with { Message = $"Value '{v.Label}' must be > 0, got {v.Value}." }, json);
+                        return;
+                    }
+                }
+
+                var slices = new Dictionary<string, double>();
+                foreach (var v in spec.Values)
+                    slices[v.Label!] = v.Value;
+
+                int sliceCount = spec.Values.Count;
+                double total = spec.Values.Sum(v => v.Value);
+
+                CliHelpers.EnsureParentDir(output);
+                var elapsed = CliHelpers.Time(() =>
+                {
+                    ChartTypes.PieChart(slices, spec.Title ?? "", output,
+                        colors: BarChartConfig.DefaultColors, width: 800, height: 600,
+                        showLabels: true, showValues: true, showPercent: true);
+                });
+
+                var aerr = CliHelpers.CheckArtifact(output, "PNG");
+                if (aerr != null) { CliHelpers.WriteError("chart pie", aerr, json); return; }
+
+                if (json)
+                {
+                    var outputJson = JsonOutput.Ok("chart pie",
+                        $"Pie chart saved: {output}",
+                        new { slices = sliceCount, total = Math.Round(total, 2) });
+                    outputJson.Artifacts["png"] = Path.GetFullPath(output);
+                    outputJson.Meta.DurationMs = elapsed;
+                    Console.WriteLine(JsonSerializer.Serialize(outputJson, CliHelpers.JsonOpts));
+                }
+                else
+                {
+                    Console.WriteLine($"Pie chart saved: {Path.GetFullPath(output)}");
+                }
+            }
+            catch (JsonException jex)
+            {
+                CliHelpers.WriteError("chart pie",
+                    ErrorCodes.ValidationFailed with { Message = $"Invalid JSON spec: {jex.Message}" }, json);
+            }
+            catch (Exception ex)
+            {
+                CliHelpers.WriteError("chart pie",
+                    ErrorCodes.InternalError with { Message = ex.Message }, json);
+            }
+        }, fileArg, outOpt, jsonOpt);
+
+        return cmd;
+    }
+}
+
+// === JSON spec models for chart commands ===
+
+internal class LineSpec
+{
+    public string? Title { get; set; }
+    public string? XLabel { get; set; }
+    public string? YLabel { get; set; }
+    public List<LineSeriesEntry> Series { get; set; } = new();
+}
+
+internal class LineSeriesEntry
+{
+    public string? Name { get; set; }
+    public double[]? X { get; set; }
+    public double[]? Y { get; set; }
+}
+
+internal class ScatterSpec
+{
+    public string? Title { get; set; }
+    public string? XLabel { get; set; }
+    public string? YLabel { get; set; }
+    public List<ScatterPointEntry> Points { get; set; } = new();
+    public bool Trendline { get; set; }
+}
+
+internal class ScatterPointEntry
+{
+    public double X { get; set; }
+    public double Y { get; set; }
+    public string? Group { get; set; }
+}
+
+internal class PieSpec
+{
+    public string? Title { get; set; }
+    public List<PieValueEntry> Values { get; set; } = new();
+}
+
+internal class PieValueEntry
+{
+    public string? Label { get; set; }
+    public double Value { get; set; }
 }

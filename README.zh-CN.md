@@ -96,7 +96,7 @@ Angri450.Nong/
 
 ## 运行要求
 
-- .NET SDK 11.0（preview）
+- .NET SDK 8.0+（向前兼容 9.0 / 10.0 / 11.0）
 - SkiaSharp / HarfBuzzSharp 原生二进制（NuGet 自动安装）
 
 ## 许可协议

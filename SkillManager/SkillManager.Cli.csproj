@@ -6,7 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 
-    <PackAsTool>true</PackAsTool>
+    <IsPackable>false</IsPackable>
+    <PackAsTool>false</PackAsTool>
     <ToolCommandName>skill-manager</ToolCommandName>
     <PackageId>Angri450.Nong.Skill.Manager</PackageId>
     <Version>3.0.2</Version>

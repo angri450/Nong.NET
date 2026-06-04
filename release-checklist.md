@@ -5,67 +5,53 @@ Date: 2026-06-03
 ## Build
 
 - [x] `dotnet build Cli/NongCli.csproj -c Release` — 0 errors
-- [x] `dotnet build ThirdParty/ThirdParty.csproj -c Release` — 0 errors
-- [x] `dotnet build Docx/DocxCore.csproj -c Release` — 0 errors
-- [x] `dotnet build Inspect/Inspect.csproj -c Release` — 0 errors
-
-## Pack
-
-- [x] `dotnet pack Cli/NongCli.csproj -c Release -o nupkg/` — success
-- [x] nupkg: Angri450.Nong.Cli.3.1.0.nupkg
-
-## Local Install
-
-- [ ] `dotnet tool install --global --add-source nupkg/ Angri450.Nong.Cli`
-- [ ] `nong --version` → 3.1.0
-- [ ] `nong commands --json` → valid JSON
-- [ ] `nong word read test.docx` → text output
+- [x] `dotnet test Cli.Tests/Cli.Tests.csproj -c Release` — 58 PASS, 0 SKIP
 
 ## Contract
 
-- [x] `nong commands --json` returns 40+ commands with aliases
+- [x] `nong commands --json` returns 71 implemented commands
+- [x] `nong commands --all --json` returns 71 total (71 impl)
 - [x] All real commands return stable JSON schema
-- [x] Error codes E001-E008 documented
+- [x] Error codes E001-E009 documented
 - [x] AGENT.md written
+- [x] CAPABILITY.md current
+
+## Implemented (71 commands across 10 groups)
+
+| Group | Count | Commands |
+|-------|-------|----------|
+| word | 30 | read, preview, fill, rebuild, extract, dissect, stats, fonts, styles, validate, merge, outline, images, comments, revisions, infer-format, fix-order, protect, embed-font, add paragraph, add table, add footnote, add endnote, add image, add toc, add xref, add link, add bookmark, add comment, add math |
+| inspect | 10 | diagnose, refs, write-paper, classify, structure, varplan, evidence, data-req, gap, semantics |
+| chart | 7 | analyze, bar, anova, duncan, line, scatter, pie |
+| excel | 4 | sheets, read, to-groups, create |
+| diagram | 3 | flowchart, network, tree |
+| genre | 2 | list, show |
+| icons | 2 | list, search |
+| skill | 4 | validate, scan, inventory, package |
+| pptx | 2 | read, slides |
+| ocr | 7 | cloud, local, check-env, analyze-image, models, install-model, to-word |
+
+`ocr local` returns E005 (model missing) or E009 (inference not yet implemented) — honest behavior.
+`ocr install-model pp-ocrv5-mobile` returns E009 — PP-OCRv5 ONNX not yet available.
+
+## Known Limitations
+
+- word merge: uses AdvancedFeatures.AppendDocument and returns warnings for headers/footers, numbering, and style-name conflict boundaries
+- ocr cloud: markdown output only; PADDLEOCR_ACCESS_TOKEN required (PADDLEOCR_TOKEN deprecated)
+- ocr local: PP-OCRv5 ONNX model not yet released; returns E005 or E009
+- ocr install-model: PP-OCRv5 ONNX model not yet available; returns E009
+- Duncan MRT: simplified Q-value approximation; formal papers should verify
+- word rebuild: input/output must differ
+- word fix-order / protect / embed-font / add: input/output must differ
+
+## Skill Manager Legacy
+
+- [x] `dotnet build SkillManager/SkillManager.Cli.csproj -c Release` — 0 errors (legacy only)
+- [ ] Do NOT pack or publish `Angri450.Nong.Skill.Manager` in 3.1.x/2.0.0 migration
+- [x] Only `Angri450.Nong.Cli` is the public tool entry point
+- [x] Users should use `nong skill validate/scan/inventory/package` instead of `skill-manager`
 
 ## NuGet Publish (pending)
 
 - [ ] Push to NuGet.org: `dotnet nuget push nupkg/Angri450.Nong.Cli.3.1.0.nupkg --api-key $env:NUGET_API_KEY`
 - [ ] GitHub Release: `gh release create v3.1.0-cli nupkg/Angri450.Nong.Cli.3.1.0.nupkg`
-
-## License
-
-- [ ] ThirdParty source list audit
-- [ ] NOTICE file for Apache 2.0
-- [ ] Verify no GPL code merged
-
-## Real Commands Implemented
-
-| Command | Stage |
-|---------|-------|
-| nong word read | 2 |
-| nong word preview | 2 |
-| nong word fill | 6 |
-| nong word rebuild | 6 |
-| nong inspect diagnose | 3 |
-| nong inspect refs | 3 |
-| nong inspect write-paper | 6 |
-| nong chart analyze | 4 |
-| nong chart anova | 3 |
-| nong chart duncan | 3 |
-| nong chart bar | 4 |
-| nong excel sheets | 5 |
-| nong excel read | 5 |
-| nong excel to-groups | 5 |
-| nong diagram flowchart | 7 |
-| nong diagram network | 7 |
-| nong genre list | 8 |
-| nong genre show | 8 |
-| nong icons list | 8 |
-| nong icons search | 8 |
-
-**20 real commands across 8 groups.**
-
-Note: pptx read is a stub (not counted). PptxCore needs further adaptation.
-
-Naming: `inspect write-paper` (with hyphen) is the canonical name, consistent with AGENT.md and commands --json.
