@@ -18,17 +18,7 @@ public static class ExcelCommands
         cmd.AddCommand(CreateSheets(jsonOpt));
         cmd.AddCommand(CreateRead(jsonOpt));
         cmd.AddCommand(CreateToGroups(jsonOpt));
-
-        var stubs = new (string name, string desc)[]
-        {
-            ("create", "Create blank xlsx"),
-        };
-        foreach (var (n, d) in stubs)
-        {
-            var c = new Command(n, d);
-            CliHelpers.SetNotImplemented(c, d, jsonOpt);
-            cmd.AddCommand(c);
-        }
+        cmd.AddCommand(CreateCreateXlsx(jsonOpt));
 
         return cmd;
     }
@@ -170,11 +160,18 @@ public static class ExcelCommands
 
             // Pre-validate columns before data load
             int groupCol, valueCol;
-            using (var wbInit = new XLWorkbook(file))
+            try
             {
+                using var wbInit = new XLWorkbook(file);
                 var wsInit = string.IsNullOrEmpty(sheet) ? wbInit.Worksheet(1) : wbInit.Worksheet(sheet);
                 groupCol = ResolveColumn(wsInit, group);
                 valueCol = ResolveColumn(wsInit, value);
+            }
+            catch (KeyNotFoundException)
+            {
+                CliHelpers.WriteError("excel to-groups",
+                    ErrorCodes.ValidationFailed with { Message = $"Sheet not found: {sheet}" }, json);
+                return;
             }
             if (groupCol < 1 || valueCol < 1)
             {
@@ -213,7 +210,7 @@ public static class ExcelCommands
                 int obs = result.Values.Sum(v => v.Count);
                 var output = JsonOutput.Ok("excel to-groups",
                     $"{result.Count} groups, {obs} observations",
-                    new { groups = result });
+                    result);
                 output.Metrics["groups"] = result.Count;
                 output.Metrics["observations"] = obs;
                 output.Meta.DurationMs = elapsed;
@@ -244,8 +241,13 @@ public static class ExcelCommands
     static int ResolveColumn(IXLWorksheet ws, string col)
     {
         if (int.TryParse(col, out var n) && n > 0) return n;
-        if (col.Length == 1 && char.IsLetter(col[0]))
-            return char.ToUpper(col[0]) - 'A' + 1;
+        if (col.All(char.IsLetter))
+        {
+            int result = 0;
+            foreach (var c in col)
+                result = result * 26 + (char.ToUpper(c) - 'A' + 1);
+            return result;
+        }
         // Try header row match
         var lastCol = ws.LastColumnUsed()?.ColumnNumber() ?? 0;
         for (int c = 1; c <= lastCol; c++)
@@ -261,4 +263,170 @@ public static class ExcelCommands
         if (col <= 26) return ((char)('A' + col - 1)).ToString();
         return ((char)('A' + (col - 1) / 26 - 1)).ToString() + ((char)('A' + (col - 1) % 26)).ToString();
     }
+
+    // ===== excel create =====
+
+    static Command CreateCreateXlsx(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to spec JSON");
+        var outOpt = new Option<string>("-o", "Output xlsx path") { IsRequired = true };
+        var cmd = new Command("create", "Create xlsx from JSON spec") { fileArg, outOpt };
+
+        cmd.SetHandler((string file, string output, bool json) =>
+        {
+            var err = CliHelpers.ValidateTextFile(file);
+            if (err != null) { CliHelpers.WriteError("excel create", err, json); return; }
+
+            try
+            {
+                var jsonText = File.ReadAllText(file);
+                var spec = JsonSerializer.Deserialize<ExcelCreateSpec>(jsonText, CliHelpers.JsonOpts);
+                if (spec?.Sheets == null || spec.Sheets.Count == 0)
+                {
+                    CliHelpers.WriteError("excel create",
+                        ErrorCodes.ValidationFailed with { Message = "sheets array must be non-empty." }, json);
+                    return;
+                }
+
+                // Validate each sheet
+                foreach (var sheet in spec.Sheets)
+                {
+                    if (string.IsNullOrWhiteSpace(sheet.Name))
+                    {
+                        CliHelpers.WriteError("excel create",
+                            ErrorCodes.ValidationFailed with { Message = "Each sheet must have a name." }, json);
+                        return;
+                    }
+                    if (sheet.Name!.Length > 31)
+                    {
+                        CliHelpers.WriteError("excel create",
+                            ErrorCodes.ValidationFailed with { Message = $"Sheet name '{sheet.Name}' exceeds 31 characters." }, json);
+                        return;
+                    }
+                    if (sheet.Headers == null)
+                    {
+                        CliHelpers.WriteError("excel create",
+                            ErrorCodes.ValidationFailed with { Message = $"Sheet '{sheet.Name}': headers is required." }, json);
+                        return;
+                    }
+                    if (sheet.Rows == null)
+                    {
+                        CliHelpers.WriteError("excel create",
+                            ErrorCodes.ValidationFailed with { Message = $"Sheet '{sheet.Name}': rows is required." }, json);
+                        return;
+                    }
+                }
+
+                CliHelpers.EnsureParentDir(output);
+                int sheetCount = spec.Sheets.Count;
+                var (totalRows, elapsed) = CliHelpers.Time(() =>
+                {
+                    using var wb = new XLWorkbook();
+                    int rowCount = 0;
+
+                    foreach (var sheet in spec.Sheets)
+                    {
+                        var ws = wb.Worksheets.Add(sheet.Name!);
+
+                        // Write headers
+                        for (int c = 0; c < sheet.Headers!.Count; c++)
+                        {
+                            ws.Cell(1, c + 1).Value = sheet.Headers[c] ?? "";
+                        }
+
+                        // Write data rows
+                        for (int r = 0; r < sheet.Rows!.Count; r++)
+                        {
+                            var row = sheet.Rows[r];
+                            for (int c = 0; c < row.Count && c < sheet.Headers.Count; c++)
+                            {
+                                var cell = ws.Cell(r + 2, c + 1);
+                                var val = row[c];
+                                if (val is JsonElement je)
+                                {
+                                    switch (je.ValueKind)
+                                    {
+                                        case JsonValueKind.Number:
+                                            cell.Value = je.GetDouble();
+                                            break;
+                                        case JsonValueKind.True:
+                                            cell.Value = true;
+                                            break;
+                                        case JsonValueKind.False:
+                                            cell.Value = false;
+                                            break;
+                                        case JsonValueKind.Null:
+                                            cell.Value = "";
+                                            break;
+                                        default:
+                                            cell.Value = je.ToString();
+                                            break;
+                                    }
+                                }
+                                else if (val is string s)
+                                {
+                                    cell.Value = s;
+                                }
+                                else if (val != null)
+                                {
+                                    cell.Value = val.ToString();
+                                }
+                                else
+                                {
+                                    cell.Value = "";
+                                }
+                            }
+                            rowCount++;
+                        }
+                    }
+
+                    wb.SaveAs(output);
+                    return rowCount;
+                });
+
+                var aerr = CliHelpers.CheckArtifact(output, "XLSX");
+                if (aerr != null) { CliHelpers.WriteError("excel create", aerr, json); return; }
+
+                if (json)
+                {
+                    var outputJson = JsonOutput.Ok("excel create",
+                        $"Excel created: {output}",
+                        new { sheets = sheetCount, rows = totalRows });
+                    outputJson.Artifacts["xlsx"] = Path.GetFullPath(output);
+                    outputJson.Meta.DurationMs = elapsed;
+                    Console.WriteLine(JsonSerializer.Serialize(outputJson, CliHelpers.JsonOpts));
+                }
+                else
+                {
+                    Console.WriteLine($"Excel created: {Path.GetFullPath(output)}");
+                }
+            }
+            catch (JsonException jex)
+            {
+                CliHelpers.WriteError("excel create",
+                    ErrorCodes.ValidationFailed with { Message = $"Invalid JSON spec: {jex.Message}" }, json);
+            }
+            catch (Exception ex)
+            {
+                CliHelpers.WriteError("excel create",
+                    ErrorCodes.InternalError with { Message = ex.Message }, json);
+            }
+        }, fileArg, outOpt, jsonOpt);
+
+        return cmd;
+    }
+}
+
+// === JSON spec model for excel create ===
+
+internal class ExcelCreateSpec
+{
+    public List<ExcelSheetEntry> Sheets { get; set; } = new();
+}
+
+internal class ExcelSheetEntry
+{
+    public string? Name { get; set; }
+    public List<string?> Headers { get; set; } = new();
+    public List<List<object?>> Rows { get; set; } = new();
 }

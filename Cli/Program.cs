@@ -59,18 +59,50 @@ class Program
         root.AddCommand(GenreCommands.Create(jsonOpt));
         root.AddCommand(IconsCommands.Create(jsonOpt));
         root.AddCommand(SkillCommands.Create(jsonOpt));
-
-        // === Stub command groups ===
-        root.AddCommand(CreateStubGroup("ocr", "OCR operations", jsonOpt,
-            ("local", "Local PaddleOCR"),
-            ("cloud", "Cloud PaddleOCR-VL")
-        ));
+        root.AddCommand(OcrCommands.Create(jsonOpt));
 
         var builder = new CommandLineBuilder(root)
             .UseDefaults()
             .Build();
+
+        if (args.Any(a => string.Equals(a, "--json", StringComparison.OrdinalIgnoreCase)))
+        {
+            var parseResult = builder.Parse(args);
+            if (parseResult.Errors.Count > 0)
+            {
+                CliHelpers.WriteError(InferCommandName(args),
+                    ErrorCodes.MissingArgument with
+                    {
+                        Message = string.Join(" ", parseResult.Errors.Select(e => e.Message))
+                    },
+                    json: true);
+                return 1;
+            }
+        }
+
         var code = await builder.InvokeAsync(args);
         return Environment.ExitCode != 0 ? Environment.ExitCode : code;
+    }
+
+    static string InferCommandName(string[] args)
+    {
+        var tokens = args
+            .Where(a => !string.Equals(a, "--json", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(a, "--verbose", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        if (tokens.Length == 0) return "nong";
+
+        if (tokens[0] == "commands") return "commands";
+        if (tokens.Length == 1) return tokens[0];
+
+        if (tokens[0] == "word" && tokens.Length >= 2)
+        {
+            if (tokens[1] == "add" && tokens.Length >= 3)
+                return $"word add {tokens[2]}";
+            return $"word {tokens[1]}";
+        }
+
+        return $"{tokens[0]} {tokens[1]}";
     }
 
     static Command CreateStubGroup(string name, string description, Option<bool> jsonOpt,

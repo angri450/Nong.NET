@@ -20,6 +20,36 @@ public static class SkillCommands
         return cmd;
     }
 
+    // ===== shared helpers =====
+
+    static void GuardEmptyPath(string dir, string command, bool json)
+    {
+        if (string.IsNullOrWhiteSpace(dir))
+        {
+            CliHelpers.WriteError(command,
+                ErrorCodes.MissingArgument with { Message = "Directory path is required." }, json);
+        }
+    }
+
+    static bool TryResolveDir(string dir, string command, bool json, out string fullDir)
+    {
+        fullDir = "";
+        if (string.IsNullOrWhiteSpace(dir))
+        {
+            CliHelpers.WriteError(command,
+                ErrorCodes.MissingArgument with { Message = "Directory path is required." }, json);
+            return false;
+        }
+        fullDir = Path.GetFullPath(dir);
+        if (!Directory.Exists(fullDir))
+        {
+            CliHelpers.WriteError(command,
+                ErrorCodes.FileNotFound with { Message = $"Directory not found: {fullDir}" }, json);
+            return false;
+        }
+        return true;
+    }
+
     // ===== skill validate =====
 
     static Command CreateValidate(Option<bool> jsonOpt)
@@ -29,20 +59,7 @@ public static class SkillCommands
 
         cmd.SetHandler((string dir, bool json) =>
         {
-            if (string.IsNullOrWhiteSpace(dir))
-            {
-                CliHelpers.WriteError("skill validate",
-                    ErrorCodes.MissingArgument with { Message = "Directory path is required." }, json);
-                return;
-            }
-
-            var fullDir = Path.GetFullPath(dir);
-            if (!Directory.Exists(fullDir))
-            {
-                CliHelpers.WriteError("skill validate",
-                    ErrorCodes.FileNotFound with { Message = $"Directory not found: {fullDir}" }, json);
-                return;
-            }
+            if (!TryResolveDir(dir, "skill validate", json, out var fullDir)) return;
 
             try
             {
@@ -147,20 +164,7 @@ public static class SkillCommands
 
         cmd.SetHandler((string dir, bool json) =>
         {
-            if (string.IsNullOrWhiteSpace(dir))
-            {
-                CliHelpers.WriteError("skill scan",
-                    ErrorCodes.MissingArgument with { Message = "Directory path is required." }, json);
-                return;
-            }
-
-            var fullDir = Path.GetFullPath(dir);
-            if (!Directory.Exists(fullDir))
-            {
-                CliHelpers.WriteError("skill scan",
-                    ErrorCodes.FileNotFound with { Message = $"Directory not found: {fullDir}" }, json);
-                return;
-            }
+            if (!TryResolveDir(dir, "skill scan", json, out var fullDir)) return;
 
             try
             {
@@ -278,42 +282,35 @@ public static class SkillCommands
 
         cmd.SetHandler((string dir, bool json) =>
         {
-            if (string.IsNullOrWhiteSpace(dir))
-            {
-                CliHelpers.WriteError("skill inventory",
-                    ErrorCodes.MissingArgument with { Message = "Directory path is required." }, json);
-                return;
-            }
-
-            var fullDir = Path.GetFullPath(dir);
-            if (!Directory.Exists(fullDir))
-            {
-                CliHelpers.WriteError("skill inventory",
-                    ErrorCodes.FileNotFound with { Message = $"Directory not found: {fullDir}" }, json);
-                return;
-            }
+            if (!TryResolveDir(dir, "skill inventory", json, out var fullDir)) return;
 
             try
             {
-                var (result, elapsed) = CliHelpers.Time(() => RunInventory(fullDir));
+                var rootInfo = SkillRootClassifier.Classify(fullDir);
+                var (result, elapsed) = CliHelpers.Time(() => RunInventory(fullDir, rootInfo));
 
                 if (json)
                 {
                     var data = new
                     {
                         root = fullDir,
+                        rootType = rootInfo.Kind.ToString().ToLowerInvariant(),
                         skills = result.skills,
                         skillCount = result.skillCount,
                         totalFiles = result.totalFiles,
-                        hasPluginManifest = File.Exists(Path.Combine(fullDir, "marketplace.json")),
-                        hasMarketplaceManifest = File.Exists(Path.Combine(fullDir, "marketplace.json"))
+                        hasPluginManifest = rootInfo.HasPluginManifest,
+                        hasMarketplaceManifest = rootInfo.HasMarketplaceManifest,
+                        hasSkillsManifest = rootInfo.HasSkillsManifest
                     };
 
-                    var output = JsonOutput.Ok("skill inventory",
-                        result.skillCount == 1
-                            ? $"Skill: {result.skills[0].name}"
-                            : $"{result.skillCount} skills found",
-                        data);
+                    var summary = result.skillCount switch
+                    {
+                        0 => "0 skills found",
+                        1 => $"Skill: {result.skills[0].name}",
+                        _ => $"{result.skillCount} skills found"
+                    };
+
+                    var output = JsonOutput.Ok("skill inventory", summary, data);
                     output.Metrics["skillCount"] = result.skillCount;
                     output.Metrics["totalFiles"] = result.totalFiles;
                     output.Meta.DurationMs = elapsed;
@@ -321,12 +318,17 @@ public static class SkillCommands
                 }
                 else
                 {
+                    Console.WriteLine($"Root type: {rootInfo.Kind}");
+                    Console.WriteLine($"Plugin manifest: {rootInfo.HasPluginManifest}");
+                    Console.WriteLine($"Marketplace manifest: {rootInfo.HasMarketplaceManifest}");
+                    Console.WriteLine($"Skills manifest: {rootInfo.HasSkillsManifest}");
+                    Console.WriteLine();
+
                     if (result.skillCount == 1)
                     {
                         var skill = result.skills[0];
                         Console.WriteLine($"Skill: {skill.name}");
                         Console.WriteLine($"Path: {skill.path}");
-                        Console.WriteLine();
                         Console.WriteLine($"SKILL.md: {(skill.hasSkillMd ? $"{skill.skillMdLines} lines ({skill.skillMdSizeBytes} bytes)" : "MISSING")}");
                         Console.WriteLine($"References: {skill.references} files");
                         Console.WriteLine($"Scripts: {skill.scripts} files");
@@ -337,12 +339,16 @@ public static class SkillCommands
                         Console.WriteLine($"Tests: {skill.testFiles}");
                         Console.WriteLine($"Total: {skill.totalFiles} files");
                     }
-                    else
+                    else if (result.skillCount > 1)
                     {
                         Console.WriteLine($"Skills found: {result.skillCount}");
                         Console.WriteLine($"Total files: {result.totalFiles}");
                         foreach (var skill in result.skills)
                             Console.WriteLine($"  {skill.name} — SKILL.md {(skill.hasSkillMd ? "OK" : "MISSING")}");
+                    }
+                    else
+                    {
+                        Console.WriteLine("No skills found.");
                     }
                 }
             }
@@ -357,10 +363,9 @@ public static class SkillCommands
         return cmd;
     }
 
-    static (List<SkillInventoryEntry> skills, int skillCount, int totalFiles) RunInventory(string fullDir)
+    static (List<SkillInventoryEntry> skills, int skillCount, int totalFiles) RunInventory(string fullDir, SkillRootInfo rootInfo)
     {
-        var skillMdPath = Path.Combine(fullDir, "SKILL.md");
-        if (File.Exists(skillMdPath))
+        if (rootInfo.Kind == SkillRootKind.Skill)
         {
             var runner = new InventoryRunner(fullDir);
             var r = runner.Run();
@@ -368,18 +373,20 @@ public static class SkillCommands
             return (new() { entry }, 1, r.TotalFileCount);
         }
 
-        var skills = new List<SkillInventoryEntry>();
-        foreach (var subDir in Directory.EnumerateDirectories(fullDir))
+        if (rootInfo.Kind == SkillRootKind.Plugin)
         {
-            if (!File.Exists(Path.Combine(subDir, "SKILL.md")))
-                continue;
-            var runner = new InventoryRunner(subDir);
-            var r = runner.Run();
-            skills.Add(ToEntry(r));
+            var skills = new List<SkillInventoryEntry>();
+            foreach (var skillDir in rootInfo.SkillDirectories)
+            {
+                var runner = new InventoryRunner(skillDir);
+                var r = runner.Run();
+                skills.Add(ToEntry(r));
+            }
+            var totalFiles = skills.Sum(s => s.totalFiles);
+            return (skills, skills.Count, totalFiles);
         }
 
-        var totalFiles = skills.Sum(s => s.totalFiles);
-        return (skills, skills.Count, totalFiles);
+        return (new(), 0, 0);
     }
 
     static SkillInventoryEntry ToEntry(InventoryResult r) => new()
@@ -422,117 +429,131 @@ public static class SkillCommands
 
     static Command CreatePackage(Option<bool> jsonOpt)
     {
-        var dirArg = new Argument<string>("dir", "Path to skill directory containing SKILL.md");
-        var cmd = new Command("package", "Validate + scan + package skill into .zip") { dirArg };
+        var dirArg = new Argument<string>("dir", "Path to skill or plugin root directory");
+        var cmd = new Command("package", "Validate + scan + package skill or plugin into .zip") { dirArg };
 
         cmd.SetHandler((string dir, bool json) =>
         {
-            if (string.IsNullOrWhiteSpace(dir))
-            {
-                CliHelpers.WriteError("skill package",
-                    ErrorCodes.MissingArgument with { Message = "Directory path is required." }, json);
-                return;
-            }
-
-            var fullDir = Path.GetFullPath(dir);
-            if (!Directory.Exists(fullDir))
-            {
-                CliHelpers.WriteError("skill package",
-                    ErrorCodes.FileNotFound with { Message = $"Directory not found: {fullDir}" }, json);
-                return;
-            }
+            if (!TryResolveDir(dir, "skill package", json, out var fullDir)) return;
 
             try
             {
-                // Step 1: Validate
-                var validator = new SkillValidator(fullDir);
-                var valResult = validator.Validate();
-                if (!valResult.IsValid)
+                var rootInfo = SkillRootClassifier.Classify(fullDir);
+
+                if (rootInfo.Kind == SkillRootKind.Directory)
                 {
                     if (json)
                     {
-                        var errOutput = new JsonOutput
+                        var errOut = new JsonOutput
                         {
                             Status = "error",
                             Command = "skill package",
-                            Summary = $"Validation failed: {valResult.Issues.Count(i => i.Level == "Error")} errors",
+                            Summary = "Directory is neither a skill nor a plugin root",
                             Meta = new MetaInfo { Version = "3.1.0" }
                         };
-                        errOutput.Errors = valResult.Issues.Where(i => i.Level == "Error").Select(i =>
-                            new ErrorEntry(ErrorCodes.ValidationFailed.Code, ErrorCodes.ValidationFailed.Name,
-                                $"{i.File}: {i.Message}")
-                        ).ToList();
-                        Console.WriteLine(JsonSerializer.Serialize(errOutput, CliHelpers.JsonOpts));
+                        errOut.Errors.Add(new ErrorEntry(
+                            ErrorCodes.ValidationFailed.Code,
+                            ErrorCodes.ValidationFailed.Name,
+                            "Directory contains no SKILL.md and no plugin/skills manifest."
+                        ));
+                        Console.WriteLine(JsonSerializer.Serialize(errOut, CliHelpers.JsonOpts));
                     }
                     else
                     {
-                        Console.WriteLine("[FAIL] Validation failed:");
-                        foreach (var issue in valResult.Issues.Where(i => i.Level == "Error"))
-                            Console.WriteLine($"  [ERR] {issue.File}: {issue.Message}");
+                        Console.Error.WriteLine("[FAIL] Directory is neither a skill nor a plugin root.");
                     }
                     Environment.ExitCode = 1;
                     return;
                 }
 
-                // Step 2: Security Scan
-                var scanner = new SecurityScanner(fullDir);
-                var findings = scanner.Scan();
-                var highPlus = findings.Where(f => f.Severity == Severity.Critical || f.Severity == Severity.High).ToList();
-                if (highPlus.Any())
+                if (rootInfo.Kind == SkillRootKind.Skill)
                 {
-                    if (json)
+                    // Step 1: Validate single skill
+                    var validator = new SkillValidator(fullDir);
+                    var valResult = validator.Validate();
+                    if (!valResult.IsValid)
                     {
-                        var scanOutput = new JsonOutput
+                        EmitValidationError("skill package", valResult, json);
+                        return;
+                    }
+
+                    // Step 2: Security Scan
+                    var scanner = new SecurityScanner(fullDir);
+                    var findings = scanner.Scan();
+                    var highPlus = findings.Where(f => f.Severity == Severity.Critical || f.Severity == Severity.High).ToList();
+                    if (highPlus.Any())
+                    {
+                        EmitScanBlockError("skill package", highPlus, json);
+                        return;
+                    }
+
+                    // Step 3: Package
+                    var (outputPath, elapsed) = CliHelpers.Time(() =>
+                    {
+                        var packager = new Packager(fullDir);
+                        return packager.PackageAsync().GetAwaiter().GetResult();
+                    });
+
+                    EmitPackageSuccess("skill package", outputPath, elapsed, SkillRootKind.Skill);
+                }
+                else // Plugin
+                {
+                    // Step 1: Validate all child skills
+                    var allErrors = new List<string>();
+                    foreach (var skillDir in rootInfo.SkillDirectories)
+                    {
+                        var validator = new SkillValidator(skillDir);
+                        var vr = validator.Validate();
+                        if (!vr.IsValid)
                         {
-                            Status = "error",
-                            Command = "skill package",
-                            Summary = $"{highPlus.Count} High+ findings block packaging",
-                            Meta = new MetaInfo { Version = "3.1.0" }
-                        };
-                        scanOutput.Errors = highPlus.Select(f =>
-                            new ErrorEntry(ErrorCodes.ValidationFailed.Code, ErrorCodes.ValidationFailed.Name,
-                                $"[{f.Severity}] {f.Rule}: {f.File}:{f.Line} — {f.Detail}")
-                        ).ToList();
-                        Console.WriteLine(JsonSerializer.Serialize(scanOutput, CliHelpers.JsonOpts));
+                            var skillName = vr.SkillName ?? Path.GetFileName(skillDir);
+                            allErrors.Add($"{skillName}: {vr.Issues.Count(i => i.Level == "Error")} validation errors");
+                        }
                     }
-                    else
+                    if (allErrors.Any())
                     {
-                        Console.WriteLine("[FAIL] High+ findings block packaging:");
-                        foreach (var f in highPlus)
-                            Console.WriteLine($"  [{f.Severity.ToString().ToUpper()}] {f.Rule}: {f.File}:{f.Line} — {f.Detail}");
+                        if (json)
+                        {
+                            var errOut = new JsonOutput
+                            {
+                                Status = "error",
+                                Command = "skill package",
+                                Summary = $"Plugin validation failed: {allErrors.Count} skill(s)",
+                                Meta = new MetaInfo { Version = "3.1.0" }
+                            };
+                            foreach (var e in allErrors)
+                                errOut.Errors.Add(new ErrorEntry(
+                                    ErrorCodes.ValidationFailed.Code,
+                                    ErrorCodes.ValidationFailed.Name, e));
+                            Console.WriteLine(JsonSerializer.Serialize(errOut, CliHelpers.JsonOpts));
+                        }
+                        else
+                        {
+                            Console.Error.WriteLine("[FAIL] Plugin validation failed:");
+                            foreach (var e in allErrors) Console.Error.WriteLine($"  - {e}");
+                        }
+                        Environment.ExitCode = 1;
+                        return;
                     }
-                    Environment.ExitCode = 1;
-                    return;
-                }
 
-                // Step 3: Package
-                var (outputPath, elapsed) = CliHelpers.Time(() =>
-                {
-                    var packager = new Packager(fullDir);
-                    return packager.PackageAsync().GetAwaiter().GetResult();
-                });
+                    // Step 2: Security Scan the full plugin root
+                    var scanner = new SecurityScanner(fullDir);
+                    var findings = scanner.Scan();
+                    var highPlus = findings.Where(f => f.Severity == Severity.Critical || f.Severity == Severity.High).ToList();
+                    if (highPlus.Any())
+                    {
+                        EmitScanBlockError("skill package", highPlus, json);
+                        return;
+                    }
 
-                var aerr = CliHelpers.CheckArtifact(outputPath, "ZIP");
-                if (aerr != null)
-                {
-                    CliHelpers.WriteError("skill package", aerr, json);
-                    return;
-                }
+                    // Step 3: Package as plugin
+                    var (outputPath, elapsed) = CliHelpers.Time(() =>
+                    {
+                        var packager = new Packager(fullDir);
+                        return packager.PackageAsync().GetAwaiter().GetResult();
+                    });
 
-                var fileInfo = new FileInfo(outputPath);
-
-                if (json)
-                {
-                    var output = JsonOutput.Ok("skill package", $"Package created: {fileInfo.Name}");
-                    output.Artifacts["zip"] = outputPath;
-                    output.Metrics["sizeBytes"] = fileInfo.Length;
-                    output.Meta.DurationMs = elapsed;
-                    Console.WriteLine(JsonSerializer.Serialize(output, CliHelpers.JsonOpts));
-                }
-                else
-                {
-                    Console.WriteLine($"[OK] Packaged to: {outputPath}");
-                    Console.WriteLine($"[OK] Size: {fileInfo.Length / (1024.0 * 1024.0):F2} MB");
+                    EmitPackageSuccess("skill package", outputPath, elapsed, SkillRootKind.Plugin, rootInfo.SkillDirectories.Count);
                 }
             }
             catch (Exception ex)
@@ -544,5 +565,94 @@ public static class SkillCommands
         }, dirArg, jsonOpt);
 
         return cmd;
+    }
+
+    static void EmitValidationError(string command, ValidationResult valResult, bool json)
+    {
+        if (json)
+        {
+            var errOut = new JsonOutput
+            {
+                Status = "error",
+                Command = command,
+                Summary = $"Validation failed: {valResult.Issues.Count(i => i.Level == "Error")} errors",
+                Meta = new MetaInfo { Version = "3.1.0" }
+            };
+            errOut.Errors = valResult.Issues.Where(i => i.Level == "Error").Select(i =>
+                new ErrorEntry(ErrorCodes.ValidationFailed.Code, ErrorCodes.ValidationFailed.Name,
+                    $"{i.File}: {i.Message}")
+            ).ToList();
+            Console.WriteLine(JsonSerializer.Serialize(errOut, CliHelpers.JsonOpts));
+        }
+        else
+        {
+            Console.Error.WriteLine("[FAIL] Validation failed:");
+            foreach (var issue in valResult.Issues.Where(i => i.Level == "Error"))
+                Console.Error.WriteLine($"  [ERR] {issue.File}: {issue.Message}");
+        }
+        Environment.ExitCode = 1;
+    }
+
+    static void EmitScanBlockError(string command, List<SecurityFinding> highPlus, bool json)
+    {
+        if (json)
+        {
+            var errOut = new JsonOutput
+            {
+                Status = "error",
+                Command = command,
+                Summary = $"{highPlus.Count} High+ findings block packaging",
+                Meta = new MetaInfo { Version = "3.1.0" }
+            };
+            errOut.Errors = highPlus.Select(f =>
+                new ErrorEntry(ErrorCodes.ValidationFailed.Code, ErrorCodes.ValidationFailed.Name,
+                    $"[{f.Severity}] {f.Rule}: {f.File}:{f.Line} — {f.Detail}")
+            ).ToList();
+            Console.WriteLine(JsonSerializer.Serialize(errOut, CliHelpers.JsonOpts));
+        }
+        else
+        {
+            Console.Error.WriteLine("[FAIL] High+ findings block packaging:");
+            foreach (var f in highPlus)
+                Console.Error.WriteLine($"  [{f.Severity.ToString().ToUpper()}] {f.Rule}: {f.File}:{f.Line} — {f.Detail}");
+        }
+        Environment.ExitCode = 1;
+    }
+
+    static void EmitPackageSuccess(string command, string outputPath, long elapsed, SkillRootKind kind, int skillCount = 1)
+    {
+        var aerr = CliHelpers.CheckArtifact(outputPath, "ZIP");
+        if (aerr != null)
+        {
+            CliHelpers.WriteError(command, aerr, true);
+            return;
+        }
+
+        // Verify archive contents
+        try
+        {
+            var packager = new Packager(Path.GetDirectoryName(outputPath)!);
+            packager.VerifyArchiveAsync(outputPath, kind).GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            CliHelpers.WriteError(command,
+                ErrorCodes.WriteFailed with { Message = $"Archive verification failed: {ex.Message}" }, true);
+            return;
+        }
+
+        var fileInfo = new FileInfo(outputPath);
+        var packageType = kind == SkillRootKind.Plugin ? "plugin" : "skill";
+
+        var output = JsonOutput.Ok(command, $"Package created: {fileInfo.Name}");
+        output.Data = kind == SkillRootKind.Plugin
+            ? new { packageType, skillCount }
+            : new { packageType };
+        output.Artifacts["zip"] = outputPath;
+        output.Metrics["sizeBytes"] = fileInfo.Length;
+        if (kind == SkillRootKind.Plugin)
+            output.Metrics["skillCount"] = skillCount;
+        output.Meta.DurationMs = elapsed;
+        Console.WriteLine(JsonSerializer.Serialize(output, CliHelpers.JsonOpts));
     }
 }
