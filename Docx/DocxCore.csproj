@@ -6,15 +6,15 @@
     <RootNamespace>DocxCore</RootNamespace>
     <AssemblyName>Angri450.Nong.Docx</AssemblyName>
     <PackageId>Angri450.Nong.Docx</PackageId>
-    <Version>3.0.2</Version>
+    <Version>3.1.0</Version>
     <Authors>angri450</Authors>
-    <Description>OpenXML Word generation library with paper analysis, footnotes/endnotes, image embedding, JSON-driven formatting, and quality diagnosis. Not a COM wrapper.</Description>
+    <Description>Pure OpenXML Word engine for reading, writing, and formatting .docx files. Provides builders, template fill, style engine, image embedding, OOXML repair, footnotes/endnotes, track changes, and document merge. Not a COM wrapper. For paper/official-document/letter writing, see Angri450.Nong.Genre.</Description>
     <DebugType>embedded</DebugType>
     <DeterministicSourcePaths>true</DeterministicSourcePaths>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/angri450/Nong.NET</RepositoryUrl>
-    <PackageTags>nong agriculture docx paper word openxml document-generation thesis</PackageTags>
+    <PackageTags>nong agriculture docx word openxml document-generation table footnote endnote template ooxml</PackageTags>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\ThirdParty\ThirdParty.csproj" />

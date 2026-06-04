@@ -85,4 +85,4 @@ https://github.com/angri450/Nong.NET — Issues and PRs welcome.
 
 ## License
 
-MIT
+Apache-2.0

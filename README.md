@@ -129,7 +129,7 @@ Angri450.Nong/
 
 ## Requirements
 
-- .NET SDK 11.0 (preview)
+- .NET SDK 8.0+ (forward-compatible with 9.0/10.0/11.0)
 - Native SkiaSharp/HarfBuzzSharp binaries (auto-installed via NuGet)
 
 ## License
