@@ -1,4 +1,4 @@
-# nong CLI 当前能力表 v3.2.0
+# nong CLI 当前能力表 v3.2.1
 
 日期：2026-06-04
 源：`nong commands --json` + 实测
