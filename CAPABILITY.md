@@ -1,4 +1,4 @@
-# nong CLI 当前能力表 v3.1.x
+# nong CLI 当前能力表 v3.2.0
 
 日期：2026-06-04
 源：`nong commands --json` + 实测
@@ -233,7 +233,7 @@ nong skill package ./plugin --json
   "artifacts": { "png": "fig.png" },
   "metrics": { "paragraphs": 29 },
   "errors": [],
-  "meta": { "durationMs": 42, "version": "3.1.0" }
+  "meta": { "durationMs": 42, "version": "3.2.0" }
 }
 ```
 
