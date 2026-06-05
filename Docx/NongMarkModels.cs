@@ -57,6 +57,9 @@ public sealed record ParagraphBlock : NongBlock
 
     [JsonPropertyName("outlineLevel")]
     public int? OutlineLevel { get; set; }
+
+    [JsonPropertyName("format")]
+    public NongParagraphFormat? Format { get; set; }
 }
 
 /// <summary>Heading block (detected by style or outlineLvl). ID prefix: h0001+</summary>
@@ -76,6 +79,9 @@ public sealed record HeadingBlock : NongBlock
 
     [JsonPropertyName("styleName")]
     public string? StyleName { get; set; }
+
+    [JsonPropertyName("format")]
+    public NongParagraphFormat? Format { get; set; }
 }
 
 /// <summary>Text run with formatting. ID prefix: r0001+</summary>
@@ -124,6 +130,37 @@ public sealed record NongRunFormat
     public bool? Subscript { get; set; }
 }
 
+/// <summary>Paragraph-level layout and spacing format.</summary>
+public sealed record NongParagraphFormat
+{
+    [JsonPropertyName("alignment")]
+    public string? Alignment { get; set; }
+
+    [JsonPropertyName("firstLineIndent")]
+    public string? FirstLineIndent { get; set; }
+
+    [JsonPropertyName("leftIndent")]
+    public string? LeftIndent { get; set; }
+
+    [JsonPropertyName("rightIndent")]
+    public string? RightIndent { get; set; }
+
+    [JsonPropertyName("lineSpacing")]
+    public string? LineSpacing { get; set; }
+
+    [JsonPropertyName("lineRule")]
+    public string? LineRule { get; set; }
+
+    [JsonPropertyName("spaceBefore")]
+    public string? SpaceBefore { get; set; }
+
+    [JsonPropertyName("spaceAfter")]
+    public string? SpaceAfter { get; set; }
+
+    [JsonPropertyName("keepNext")]
+    public bool? KeepNext { get; set; }
+}
+
 // --- Table blocks -----------------------------------------------------------
 
 /// <summary>Table block. ID prefix: t0001+</summary>
@@ -143,6 +180,9 @@ public sealed record TableBlock : NongBlock
 
     [JsonPropertyName("styleName")]
     public string? StyleName { get; set; }
+
+    [JsonPropertyName("format")]
+    public NongTableFormat? Format { get; set; }
 }
 
 /// <summary>A single table row.</summary>
@@ -169,6 +209,82 @@ public sealed record TableCellBlock : NongBlock
 
     [JsonPropertyName("rowSpan")]
     public int RowSpan { get; set; } = 1;
+
+    [JsonPropertyName("format")]
+    public NongTableCellFormat? Format { get; set; }
+}
+
+/// <summary>Table-level layout and border format.</summary>
+public sealed record NongTableFormat
+{
+    [JsonPropertyName("justification")]
+    public string? Justification { get; set; }
+
+    [JsonPropertyName("width")]
+    public string? Width { get; set; }
+
+    [JsonPropertyName("widthType")]
+    public string? WidthType { get; set; }
+
+    [JsonPropertyName("borders")]
+    public NongTableBorders? Borders { get; set; }
+}
+
+/// <summary>Table-cell layout and border format.</summary>
+public sealed record NongTableCellFormat
+{
+    [JsonPropertyName("width")]
+    public string? Width { get; set; }
+
+    [JsonPropertyName("widthType")]
+    public string? WidthType { get; set; }
+
+    [JsonPropertyName("verticalAlignment")]
+    public string? VerticalAlignment { get; set; }
+
+    [JsonPropertyName("shadingFill")]
+    public string? ShadingFill { get; set; }
+
+    [JsonPropertyName("borders")]
+    public NongTableBorders? Borders { get; set; }
+}
+
+/// <summary>Six-edge table border description.</summary>
+public sealed record NongTableBorders
+{
+    [JsonPropertyName("top")]
+    public NongBorderInfo? Top { get; set; }
+
+    [JsonPropertyName("bottom")]
+    public NongBorderInfo? Bottom { get; set; }
+
+    [JsonPropertyName("left")]
+    public NongBorderInfo? Left { get; set; }
+
+    [JsonPropertyName("right")]
+    public NongBorderInfo? Right { get; set; }
+
+    [JsonPropertyName("insideH")]
+    public NongBorderInfo? InsideH { get; set; }
+
+    [JsonPropertyName("insideV")]
+    public NongBorderInfo? InsideV { get; set; }
+}
+
+/// <summary>Single border edge description.</summary>
+public sealed record NongBorderInfo
+{
+    [JsonPropertyName("val")]
+    public string? Val { get; set; }
+
+    [JsonPropertyName("size")]
+    public uint? Size { get; set; }
+
+    [JsonPropertyName("color")]
+    public string? Color { get; set; }
+
+    [JsonPropertyName("space")]
+    public uint? Space { get; set; }
 }
 
 // --- Image and figure blocks ------------------------------------------------
@@ -933,6 +1049,9 @@ public sealed record NongTableFormatInfo
 
     [JsonPropertyName("styleName")]
     public string? StyleName { get; set; }
+
+    [JsonPropertyName("format")]
+    public NongTableFormat? Format { get; set; }
 }
 
 /// <summary>Page-level defaults.</summary>

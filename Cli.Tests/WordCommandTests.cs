@@ -73,6 +73,119 @@ public class WordCommandTests
         return path;
     }
 
+    /// <summary>Create a docx with paragraph layout and table border formatting.</summary>
+    static string CreateFormattedDocx()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "test-formatted-" + Guid.NewGuid().ToString("N")[..8] + ".docx");
+        using var doc = WordprocessingDocument.Create(path, WordprocessingDocumentType.Document);
+        doc.AddMainDocumentPart();
+
+        var paragraph = new Paragraph(
+            new ParagraphProperties(
+                new Justification { Val = JustificationValues.Center },
+                new Indentation { FirstLine = "420", Left = "120" },
+                new SpacingBetweenLines
+                {
+                    Line = "360",
+                    LineRule = LineSpacingRuleValues.Exact,
+                    Before = "120",
+                    After = "240"
+                },
+                new KeepNext()),
+            new Run(
+                new RunProperties(
+                    new RunFonts { EastAsia = "宋体", Ascii = "Times New Roman" },
+                    new FontSize { Val = "21" }),
+                new Text("Formatted paragraph")));
+
+        var table = new Table(
+            new TableProperties(
+                new TableWidth { Width = "5000", Type = TableWidthUnitValues.Pct },
+                new TableJustification { Val = TableRowAlignmentValues.Center },
+                new TableBorders(
+                    new TopBorder { Val = BorderValues.Single, Size = 12, Color = "000000" },
+                    new LeftBorder { Val = BorderValues.Nil },
+                    new BottomBorder { Val = BorderValues.Single, Size = 12, Color = "000000" },
+                    new RightBorder { Val = BorderValues.Nil },
+                    new InsideHorizontalBorder { Val = BorderValues.Single, Size = 4, Color = "000000" },
+                    new InsideVerticalBorder { Val = BorderValues.Nil })),
+            new TableRow(
+                new TableCell(
+                    new TableCellProperties(
+                        new TableCellWidth { Width = "2500", Type = TableWidthUnitValues.Pct },
+                        new TableCellVerticalAlignment { Val = TableVerticalAlignmentValues.Center },
+                        new TableCellBorders(new BottomBorder { Val = BorderValues.Single, Size = 4, Color = "000000" })),
+                    new Paragraph(new Run(new Text("A")))),
+                new TableCell(new Paragraph(new Run(new Text("B"))))));
+
+        doc.MainDocumentPart.Document = new Document(new Body(paragraph, table));
+        return path;
+    }
+
+    /// <summary>Create a docx with legacy Word/WPS compatibility artifacts fixed by word fix-order.</summary>
+    static string CreateLegacyCompatibilityDocx()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "test-legacy-compat-" + Guid.NewGuid().ToString("N")[..8] + ".docx");
+        using var doc = WordprocessingDocument.Create(path, WordprocessingDocumentType.Document);
+        var main = doc.AddMainDocumentPart();
+
+        var stylesPart = main.AddNewPart<StyleDefinitionsPart>();
+        stylesPart.Styles = new Styles(
+            new Style(
+                new StyleName { Val = "Normal" },
+                new ParagraphProperties(new Justification { Val = JustificationValues.Both }),
+                new NextParagraphStyle { Val = "Normal" })
+            {
+                Type = StyleValues.Paragraph,
+                StyleId = "Normal",
+                Default = true,
+            },
+            new Style(
+                new StyleName { Val = "Normal Table" },
+                new TableProperties(new TableStyle { Val = "NormalTable" }))
+            {
+                Type = StyleValues.Table,
+                StyleId = "NormalTable",
+                Default = true,
+            });
+
+        var table = new Table(
+            new TableProperties(new TableWidth { Width = "5000", Type = TableWidthUnitValues.Pct }),
+            new TableGrid(new GridColumn { Width = "5000" }),
+            new TableRow(
+                new TableRowProperties(),
+                new PreviousTablePropertyExceptions(
+                    new TableWidth { Width = "5000", Type = TableWidthUnitValues.Pct }),
+                new TableCell(
+                    new TableCellProperties(new NoWrap { Val = OnOffOnlyValues.Off }),
+                    new Paragraph(new Run(new Text("legacy cell"))))));
+
+        main.Document = new Document(new Body(
+            new Paragraph(new Run(new Text("legacy compatibility"))),
+            table,
+            new SectionProperties(
+                new Columns { Space = "720" },
+                new PageSize { Width = 11906, Height = 16838 },
+                new PageMargin { Top = 1440, Right = 1440, Bottom = 1440, Left = 1440 })));
+
+        return path;
+    }
+
+    static string CreateTinyPng()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "nong-test-image-" + Guid.NewGuid().ToString("N")[..8] + ".png");
+        var bytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=");
+        File.WriteAllBytes(path, bytes);
+        return path;
+    }
+
+    static string CreateFakeTtf()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "nong-test-font-" + Guid.NewGuid().ToString("N")[..8] + ".ttf");
+        File.WriteAllBytes(path, Enumerable.Range(0, 128).Select(i => (byte)i).ToArray());
+        return path;
+    }
+
     // ===== Test 1: word dissect --json basic =====
 
     [Fact]
@@ -565,6 +678,132 @@ public class WordCommandTests
         finally
         {
             try { File.Delete(docx); } catch { }
+            try { File.Delete(outPath); } catch { }
+        }
+    }
+
+    // ===== Test 24: word dissect preserves paragraph and table formatting =====
+
+    [Fact]
+    public void WordDissect_Output_IncludesParagraphAndTableFormatting()
+    {
+        RequireCli();
+        var docx = CreateFormattedDocx();
+        var sliceDir = Path.Combine(Path.GetTempPath(), "nong-test-format-slice-" + Guid.NewGuid().ToString("N")[..8]);
+        try
+        {
+            var (_, exit) = Run("word", "dissect", docx, "-o", sliceDir, "--json");
+            Assert.Equal(0, exit);
+
+            var paragraphLine = File.ReadLines(Path.Combine(sliceDir, "content.jsonl"))
+                .First(line => line.Contains("Formatted paragraph"));
+            using var paragraphDoc = Parse(paragraphLine);
+            var paragraphFormat = paragraphDoc.RootElement.GetProperty("format");
+            Assert.False(string.IsNullOrWhiteSpace(paragraphFormat.GetProperty("alignment").GetString()));
+            Assert.Equal("420", paragraphFormat.GetProperty("firstLineIndent").GetString());
+            Assert.Equal("360", paragraphFormat.GetProperty("lineSpacing").GetString());
+            Assert.False(string.IsNullOrWhiteSpace(paragraphFormat.GetProperty("lineRule").GetString()));
+
+            var tableLine = File.ReadLines(Path.Combine(sliceDir, "content.jsonl"))
+                .First(line => line.Contains("\"kind\":\"table\""));
+            using var tableDoc = Parse(tableLine);
+            var tableFormat = tableDoc.RootElement.GetProperty("format");
+            Assert.Equal("5000", tableFormat.GetProperty("width").GetString());
+            Assert.True(tableFormat.GetProperty("borders").GetProperty("top").GetProperty("size").GetUInt32() > 0);
+            Assert.True(tableFormat.GetProperty("borders").GetProperty("insideH").GetProperty("size").GetUInt32() > 0);
+
+            using var formatDoc = Parse(File.ReadAllText(Path.Combine(sliceDir, "format.json")));
+            var firstTable = formatDoc.RootElement.GetProperty("tables")[0];
+            Assert.True(firstTable.TryGetProperty("format", out var formatTable));
+            Assert.Equal("5000", formatTable.GetProperty("width").GetString());
+        }
+        finally
+        {
+            try { File.Delete(docx); } catch { }
+            try { if (Directory.Exists(sliceDir)) Directory.Delete(sliceDir, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public void WordFixOrder_LegacyCompatibilityArtifacts_ValidatesOk()
+    {
+        RequireCli();
+        var docx = CreateLegacyCompatibilityDocx();
+        var outPath = Path.Combine(Path.GetTempPath(), "nong-test-fixed-" + Guid.NewGuid().ToString("N")[..8] + ".docx");
+        try
+        {
+            var (json, exit) = Run("word", "fix-order", docx, "-o", outPath, "--json");
+            Assert.True(exit == 0, json);
+
+            using var fixDoc = Parse(json);
+            Assert.Equal("ok", fixDoc.RootElement.GetProperty("status").GetString());
+            Assert.True(fixDoc.RootElement.GetProperty("data").GetProperty("fixedElements").GetInt32() > 0);
+
+            var (validateJson, validateExit) = Run("word", "validate", outPath, "--json");
+            Assert.True(validateExit == 0, validateJson);
+
+            using var validateDoc = Parse(validateJson);
+            Assert.Equal("ok", validateDoc.RootElement.GetProperty("status").GetString());
+        }
+        finally
+        {
+            try { File.Delete(docx); } catch { }
+            try { File.Delete(outPath); } catch { }
+        }
+    }
+
+    [Fact]
+    public void WordImages_AfterAddImage_ReturnsOneImage()
+    {
+        RequireCli();
+        var docx = CreateTestDocx();
+        var image = CreateTinyPng();
+        var outPath = Path.Combine(Path.GetTempPath(), "nong-test-image-doc-" + Guid.NewGuid().ToString("N")[..8] + ".docx");
+        try
+        {
+            var (_, addExit) = Run("word", "add-image", docx, "--src", image, "-o", outPath, "--json");
+            Assert.Equal(0, addExit);
+
+            var (json, exit) = Run("word", "images", outPath, "--json");
+            Assert.Equal(0, exit);
+
+            using var doc = Parse(json);
+            Assert.Equal("ok", doc.RootElement.GetProperty("status").GetString());
+            Assert.Equal(1, doc.RootElement.GetProperty("data").GetProperty("images").GetArrayLength());
+        }
+        finally
+        {
+            try { File.Delete(docx); } catch { }
+            try { File.Delete(image); } catch { }
+            try { File.Delete(outPath); } catch { }
+        }
+    }
+
+    [Fact]
+    public void WordEmbedFont_MinimalDoc_ValidatesOk()
+    {
+        RequireCli();
+        var docx = CreateTestDocx();
+        var font = CreateFakeTtf();
+        var outPath = Path.Combine(Path.GetTempPath(), "nong-test-font-doc-" + Guid.NewGuid().ToString("N")[..8] + ".docx");
+        try
+        {
+            var (json, exit) = Run("word", "embed-font", docx, font, "-o", outPath, "--name", "NongFakeFont", "--json");
+            Assert.Equal(0, exit);
+
+            using var embedDoc = Parse(json);
+            Assert.Equal("ok", embedDoc.RootElement.GetProperty("status").GetString());
+
+            var (validateJson, validateExit) = Run("word", "validate", outPath, "--json");
+            Assert.Equal(0, validateExit);
+
+            using var validateDoc = Parse(validateJson);
+            Assert.Equal("ok", validateDoc.RootElement.GetProperty("status").GetString());
+        }
+        finally
+        {
+            try { File.Delete(docx); } catch { }
+            try { File.Delete(font); } catch { }
             try { File.Delete(outPath); } catch { }
         }
     }

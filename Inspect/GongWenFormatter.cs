@@ -95,6 +95,7 @@ public class GongWenFormatter
         var body = mainPart.Document?.Body;
         if (body == null) return;
 
+        SanitizePartRoots(mainPart);
         CreateGongWenStyles(mainPart);
 
         var topLevelParas = body.Elements<Paragraph>().ToList();
@@ -117,7 +118,45 @@ public class GongWenFormatter
 
         SetupSections(mainPart, body, structure);
 
+        SanitizePartRoots(mainPart);
         mainPart.Document.Save();
+    }
+
+    private static void SanitizePartRoots(MainDocumentPart mainPart)
+    {
+        if (mainPart.Document?.Body != null)
+            SanitizeRoot(mainPart.Document.Body);
+        if (mainPart.StyleDefinitionsPart?.Styles != null)
+            SanitizeRoot(mainPart.StyleDefinitionsPart.Styles);
+        if (mainPart.NumberingDefinitionsPart?.Numbering != null)
+            SanitizeRoot(mainPart.NumberingDefinitionsPart.Numbering);
+        if (mainPart.DocumentSettingsPart?.Settings != null)
+            SanitizeRoot(mainPart.DocumentSettingsPart.Settings);
+
+        foreach (var headerPart in mainPart.HeaderParts)
+        {
+            if (headerPart.Header != null) SanitizeRoot(headerPart.Header);
+        }
+
+        foreach (var footerPart in mainPart.FooterParts)
+        {
+            if (footerPart.Footer != null) SanitizeRoot(footerPart.Footer);
+        }
+
+        if (mainPart.FootnotesPart?.Footnotes != null)
+            SanitizeRoot(mainPart.FootnotesPart.Footnotes);
+        if (mainPart.EndnotesPart?.Endnotes != null)
+            SanitizeRoot(mainPart.EndnotesPart.Endnotes);
+        if (mainPart.WordprocessingCommentsPart?.Comments != null)
+            SanitizeRoot(mainPart.WordprocessingCommentsPart.Comments);
+    }
+
+    private static void SanitizeRoot(OpenXmlElement root)
+    {
+        DocxCore.ElementOrder.SanitizeCompatibilityArtifacts(root);
+        DocxCore.ElementOrder.RectifyTree(root);
+        DocxCore.ElementOrder.FixOrphanBorders(root);
+        DocxCore.ElementOrder.RectifyTree(root);
     }
 
     // ====== 结构分析 ======
