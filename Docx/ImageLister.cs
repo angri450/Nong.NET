@@ -151,11 +151,16 @@ public static class ImageLister
 
     private static string ExtractFileName(Uri uri)
     {
-        var segments = uri.Segments;
-        if (segments.Length == 0) return "";
-        var last = segments[^1];
+        // OpenXML part URIs are usually relative (for example
+        // /word/media/image1.png). Uri.Segments throws for relative URIs, so
+        // use the original text and split it manually.
+        var raw = uri.OriginalString;
+        if (string.IsNullOrWhiteSpace(raw)) return "";
+        var normalized = raw.Replace('\\', '/').TrimEnd('/');
+        var slash = normalized.LastIndexOf('/');
+        var last = slash >= 0 ? normalized[(slash + 1)..] : normalized;
         // Uri may encode spaces etc.; decode
-        return Uri.UnescapeDataString(last).TrimEnd('/');
+        return Uri.UnescapeDataString(last);
     }
 
     private static string ContentTypeToExtension(string contentType) => contentType switch

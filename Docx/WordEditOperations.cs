@@ -38,40 +38,41 @@ public static class WordEditOperations
         int orphanBordersFixed = 0;
         int partsScanned = 0;
 
+        void ProcessRoot(DocumentFormat.OpenXml.OpenXmlElement root)
+        {
+            fixedElements += ElementOrder.SanitizeCompatibilityArtifacts(root);
+            fixedElements += ElementOrder.RectifyTree(root);
+            orphanBordersFixed += ElementOrder.FixOrphanBorders(root);
+            fixedElements += ElementOrder.RectifyTree(root);
+            partsScanned++;
+        }
+
         // 1. MainDocumentPart.Document.Body
         var body = mainPart.Document?.Body;
         if (body != null)
         {
-            fixedElements += ElementOrder.RectifyTree(body);
-            orphanBordersFixed += ElementOrder.FixOrphanBorders(body);
-            partsScanned++;
+            ProcessRoot(body);
         }
 
         // 2. StyleDefinitionsPart.Styles
         var stylesPart = mainPart.StyleDefinitionsPart;
         if (stylesPart?.Styles != null)
         {
-            fixedElements += ElementOrder.RectifyTree(stylesPart.Styles);
-            orphanBordersFixed += ElementOrder.FixOrphanBorders(stylesPart.Styles);
-            partsScanned++;
+            ProcessRoot(stylesPart.Styles);
         }
 
         // 3. NumberingDefinitionsPart.Numbering
         var numPart = mainPart.NumberingDefinitionsPart;
         if (numPart?.Numbering != null)
         {
-            fixedElements += ElementOrder.RectifyTree(numPart.Numbering);
-            orphanBordersFixed += ElementOrder.FixOrphanBorders(numPart.Numbering);
-            partsScanned++;
+            ProcessRoot(numPart.Numbering);
         }
 
         // 4. DocumentSettingsPart.Settings
         var settingsPart = mainPart.DocumentSettingsPart;
         if (settingsPart?.Settings != null)
         {
-            fixedElements += ElementOrder.RectifyTree(settingsPart.Settings);
-            orphanBordersFixed += ElementOrder.FixOrphanBorders(settingsPart.Settings);
-            partsScanned++;
+            ProcessRoot(settingsPart.Settings);
         }
 
         // 5. Header parts
@@ -79,9 +80,7 @@ public static class WordEditOperations
         {
             if (headerPart.Header != null)
             {
-                fixedElements += ElementOrder.RectifyTree(headerPart.Header);
-                orphanBordersFixed += ElementOrder.FixOrphanBorders(headerPart.Header);
-                partsScanned++;
+                ProcessRoot(headerPart.Header);
             }
         }
 
@@ -90,9 +89,7 @@ public static class WordEditOperations
         {
             if (footerPart.Footer != null)
             {
-                fixedElements += ElementOrder.RectifyTree(footerPart.Footer);
-                orphanBordersFixed += ElementOrder.FixOrphanBorders(footerPart.Footer);
-                partsScanned++;
+                ProcessRoot(footerPart.Footer);
             }
         }
 
@@ -100,27 +97,21 @@ public static class WordEditOperations
         var fnPart = mainPart.FootnotesPart;
         if (fnPart?.Footnotes != null)
         {
-            fixedElements += ElementOrder.RectifyTree(fnPart.Footnotes);
-            orphanBordersFixed += ElementOrder.FixOrphanBorders(fnPart.Footnotes);
-            partsScanned++;
+            ProcessRoot(fnPart.Footnotes);
         }
 
         // 8. EndnotesPart
         var enPart = mainPart.EndnotesPart;
         if (enPart?.Endnotes != null)
         {
-            fixedElements += ElementOrder.RectifyTree(enPart.Endnotes);
-            orphanBordersFixed += ElementOrder.FixOrphanBorders(enPart.Endnotes);
-            partsScanned++;
+            ProcessRoot(enPart.Endnotes);
         }
 
         // 9. CommentsPart (WordprocessingCommentsPart)
         var commentsPart = mainPart.WordprocessingCommentsPart;
         if (commentsPart?.Comments != null)
         {
-            fixedElements += ElementOrder.RectifyTree(commentsPart.Comments);
-            orphanBordersFixed += ElementOrder.FixOrphanBorders(commentsPart.Comments);
-            partsScanned++;
+            ProcessRoot(commentsPart.Comments);
         }
 
         return new FixOrderResult(fixedElements, partsScanned, orphanBordersFixed);

@@ -9,7 +9,7 @@
     <PackageId>Angri450.Nong.Cli</PackageId>
     <ToolCommandName>nong</ToolCommandName>
     <PackAsTool>true</PackAsTool>
-    <Version>3.2.0</Version>
+    <Version>3.2.1</Version>
     <Authors>angri450</Authors>
     <Description>CLI toolkit for Nong.NET document generation and inspection. One binary for Word/Excel/PPT/Chart/Diagram/OCR operations.</Description>
     <DebugType>none</DebugType>

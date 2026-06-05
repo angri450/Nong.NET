@@ -462,6 +462,7 @@ public static class WordSlice
         var styleId = para.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
         var styleName = GetStyleName(mainPart, styleId);
         var outlineLvl = para.ParagraphProperties?.OutlineLevel?.Val?.Value;
+        var paragraphFormat = ExtractParagraphFormat(para.ParagraphProperties);
         int pos = startPos;
 
         // Check for TOC field
@@ -506,6 +507,7 @@ public static class WordSlice
                 Level = headingLevel,
                 StyleId = styleId,
                 StyleName = styleName,
+                Format = paragraphFormat,
             });
             return result;
         }
@@ -555,7 +557,7 @@ public static class WordSlice
 
         // Mixed paragraph: extract elements in order
         return ProcessMixedParagraph(para, mainPart, imageParts,
-            hyperlinkUris, idMap, styleId, styleName, ref pos, warnings);
+            hyperlinkUris, idMap, styleId, styleName, paragraphFormat, ref pos, warnings);
     }
 
     private static bool IsOfficeMathElement(OpenXmlElement element) =>
@@ -570,6 +572,7 @@ public static class WordSlice
         Dictionary<string, Uri> hyperlinkUris,
         WordBlockIdMap idMap,
         string? styleId, string? styleName,
+        NongParagraphFormat? paragraphFormat,
         ref int pos, List<string> warnings)
     {
         var result = new List<NongBlock>();
@@ -595,6 +598,7 @@ public static class WordSlice
                             Runs = textRuns,
                             StyleId = styleId,
                             StyleName = styleName,
+                            Format = paragraphFormat,
                         });
                         pos++;
                         textRuns = new List<RunBlock>();
@@ -633,6 +637,7 @@ public static class WordSlice
                                 Runs = textRuns,
                                 StyleId = styleId,
                                 StyleName = styleName,
+                                Format = paragraphFormat,
                             });
                             pos++;
                             textRuns = new List<RunBlock>();
@@ -693,6 +698,7 @@ public static class WordSlice
                         Runs = textRuns,
                         StyleId = styleId,
                         StyleName = styleName,
+                        Format = paragraphFormat,
                     });
                     pos++;
                     textRuns = new List<RunBlock>();
@@ -779,6 +785,7 @@ public static class WordSlice
                         Runs = textRuns,
                         StyleId = styleId,
                         StyleName = styleName,
+                        Format = paragraphFormat,
                     });
                     pos++;
                     textRuns = new List<RunBlock>();
@@ -828,6 +835,7 @@ public static class WordSlice
                     Runs = textRuns,
                     StyleId = styleId,
                     StyleName = styleName,
+                    Format = paragraphFormat,
                 });
             }
             pos++;
@@ -844,6 +852,7 @@ public static class WordSlice
                 Runs = new List<RunBlock>(),
                 StyleId = styleId,
                 StyleName = styleName,
+                Format = paragraphFormat,
             });
             pos++;
         }
@@ -926,6 +935,7 @@ public static class WordSlice
                     Runs = cellRuns,
                     GridSpan = gridSpan,
                     RowSpan = rowSpan,
+                    Format = ExtractTableCellFormat(tcPr),
                 });
             }
 
@@ -941,6 +951,7 @@ public static class WordSlice
 
         int colCount = rows.Count > 0 ? rows[0].Cells.Count : 0;
         var tblStyle = table.TableProperties?.TableStyle?.Val?.Value;
+        var tableFormat = ExtractTableFormat(table.TableProperties);
 
         return new TableBlock
         {
@@ -950,7 +961,150 @@ public static class WordSlice
             RowCount = rows.Count,
             ColCount = colCount,
             StyleId = tblStyle,
+            Format = tableFormat,
         };
+    }
+
+    // ========================================================================
+    // Layout/format extraction
+    // ========================================================================
+
+    private static NongParagraphFormat? ExtractParagraphFormat(ParagraphProperties? ppr)
+    {
+        if (ppr == null) return null;
+
+        var spacing = ppr.SpacingBetweenLines;
+        var indentation = ppr.Indentation;
+        var format = new NongParagraphFormat
+        {
+            Alignment = ppr.Justification?.Val?.Value.ToString(),
+            FirstLineIndent = indentation?.FirstLine?.Value,
+            LeftIndent = indentation?.Left?.Value,
+            RightIndent = indentation?.Right?.Value,
+            LineSpacing = spacing?.Line?.Value,
+            LineRule = spacing?.LineRule?.Value.ToString(),
+            SpaceBefore = spacing?.Before?.Value,
+            SpaceAfter = spacing?.After?.Value,
+            KeepNext = ppr.KeepNext == null ? null : ppr.KeepNext.Val?.Value ?? true,
+        };
+
+        return HasParagraphFormat(format) ? format : null;
+    }
+
+    private static bool HasParagraphFormat(NongParagraphFormat format) =>
+        format.Alignment != null ||
+        format.FirstLineIndent != null ||
+        format.LeftIndent != null ||
+        format.RightIndent != null ||
+        format.LineSpacing != null ||
+        format.LineRule != null ||
+        format.SpaceBefore != null ||
+        format.SpaceAfter != null ||
+        format.KeepNext != null;
+
+    private static NongTableFormat? ExtractTableFormat(TableProperties? tpr)
+    {
+        if (tpr == null) return null;
+
+        var width = tpr.TableWidth;
+        var format = new NongTableFormat
+        {
+            Justification = tpr.TableJustification?.Val?.Value.ToString(),
+            Width = width?.Width?.Value,
+            WidthType = width?.Type?.Value.ToString(),
+            Borders = ExtractTableBorders(tpr.TableBorders),
+        };
+
+        return HasTableFormat(format) ? format : null;
+    }
+
+    private static bool HasTableFormat(NongTableFormat format) =>
+        format.Justification != null ||
+        format.Width != null ||
+        format.WidthType != null ||
+        format.Borders != null;
+
+    private static NongTableCellFormat? ExtractTableCellFormat(TableCellProperties? tcPr)
+    {
+        if (tcPr == null) return null;
+
+        var width = tcPr.TableCellWidth;
+        var format = new NongTableCellFormat
+        {
+            Width = width?.Width?.Value,
+            WidthType = width?.Type?.Value.ToString(),
+            VerticalAlignment = tcPr.TableCellVerticalAlignment?.Val?.Value.ToString(),
+            ShadingFill = tcPr.Shading?.Fill?.Value,
+            Borders = ExtractTableBorders(tcPr.TableCellBorders),
+        };
+
+        return HasTableCellFormat(format) ? format : null;
+    }
+
+    private static bool HasTableCellFormat(NongTableCellFormat format) =>
+        format.Width != null ||
+        format.WidthType != null ||
+        format.VerticalAlignment != null ||
+        format.ShadingFill != null ||
+        format.Borders != null;
+
+    private static NongTableBorders? ExtractTableBorders(TableBorders? borders)
+    {
+        if (borders == null) return null;
+
+        var result = new NongTableBorders
+        {
+            Top = ExtractBorder(borders.TopBorder),
+            Bottom = ExtractBorder(borders.BottomBorder),
+            Left = ExtractBorder(borders.LeftBorder),
+            Right = ExtractBorder(borders.RightBorder),
+            InsideH = ExtractBorder(borders.InsideHorizontalBorder),
+            InsideV = ExtractBorder(borders.InsideVerticalBorder),
+        };
+
+        return HasBorders(result) ? result : null;
+    }
+
+    private static NongTableBorders? ExtractTableBorders(TableCellBorders? borders)
+    {
+        if (borders == null) return null;
+
+        var result = new NongTableBorders
+        {
+            Top = ExtractBorder(borders.TopBorder),
+            Bottom = ExtractBorder(borders.BottomBorder),
+            Left = ExtractBorder(borders.LeftBorder),
+            Right = ExtractBorder(borders.RightBorder),
+            InsideH = ExtractBorder(borders.InsideHorizontalBorder),
+            InsideV = ExtractBorder(borders.InsideVerticalBorder),
+        };
+
+        return HasBorders(result) ? result : null;
+    }
+
+    private static bool HasBorders(NongTableBorders borders) =>
+        borders.Top != null ||
+        borders.Bottom != null ||
+        borders.Left != null ||
+        borders.Right != null ||
+        borders.InsideH != null ||
+        borders.InsideV != null;
+
+    private static NongBorderInfo? ExtractBorder(BorderType? border)
+    {
+        if (border == null) return null;
+
+        var result = new NongBorderInfo
+        {
+            Val = border.Val?.Value.ToString(),
+            Size = border.Size?.Value,
+            Color = border.Color?.Value,
+            Space = border.Space?.Value,
+        };
+
+        return result.Val != null || result.Size != null || result.Color != null || result.Space != null
+            ? result
+            : null;
     }
 
     // ========================================================================
@@ -1903,6 +2057,8 @@ public static class WordSlice
                 {
                     BlockId = t.Id,
                     StyleId = t.StyleId,
+                    StyleName = t.StyleName,
+                    Format = t.Format,
                 });
             }
         }
