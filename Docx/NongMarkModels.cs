@@ -292,6 +292,9 @@ public sealed record NongBorderInfo
 /// <summary>Image/media block. ID prefix: img0001+</summary>
 public sealed record ImageBlock : NongBlock
 {
+    [JsonPropertyName("source")]
+    public string Source { get; set; } = "drawingml";
+
     [JsonPropertyName("imageId")]
     public string? ImageId { get; set; }
 

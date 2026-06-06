@@ -2,14 +2,14 @@
 
 <p align="center">
   <strong>纯 .NET CLI 农学文档与科研图表工具集</strong><br>
-  零 JavaScript。一个二进制文件。71 个命令。跨平台运行。
+  零 JavaScript。一个二进制文件。73 个命令。跨平台运行。
 </p>
 
 <p align="center">
   <a href="https://www.nuget.org/packages/Angri450.Nong.Cli/"><img src="https://img.shields.io/nuget/v/Angri450.Nong.Cli.svg?label=NuGet" alt="NuGet"></a>
   <a href="https://github.com/angri450/Nong.NET/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License"></a>
   <a href="https://dotnet.microsoft.com/en-us/download"><img src="https://img.shields.io/badge/.NET-8.0-8A2BE2" alt=".NET 8.0"></a>
-  <img src="https://img.shields.io/badge/commands-71-green" alt="71 commands">
+  <img src="https://img.shields.io/badge/commands-73-green" alt="73 commands">
   <a href="README.md"><img src="https://img.shields.io/badge/English-README.md-blue" alt="English"></a>
 </p>
 
@@ -17,10 +17,13 @@
 
 <h2>快速安装</h2>
 
-<pre><code>dotnet tool install --global Angri450.Nong.Cli
+<pre><code>dotnet tool install --global Angri450.Nong.Cli --add-source https://mirrors.huaweicloud.com/repository/nuget/v3/index.json
 nong commands --json</code></pre>
 
-<p>仅此而已。不需要 Node.js、不需要 Python、不需要 Docker。终端里只有一个 <code>nong</code> 命令。</p>
+<p>核心 Office、图表、流程图、skill 和本地 OCR 工作流仅此而已。不需要 Node.js、不需要 Docker、不需要 Python。</p>
+<p>本地 OCR 首次使用前运行 <code>nong ocr install-model pp-ocrv5-mobile --source https://mirrors.huaweicloud.com/repository/nuget/v3/index.json --json</code>。它会把当前平台的第一方 <code>Angri450.Nong.OcrRuntime.*</code> native runtime bundle 安装到 Nong 缓存，安装后自动清理临时下载目录。</p>
+
+<p>CLI 目标框架是 <code>net8.0</code>，打包工具已启用主版本 roll-forward，因此当前 .NET 9/10 运行时也能运行。旧安装包如果在新运行时失败，请更新工具，或设置 <code>DOTNET_ROLL_FORWARD=LatestMajor</code>。</p>
 
 <hr>
 
@@ -43,12 +46,14 @@ nong commands --json</code></pre>
 
 <hr>
 
-<h2>能力概览 — 全部 71 个命令</h2>
+<h2>能力概览 — 全部 73 个命令</h2>
 
-<h3>word — Word 文档引擎（30 个命令）</h3>
+<h3>word — Word 文档引擎（32 个命令）</h3>
 
 <table>
   <tr><th>命令</th><th>功能</th></tr>
+  <tr><td><code>nong word check</code></td><td>预检 .doc/.docx，报告转换需求、VML 图片和 blockId 可用性</td></tr>
+  <tr><td><code>nong word convert</code></td><td>转换/复制到 .docx，必要时把 LibreOffice 或 Word COM 作为边界转换器</td></tr>
   <tr><td><code>nong word read</code></td><td>提取纯文本</td></tr>
   <tr><td><code>nong word preview</code></td><td>7 步诊断报告</td></tr>
   <tr><td><code>nong word fill</code></td><td>模板填充（.docx + .json）</td></tr>
@@ -146,11 +151,11 @@ nong commands --json</code></pre>
 <table>
   <tr><th>命令</th><th>功能</th></tr>
   <tr><td><code>nong ocr cloud</code></td><td>PaddleOCR-VL 云端 OCR</td></tr>
-  <tr><td><code>nong ocr local</code></td><td>本地 PP-OCRv5 识别（E005/E009，诚实返回）</td></tr>
+  <tr><td><code>nong ocr local</code></td><td>通过纯 .NET runtime 执行本地 PP-OCRv5 中文 OCR；不需要 Python</td></tr>
   <tr><td><code>nong ocr check-env</code></td><td>检查 OCR 环境状态</td></tr>
   <tr><td><code>nong ocr analyze-image</code></td><td>图像结构分析（无需 token）</td></tr>
   <tr><td><code>nong ocr models</code></td><td>列出可用 OCR 模型</td></tr>
-  <tr><td><code>nong ocr install-model</code></td><td>安装 OCR 模型</td></tr>
+  <tr><td><code>nong ocr install-model</code></td><td>从华为 NuGet/cache 安装或检查当前平台第一方 <code>Angri450.Nong.OcrRuntime.*</code> PP-OCRv5 native runtime bundle；<code>--dry-run</code> 显示部署方案</td></tr>
   <tr><td><code>nong ocr to-word</code></td><td>云端 OCR 转 .docx</td></tr>
 </table>
 
@@ -221,7 +226,8 @@ nong inspect diagnose paper.txt --json
 nong inspect refs paper.txt --json</code></pre>
 
 <h3>4. 文档审计</h3>
-<pre><code>nong word stats paper.docx --json
+<pre><code>nong word check paper.docx --json
+nong word stats paper.docx --json
 nong word fonts paper.docx --json
 nong word dissect paper.docx -o paper.slice --json</code></pre>
 
@@ -245,7 +251,7 @@ nong ocr to-word scan.png -o out.docx --json</code></pre>
   "artifacts": { "png": "fig.png" },
   "metrics": { "paragraphs": 29 },
   "errors": [],
-  "meta": { "durationMs": 42, "version": "3.2.0" }
+  "meta": { "durationMs": 42, "version": "3.2.3" }
 }</code></pre>
 
 <hr>
@@ -269,7 +275,7 @@ nong ocr to-word scan.png -o out.docx --json</code></pre>
 
 <h2>项目结构 — 9 个 NuGet 包</h2>
 
-<p>所有包统一版本号 <strong>3.2.0</strong>。每个包职责单一明确。</p>
+<p>当前 CLI 文档对应 <strong>Angri450.Nong.Cli 3.2.3</strong>。各库包职责单一，实际安装版本以 NuGet 或 <code>nong commands --json</code> 为准。</p>
 
 <table>
   <tr><th>包名</th><th>用途</th></tr>

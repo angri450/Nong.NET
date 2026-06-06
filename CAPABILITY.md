@@ -1,30 +1,32 @@
-# nong CLI 当前能力表 v3.2.1
+# nong CLI 当前能力表 v3.2.3
 
-日期：2026-06-04
+日期：2026-06-05
 源：`nong commands --json` + 实测
-命令数：71 implemented（含诚实 E005/E009 命令）
-测试：58 contract tests PASS
+命令数：73 implemented
+测试：72 contract tests PASS
 
 ---
 
 ## 快速安装
 
 ```bash
-dotnet tool install --global Angri450.Nong.Cli
+dotnet tool install --global Angri450.Nong.Cli --add-source https://mirrors.huaweicloud.com/repository/nuget/v3/index.json
 nong commands --json       # 命令发现
 nong word read file.docx   # 第一核心命令
 ```
 
 ---
 
-## 已实现命令（71 个）
+## 已实现命令（73 个）
 
-### word —— Word 文档引擎（30 个）
+### word —— Word 文档引擎（32 个）
 
-口径：29 个阶段 15 canonical Word leaf commands + 保留旧能力 `word extract`，所以 Word 实际为 30 个 implemented leaf commands。`word add-*` hyphen 入口保留兼容，文档和 `commands --json` 以 `word add ...` 为 canonical。
+口径：29 个阶段 15 canonical Word leaf commands + 保留旧能力 `word extract` + 文档预检 `word check` + 边界转换 `word convert`，所以 Word 实际为 32 个 implemented leaf commands。`word add-*` hyphen 入口保留兼容，文档和 `commands --json` 以 `word add ...` 为 canonical。
 
 | 命令 | 功能 | 输入 | 示例 |
 |------|------|------|------|
+| `nong word check <file>` | 预检 .doc/.docx；报告转换需求、VML 图片、blockId 可用性 | .doc/.docx | `nong word check legacy.doc --json` |
+| `nong word convert <file> -o <f>` | 转换/复制为 .docx；.doc 使用 LibreOffice 或 Word COM 边界转换 | .doc/.docx | `nong word convert legacy.doc -o legacy.docx --json` |
 | `nong word read <file>` | 提取纯文本 | .docx | `nong word read paper.docx` |
 | `nong word preview <file>` | 7 步诊断 | .docx | `nong word preview paper.docx` |
 | `nong word fill <tmpl> <data> -o <f>` | 模板填充 | .docx + .json | `nong word fill t.docx d.json -o out.docx` |
@@ -112,14 +114,14 @@ nong word read file.docx   # 第一核心命令
 | 命令 | 功能 | 输入 | 示例 |
 |------|------|------|------|
 | `nong ocr cloud <file> -o <dir>` | PaddleOCR-VL 云端 OCR | image/pdf | `nong ocr cloud scan.png -o out/ --json` |
-| `nong ocr local <file>` | 本地 PP-OCRv5 识别（E005/E009） | image | `nong ocr local test.png --json` |
+| `nong ocr local <file>` | 本地 PP-OCRv5 中文识别；纯 .NET runtime，无 Python | image | `nong ocr local test.png --json` |
 | `nong ocr check-env` | 检查 OCR 环境状态 | 无 | `nong ocr check-env --json` |
 | `nong ocr analyze-image <file> -o <dir>` | 图像结构分析（无需 token） | image | `nong ocr analyze-image scan.png -o out/ --json` |
 | `nong ocr models` | 列出可用 OCR 模型 | 无 | `nong ocr models --json` |
-| `nong ocr install-model <id>` | 安装 OCR 模型（pp-ocrv5-mobile 返回 E009） | model-id | `nong ocr install-model pp-ocrv5-mobile --json` |
+| `nong ocr install-model <id>` | 从华为 NuGet/cache 安装或检查当前平台第一方 `Angri450.Nong.OcrRuntime.*` PP-OCRv5 native runtime bundle；`--dry-run` 输出部署方案 | model-id | `nong ocr install-model pp-ocrv5-mobile --dry-run --json` |
 | `nong ocr to-word <file> -o <docx> [--pages]` | 云端 OCR 转 Word 文档 | image/pdf | `nong ocr to-word scan.png -o out.docx --json` |
 
-`ocr local` 返回 E005（模型未下载）或 E009（模型已下载但推理未实现）。`ocr install-model pp-ocrv5-mobile` 返回 E009（ONNX 模型尚未发布），均为诚实行为。
+`ocr local` 是纯 .NET 本地 PP-OCRv5 入口，使用 `Sdcb.PaddleOCR`、ChineseV5 managed 模型元数据和按平台拆分的 `Angri450.Nong.OcrRuntime.*` native runtime bundle；客户机不安装 Python、不编译模型。`ocr install-model pp-ocrv5-mobile --dry-run` 输出华为 NuGet 部署方案，非 dry-run 默认只从 Nong 第一方 runtime bundle 部署；上游 Sdcb/OpenCvSharp fallback 必须显式加 `--allow-upstream-fallback`。
 
 ### genre / icons —— 模板与素材（4 个）
 
@@ -233,7 +235,7 @@ nong skill package ./plugin --json
   "artifacts": { "png": "fig.png" },
   "metrics": { "paragraphs": 29 },
   "errors": [],
-  "meta": { "durationMs": 42, "version": "3.2.0" }
+  "meta": { "durationMs": 42, "version": "3.2.3" }
 }
 ```
 
@@ -257,7 +259,8 @@ nong skill package ./plugin --json
 
 | 格式 | 喂给哪些命令 |
 |------|------------|
-| .docx | word 全部 30 个命令 |
+| .docx | word 主要命令；`.docx` 可直接 `check/convert/read/dissect/edit` |
+| .doc | 先 `word check`，再 `word convert` 为 .docx |
 | .txt | inspect 全部 10 个命令 |
 | .json (paper spec) | inspect write-paper |
 | .json (groups: `{"A":[1,2],"B":[3,4]}`) | chart analyze / anova / duncan / bar |
@@ -286,18 +289,18 @@ nong skill package ./plugin --json
 - excel to-groups — `--raw` 输出裸 JSON 用于管道给 chart 命令；`--json` 输出含完整 schema，`data` 直接为分组字典
 - excel to-groups — sheet 名不存在返回 E006 而非崩溃；支持 AA/AB 等多字母列
 - ocr cloud — 需 `PADDLEOCR_ACCESS_TOKEN` 环境变量（旧名 `PADDLEOCR_TOKEN` 已弃用）
-- ocr local — 返回 E005（模型未下载）或 E009（推理未实现），均为诚实行为
-- ocr install-model pp-ocrv5-mobile — 返回 E009，PP-OCRv5 ONNX 模型尚未发布
+- ocr local — 纯 .NET 本地 PP-OCRv5；客户机不安装 Python；正式使用前仍建议真实图片 smoke test
+- ocr install-model pp-ocrv5-mobile — 安装/检查当前平台第一方 native runtime 缓存；`--dry-run` 报告华为 NuGet 部署方案；默认不回退上游大包
 - ocr to-word — 需 `PADDLEOCR_ACCESS_TOKEN`，调用云端 OCR 后转换为 .docx
 - skill package — 支持单 skill 目录和插件根目录两种模式
 - skill scan — Critical/High 发现 → status:error + EXIT:1
 - 旧 skill-manager global tool — 已废弃，使用 `nong skill` 代替
-- 目标框架 net8.0，不要求 .NET 11 preview
+- 目标框架 net8.0；CLI 包启用 `RollForward=LatestMajor`，旧安装包遇到 .NET 10 运行时问题时先更新或设置 `DOTNET_ROLL_FORWARD=LatestMajor`
 - 所有错误消息不泄露 API token（如 "sk-"、"bearer" 模式）
 
 ## 测试
 
 ```bash
-dotnet test Cli.Tests/Cli.Tests.csproj -c Release    # 58 contract tests
+dotnet test Cli.Tests/Cli.Tests.csproj -c Release    # 72 contract tests
 pwsh -File tests-output/stage13/verify.ps1            # 15 skill behavior tests
 ```
