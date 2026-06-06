@@ -1,22 +1,24 @@
-# Agent Contract for nong CLI v3.1.x
+# Agent Contract for nong CLI v3.2.x
 
 ## Quick Start
 
 ```bash
-dotnet tool install --global Angri450.Nong.Cli
-nong commands --json       # discover all commands (71 implemented)
+dotnet tool install --global Angri450.Nong.Cli --add-source https://mirrors.huaweicloud.com/repository/nuget/v3/index.json
+nong commands --json       # discover all commands (73 implemented)
 nong word read file.docx   # extract text
 ```
 
 ## Command Discovery
 
-`nong commands --json` returns 71 implemented commands. `nong commands --all --json` includes all.
+`nong commands --json` returns 73 implemented commands. `nong commands --all --json` includes all.
 Use this first in any session to know what's available.
 
 ## Input Formats
 
 | Command | Expected Input |
 |---------|---------------|
+| `word check` | .doc or .docx preflight |
+| `word convert` | .doc or .docx input + output .docx (-o); .doc uses LibreOffice or Word COM boundary conversion |
 | `word read/preview/rebuild/stats/fonts/styles/validate` | .docx |
 | `word dissect` | .docx; optional `-o <dir>` writes nongmark/v1 one-cut three-stream output |
 | `word fill` | template .docx + data .json |
@@ -50,11 +52,11 @@ Use this first in any session to know what's available.
 | `diagram tree` | Newick .nwk/.txt or .json + output .png (-o) |
 | `pptx read/slides` | .pptx |
 | `ocr cloud` | image/pdf + output dir (-o); requires PADDLEOCR_ACCESS_TOKEN |
-| `ocr local` | image file; returns E005/E009 (PP-OCRv5 model not yet available) |
-| `ocr check-env` | N/A; returns imageAnalyzer, cloudToken, localModel, pythonFallback status |
+| `ocr local` | image file; local PP-OCRv5 through pure .NET runtime; no Python |
+| `ocr check-env` | N/A; returns imageAnalyzer, cloudToken, localModel, localDotNetPpOcrV5 status |
 | `ocr analyze-image` | image file + output dir (-o); no token required |
 | `ocr models` | N/A; returns available model list |
-| `ocr install-model` | model-id; pp-ocrv5-mobile returns E009, invalid IDs return E006 |
+| `ocr install-model` | model-id; installs/checks current-platform first-party `Angri450.Nong.OcrRuntime.*` PP-OCRv5 runtime bundle from Huawei NuGet/cache; `--dry-run` shows the plan; upstream fallback requires `--allow-upstream-fallback`; invalid IDs return E006 |
 | `ocr to-word` | image/pdf + output .docx (-o) + optional --pages; requires PADDLEOCR_ACCESS_TOKEN |
 | `genre list/show` | N/A |
 | `icons list/search` | N/A |
@@ -100,7 +102,7 @@ Pie chart:
 
 ### ocr cloud
 
-Converts image/PDF to structured text via PaddleOCR-VL-1.6. Requires `PADDLEOCR_ACCESS_TOKEN` (the old `PADDLEOCR_TOKEN` is deprecated).
+Converts image/PDF to structured text via PaddleOCR-VL-1.6. Requires `PADDLEOCR_ACCESS_TOKEN` from `https://aistudio.baidu.com/account/accessToken` (the old `PADDLEOCR_TOKEN` is deprecated).
 
 ```bash
 nong ocr cloud scan.png -o out/ --json
@@ -121,8 +123,15 @@ Returns:
   "data": {
     "imageAnalyzer": "ok",
     "cloudToken": "missing",
-    "localModel": { "ppOcrV5Mobile": "missing" },
-    "pythonFallback": "unavailable"
+    "localModel": {
+      "ppOcrV5Mobile": "bundled",
+      "deployment": "managed-model-bundled-native-runtime-cache"
+    },
+    "localDotNetPpOcrV5": {
+      "status": "ok",
+      "engine": "pp-ocrv5-dotnet-sdcb",
+      "noPython": true
+    }
   }
 }
 ```
@@ -139,7 +148,7 @@ Generates `image-analysis.json` and `image.map.txt` in output directory.
 
 ### ocr to-word
 
-Converts image/PDF to .docx via PaddleOCR-VL-1.6 cloud API. Requires `PADDLEOCR_ACCESS_TOKEN`.
+Converts image/PDF to .docx via PaddleOCR-VL-1.6 cloud API. Requires `PADDLEOCR_ACCESS_TOKEN` from `https://aistudio.baidu.com/account/accessToken`.
 
 ```bash
 nong ocr to-word scan.png -o out.docx --json
@@ -154,16 +163,20 @@ Lists available OCR models for local installation.
 nong ocr models --json
 ```
 
-Returns `data.models` as an array. Currently empty (PP-OCRv5 ONNX not yet available).
+Returns `data.models` as an array. Local OCR uses managed PP-OCRv5 model metadata plus a NuGet-managed current-platform `Angri450.Nong.OcrRuntime.*` native runtime cache and reports `noPython: true`.
 
 ### ocr install-model
 
-Installs a local OCR model. `pp-ocrv5-mobile` returns E009 (not yet available). Invalid model IDs return E006.
+Installs/checks the pure .NET PP-OCRv5 first-party native runtime bundle for `pp-ocrv5-mobile` on the current platform. Use `--dry-run` to report the Huawei NuGet/cache deployment plan without changing the machine. Invalid model IDs return E006.
 
 ```bash
-nong ocr install-model pp-ocrv5-mobile --json
+nong ocr install-model pp-ocrv5-mobile --source https://mirrors.huaweicloud.com/repository/nuget/v3/index.json --json
+nong ocr install-model pp-ocrv5-mobile --dry-run --json
+nong ocr install-model pp-ocrv5-mobile --source https://mirrors.huaweicloud.com/repository/nuget/v3/index.json --allow-upstream-fallback --json
 nong ocr install-model invalid-id --json
 ```
+
+Default behavior installs only the first-party Nong runtime bundle for the current RID (`WinX64`, `LinuxX64`, `LinuxArm64`, `OsxX64`, or `OsxArm64`). Do not tell users to install Python, pip, `paddleocr`, or a local OCR executable. If the first-party package has not reached the mirror yet, report the mirror-sync/publish issue; use `--allow-upstream-fallback` only when the user explicitly accepts downloading upstream Sdcb/OpenCvSharp native packages.
 
 ## Diagram Tree Input
 
@@ -191,7 +204,7 @@ Every command with `--json` returns:
   "artifacts": { "docx": "out.docx" },
   "metrics": { "paragraphs": 29 },
   "errors": [],
-  "meta": { "durationMs": 42, "version": "3.1.0" }
+  "meta": { "durationMs": 42, "version": "3.2.3" }
 }
 ```
 
@@ -270,6 +283,7 @@ nong skill package ./plugin --json
 ### OCR pipeline
 ```
 nong ocr check-env --json
+nong ocr install-model pp-ocrv5-mobile --source https://mirrors.huaweicloud.com/repository/nuget/v3/index.json --json
 nong ocr cloud scan.png -o out/ --json
 nong ocr to-word scan.png -o out.docx --json
 ```
@@ -294,6 +308,6 @@ nong word add math doc.docx --latex "E=mc^2" --display -o out.docx
 3. Read `errors[0].message` for human-readable description.
 4. Common fixes:
    - E001: Check file path, use absolute paths.
-   - E002: Ensure file extension matches expected format.
-   - E005: Install missing tool or set required token (e.g. PADDLEOCR_ACCESS_TOKEN).
-   - E009: Command is not yet implemented.
+   - E002: Ensure file extension matches expected format; for Word .doc, run word check/convert first.
+   - E005: Install missing tool/runtime/converter or set required token (e.g. PADDLEOCR_ACCESS_TOKEN).
+   - E009: Command is not yet implemented; stop that path and choose an implemented `nong commands --json` route.

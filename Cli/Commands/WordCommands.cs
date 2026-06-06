@@ -1,13 +1,17 @@
 using System.CommandLine;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text.Json;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
 using DocxCore;
 using Nong.Cli.Common;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace Nong.Cli.Commands;
 
 /// <summary>
-/// Word command group: read, preview, fill, rebuild, extract, dissect, stats,
-/// fonts, styles, validate, merge.
+/// Word command group: preflight, conversion, reading, slicing, validation, and editing.
 /// </summary>
 public static class WordCommands
 {
@@ -16,6 +20,8 @@ public static class WordCommands
         var cmd = new Command("word", "Word document operations");
 
         // === Phase 2: read + preview ===
+        cmd.AddCommand(CreateCheck(jsonOpt));
+        cmd.AddCommand(CreateConvert(jsonOpt));
         cmd.AddCommand(CreateRead(jsonOpt));
         cmd.AddCommand(CreatePreview(jsonOpt));
 
@@ -60,6 +66,422 @@ public static class WordCommands
 
         return cmd;
     }
+
+    // ===== word check =====
+
+    static Command CreateCheck(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to .doc or .docx file");
+        var cmd = new Command("check", "Preflight a Word document before editing") { fileArg };
+
+        cmd.SetHandler((string file, bool json) =>
+        {
+            if (string.IsNullOrWhiteSpace(file))
+            {
+                CliHelpers.WriteError("word check", ErrorCodes.MissingArgument with { Message = "File path is required." }, json);
+                return;
+            }
+            if (!File.Exists(file))
+            {
+                CliHelpers.WriteError("word check", ErrorCodes.FileNotFound with { Message = $"File not found: {file}" }, json);
+                return;
+            }
+
+            var ext = Path.GetExtension(file).ToLowerInvariant();
+            if (ext == ".doc")
+            {
+                var data = new WordCheckResult(
+                    InputFormat: "doc",
+                    CanProcessDirectly: false,
+                    Paragraphs: null,
+                    Tables: null,
+                    DrawingImages: null,
+                    VmlImages: null,
+                    ImageParts: null,
+                    BlockIdStatus: "unavailable_until_conversion",
+                    NextSteps:
+                    [
+                        "Run: nong word convert <file.doc> -o <file.docx> --json",
+                        "Then run: nong word check <file.docx> --json",
+                        "Then use dissect/fix-order/validate on the converted .docx"
+                    ],
+                    Warnings: ["Legacy binary .doc is outside OpenXML and must be converted before nong word inspection or editing."]
+                );
+                WriteCheckOutput(data, json);
+                return;
+            }
+
+            if (ext != ".docx")
+            {
+                CliHelpers.WriteError("word check",
+                    ErrorCodes.UnsupportedFormat with { Message = $"Expected .doc or .docx file, got: {ext}" }, json);
+                return;
+            }
+
+            try
+            {
+                var (data, elapsed) = CliHelpers.Time(() => CheckDocx(file));
+                WriteCheckOutput(data, json, elapsed);
+            }
+            catch (Exception ex)
+            {
+                CliHelpers.WriteError("word check",
+                    ErrorCodes.ReadFailed with { Message = $"Cannot inspect DOCX: {ex.Message}" }, json);
+            }
+        }, fileArg, jsonOpt);
+
+        return cmd;
+    }
+
+    static void WriteCheckOutput(WordCheckResult data, bool json, long elapsed = 0)
+    {
+        if (json)
+        {
+            var output = JsonOutput.Ok("word check",
+                data.CanProcessDirectly
+                    ? $"DOCX preflight: {data.Warnings.Count} warning(s)"
+                    : "Word preflight: conversion required",
+                data);
+            output.Meta.DurationMs = elapsed;
+            output.Metrics["warnings"] = data.Warnings.Count;
+            output.Metrics["canProcessDirectly"] = data.CanProcessDirectly ? 1 : 0;
+            foreach (var warning in data.Warnings)
+            {
+                output.Issues.Add(new Issue
+                {
+                    Id = warning.Contains("VML", StringComparison.OrdinalIgnoreCase)
+                        ? "vml_picture"
+                        : "word_preflight",
+                    Severity = "warning",
+                    Message = warning
+                });
+            }
+            Console.WriteLine(JsonSerializer.Serialize(output, CliHelpers.JsonOpts));
+        }
+        else
+        {
+            Console.WriteLine($"Format: {data.InputFormat}");
+            Console.WriteLine($"Direct OpenXML processing: {data.CanProcessDirectly}");
+            Console.WriteLine($"Block IDs: {data.BlockIdStatus}");
+            foreach (var warning in data.Warnings)
+                Console.Error.WriteLine($"[WARN] {warning}");
+            foreach (var step in data.NextSteps)
+                Console.WriteLine($"- {step}");
+        }
+    }
+
+    static WordCheckResult CheckDocx(string file)
+    {
+        using var doc = WordprocessingDocument.Open(file, false);
+        var body = doc.MainDocumentPart?.Document?.Body;
+        var paragraphs = body?.Elements<Paragraph>().Count() ?? 0;
+        var tables = body?.Elements<Table>().Count() ?? 0;
+        var drawingImages = body?.Descendants<A.Blip>().Count() ?? 0;
+        var vmlImages = body?.Descendants()
+            .Count(e => e.LocalName.Equals("imagedata", StringComparison.OrdinalIgnoreCase)) ?? 0;
+        var imageParts = doc.MainDocumentPart?.ImageParts.Count() ?? 0;
+
+        var warnings = new List<string>();
+        var next = new List<string>
+        {
+            "Run: nong word dissect <file.docx> --output <slice-dir> --json",
+            "Review content.jsonl, structure.json, format.json, and assets/manifest.json"
+        };
+
+        if (vmlImages > 0)
+        {
+            warnings.Add($"{vmlImages} VML image reference(s) found. These are legacy picture/formula images; Nong surfaces them as image blocks/assets, not editable text.");
+            next.Add("If formulas must become editable equations, extract the image assets and OCR/retype them separately.");
+        }
+
+        if (paragraphs == 0 && tables == 0)
+            warnings.Add("No body paragraphs or tables were found.");
+
+        next.Add("Use --after with block IDs from content.jsonl or structure.json only after slicing.");
+
+        return new WordCheckResult(
+            InputFormat: "docx",
+            CanProcessDirectly: true,
+            Paragraphs: paragraphs,
+            Tables: tables,
+            DrawingImages: drawingImages,
+            VmlImages: vmlImages,
+            ImageParts: imageParts,
+            BlockIdStatus: "generated_by_dissect",
+            NextSteps: next,
+            Warnings: warnings
+        );
+    }
+
+    sealed record WordCheckResult(
+        string InputFormat,
+        bool CanProcessDirectly,
+        int? Paragraphs,
+        int? Tables,
+        int? DrawingImages,
+        int? VmlImages,
+        int? ImageParts,
+        string BlockIdStatus,
+        List<string> NextSteps,
+        List<string> Warnings
+    );
+
+    // ===== word convert =====
+
+    static Command CreateConvert(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to .doc or .docx file");
+        var outOpt = new Option<string>("-o", "Output .docx path") { IsRequired = true };
+        var engineOpt = new Option<string>("--engine", () => "auto", "Conversion engine: auto, libreoffice, word");
+        var cmd = new Command("convert", "Convert legacy .doc to .docx as a boundary step") { fileArg, outOpt, engineOpt };
+
+        cmd.SetHandler((string file, string output, string engine, bool json) =>
+        {
+            if (string.IsNullOrWhiteSpace(file))
+            {
+                CliHelpers.WriteError("word convert", ErrorCodes.MissingArgument with { Message = "File path is required." }, json);
+                return;
+            }
+            if (!File.Exists(file))
+            {
+                CliHelpers.WriteError("word convert", ErrorCodes.FileNotFound with { Message = $"File not found: {file}" }, json);
+                return;
+            }
+            if (!string.Equals(Path.GetExtension(output), ".docx", StringComparison.OrdinalIgnoreCase))
+            {
+                CliHelpers.WriteError("word convert", ErrorCodes.ValidationFailed with { Message = "Output path must end with .docx." }, json);
+                return;
+            }
+
+            var ext = Path.GetExtension(file).ToLowerInvariant();
+            if (ext is not ".doc" and not ".docx")
+            {
+                CliHelpers.WriteError("word convert",
+                    ErrorCodes.UnsupportedFormat with { Message = $"Expected .doc or .docx file, got: {ext}" }, json);
+                return;
+            }
+
+            try
+            {
+                CliHelpers.EnsureParentDir(output);
+                var (result, elapsed) = CliHelpers.Time(() => ConvertWord(file, output, engine));
+                var aerr = CliHelpers.CheckArtifact(output, "DOCX");
+                if (aerr != null) { CliHelpers.WriteError("word convert", aerr, json); return; }
+
+                if (json)
+                {
+                    var outputJson = JsonOutput.Ok("word convert", $"Converted with {result.Engine}: {output}", result);
+                    outputJson.Artifacts["docx"] = Path.GetFullPath(output);
+                    outputJson.Meta.DurationMs = elapsed;
+                    Console.WriteLine(JsonSerializer.Serialize(outputJson, CliHelpers.JsonOpts));
+                }
+                else
+                {
+                    Console.WriteLine($"OK: {Path.GetFullPath(output)} ({result.Engine})");
+                }
+            }
+            catch (InvalidOperationException ex)
+            {
+                CliHelpers.WriteError("word convert", ErrorCodes.DependencyMissing with { Message = ex.Message }, json);
+            }
+            catch (Exception ex)
+            {
+                CliHelpers.WriteError("word convert", ErrorCodes.InternalError with { Message = $"Conversion failed: {ex.Message}" }, json);
+            }
+        }, fileArg, outOpt, engineOpt, jsonOpt);
+
+        return cmd;
+    }
+
+    static WordConvertResult ConvertWord(string file, string output, string engine)
+    {
+        var inputFull = Path.GetFullPath(file);
+        var outputFull = Path.GetFullPath(output);
+        if (string.Equals(inputFull, outputFull, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Input and output paths must be different.");
+
+        var ext = Path.GetExtension(file).ToLowerInvariant();
+        if (ext == ".docx")
+        {
+            File.Copy(inputFull, outputFull, true);
+            return new WordConvertResult(inputFull, outputFull, "copy", []);
+        }
+
+        engine = engine.ToLowerInvariant();
+        if (engine is not "auto" and not "libreoffice" and not "word")
+            throw new InvalidOperationException("Unknown --engine. Supported: auto, libreoffice, word.");
+
+        var errors = new List<string>();
+        if (engine is "auto" or "libreoffice")
+        {
+            try
+            {
+                if (TryConvertWithLibreOffice(inputFull, outputFull, out var detail))
+                    return new WordConvertResult(inputFull, outputFull, "libreoffice", detail);
+                errors.Add("LibreOffice was not found on PATH or common install paths.");
+            }
+            catch (Exception ex)
+            {
+                errors.Add($"LibreOffice failed: {ex.Message}");
+                if (engine == "libreoffice") throw new InvalidOperationException(errors[^1]);
+            }
+        }
+
+        if (engine is "auto" or "word")
+        {
+            try
+            {
+                if (TryConvertWithWordCom(inputFull, outputFull, out var detail))
+                    return new WordConvertResult(inputFull, outputFull, "word-com", detail);
+                errors.Add("Microsoft Word COM automation is unavailable.");
+            }
+            catch (Exception ex)
+            {
+                errors.Add($"Word COM failed: {ex.Message}");
+                if (engine == "word") throw new InvalidOperationException(errors[^1]);
+            }
+        }
+
+        throw new InvalidOperationException("No .doc converter is available. Install LibreOffice or Microsoft Word, then rerun word convert. Details: " + string.Join(" | ", errors));
+    }
+
+    static bool TryConvertWithLibreOffice(string inputFull, string outputFull, out List<string> detail)
+    {
+        detail = new List<string>();
+        var soffice = FindExecutable("soffice") ?? FindLibreOfficeOnWindows();
+        if (soffice == null) return false;
+
+        var tempDir = Path.Combine(Path.GetTempPath(), "nong-word-convert-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = soffice,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            };
+            foreach (var arg in new[] { "--headless", "--convert-to", "docx", "--outdir", tempDir, inputFull })
+                psi.ArgumentList.Add(arg);
+
+            using var proc = Process.Start(psi) ?? throw new InvalidOperationException("Cannot start LibreOffice.");
+            var stdout = proc.StandardOutput.ReadToEnd();
+            var stderr = proc.StandardError.ReadToEnd();
+            if (!proc.WaitForExit(120000))
+            {
+                try { proc.Kill(entireProcessTree: true); } catch { }
+                throw new TimeoutException("LibreOffice conversion timed out.");
+            }
+            if (proc.ExitCode != 0)
+                throw new InvalidOperationException($"LibreOffice exit code {proc.ExitCode}: {stderr}");
+
+            var converted = Directory.GetFiles(tempDir, "*.docx").FirstOrDefault();
+            if (converted == null)
+                throw new InvalidOperationException($"LibreOffice did not produce a .docx file. stdout: {stdout} stderr: {stderr}");
+
+            File.Copy(converted, outputFull, true);
+            detail.Add($"soffice={soffice}");
+            return true;
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, true); } catch { }
+        }
+    }
+
+    static string? FindExecutable(string name)
+    {
+        var paths = (Environment.GetEnvironmentVariable("PATH") ?? "")
+            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+        var extensions = OperatingSystem.IsWindows()
+            ? new[] { ".exe", ".cmd", ".bat", "" }
+            : new[] { "" };
+        foreach (var dir in paths)
+        foreach (var ext in extensions)
+        {
+            var candidate = Path.Combine(dir, name + ext);
+            if (File.Exists(candidate)) return candidate;
+        }
+        return null;
+    }
+
+    static string? FindLibreOfficeOnWindows()
+    {
+        if (!OperatingSystem.IsWindows()) return null;
+        var candidates = new[]
+        {
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "LibreOffice", "program", "soffice.exe"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "LibreOffice", "program", "soffice.exe"),
+        };
+        return candidates.FirstOrDefault(File.Exists);
+    }
+
+    static bool TryConvertWithWordCom(string inputFull, string outputFull, out List<string> detail)
+    {
+        detail = new List<string>();
+        if (!OperatingSystem.IsWindows()) return false;
+
+        var wordType = Type.GetTypeFromProgID("Word.Application");
+        if (wordType == null) return false;
+
+        object? word = null;
+        object? documents = null;
+        object? document = null;
+        try
+        {
+            word = Activator.CreateInstance(wordType);
+            if (word == null) return false;
+            dynamic dword = word;
+            dword.Visible = false;
+            dword.DisplayAlerts = 0;
+            documents = dword.Documents;
+            dynamic ddocs = documents;
+            document = ddocs.Open(inputFull, false, true, false);
+            dynamic ddoc = document;
+            ddoc.SaveAs2(outputFull, 16);
+            ddoc.Close(false);
+            document = null;
+            dword.Quit(false);
+            word = null;
+            detail.Add("Word COM SaveAs2 format=16");
+            return true;
+        }
+        finally
+        {
+            ReleaseWordComObject(document, closeDocument: true);
+            if (word != null)
+            {
+                try { ((dynamic)word).Quit(false); } catch { }
+            }
+            ReleaseWordComObject(documents);
+            ReleaseWordComObject(word);
+        }
+    }
+
+    static void ReleaseWordComObject(object? value, bool closeDocument = false)
+    {
+        if (value == null) return;
+        try
+        {
+            if (closeDocument) ((dynamic)value).Close(false);
+        }
+        catch { }
+        try
+        {
+            if (Marshal.IsComObject(value))
+                Marshal.FinalReleaseComObject(value);
+        }
+        catch { }
+    }
+
+    sealed record WordConvertResult(
+        string Input,
+        string Output,
+        string Engine,
+        List<string> Details
+    );
 
     // ===== word read =====
 
@@ -538,7 +960,7 @@ public static class WordCommands
                                     Message = $"{result.Errors.Count} OOXML validation errors found"
                                 }
                             },
-                            Meta = new MetaInfo { Version = "3.1.0", DurationMs = elapsed }
+                            Meta = new MetaInfo { Version = CliVersion.Current, DurationMs = elapsed }
                         };
                         Console.WriteLine(JsonSerializer.Serialize(output, CliHelpers.JsonOpts));
                     }
@@ -896,6 +1318,15 @@ public static class WordCommands
                     var outputJson = JsonOutput.Ok("word images", result.Summary, result);
                     outputJson.Meta.DurationMs = elapsed;
                     if (output != null) outputJson.Artifacts["dir"] = Path.GetFullPath(output);
+                    foreach (var warning in result.Warnings)
+                    {
+                        outputJson.Issues.Add(new Issue
+                        {
+                            Id = "vml_image_reference",
+                            Severity = "warning",
+                            Message = warning
+                        });
+                    }
                     Console.WriteLine(JsonSerializer.Serialize(outputJson, CliHelpers.JsonOpts));
                 }
                 else
@@ -903,6 +1334,8 @@ public static class WordCommands
                     Console.WriteLine(result.Summary);
                     foreach (var img in result.Images)
                         Console.WriteLine($"  {img.Id} {img.ContentType} {img.Width}x{img.Height} usedBy={string.Join(",", img.UsedBy ?? new())}");
+                    foreach (var warning in result.Warnings)
+                        Console.Error.WriteLine($"[WARN] {warning}");
                 }
             }
             catch (Exception ex) { CliHelpers.WriteError("word images", ErrorCodes.InternalError with { Message = ex.Message }, json); }
@@ -991,7 +1424,7 @@ public static class WordCommands
                 {
                     if (string.IsNullOrEmpty(result.FontFamily) && string.IsNullOrEmpty(result.FontSize) && result.Warnings.Count > 0)
                     {
-                        var errOut = new JsonOutput { Status = "error", Command = "word infer-format", Summary = "Could not parse format", Meta = new MetaInfo { Version = "3.1.0" } };
+                        var errOut = new JsonOutput { Status = "error", Command = "word infer-format", Summary = "Could not parse format", Meta = new MetaInfo { Version = CliVersion.Current } };
                         errOut.Errors.Add(ErrorCodes.ValidationFailed with { Message = "No known format patterns detected." });
                         foreach (var w in result.Warnings) errOut.Issues.Add(new Issue { Id = "parse_warning", Severity = "Warning", Message = w });
                         Console.WriteLine(JsonSerializer.Serialize(errOut, CliHelpers.JsonOpts));
