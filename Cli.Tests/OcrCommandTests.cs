@@ -12,6 +12,7 @@ public class OcrCommandTests
         Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
 
     static string NongDll => Path.Combine(RepoRoot, "Cli", "bin", "Release", "net8.0", "nong.dll");
+    static string MultiModalDll => Path.Combine(Path.GetDirectoryName(NongDll)!, "Angri450.Nong.MultiModal.dll");
 
     (string json, int exitCode) Run(params string[] args)
     {
@@ -145,6 +146,20 @@ public class OcrCommandTests
                 var data = doc.RootElement.GetProperty("data");
                 Assert.Equal("pp-ocrv5-dotnet-sdcb", data.GetProperty("engine").GetString());
                 Assert.Equal("pp-ocrv5-mobile", data.GetProperty("modelId").GetString());
+                Assert.True(data.GetProperty("runtime").TryGetProperty("inferenceMode", out _));
+                Assert.False(data.GetProperty("capabilities").GetProperty("pdf").GetBoolean());
+                Assert.False(data.GetProperty("capabilities").GetProperty("layoutAnalysis").GetBoolean());
+                Assert.False(data.GetProperty("capabilities").GetProperty("pandocAnnotations").GetBoolean());
+                Assert.DoesNotContain("NaN", json, StringComparison.OrdinalIgnoreCase);
+                Assert.DoesNotContain("Infinity", json, StringComparison.OrdinalIgnoreCase);
+
+                var blocks = data.GetProperty("blocks");
+                if (blocks.GetArrayLength() > 0)
+                {
+                    Assert.True(blocks[0].TryGetProperty("confidenceValid", out _));
+                    Assert.True(blocks[0].TryGetProperty("geometryValid", out _));
+                    Assert.True(blocks[0].TryGetProperty("numericIssue", out _));
+                }
             }
             else
             {
@@ -159,6 +174,49 @@ public class OcrCommandTests
         {
             try { File.Delete(image); } catch { }
         }
+    }
+
+    [Fact]
+    public void OcrLocal_PdfInput_Returns_E002_WithCloudGuidance()
+    {
+        RequireCli();
+        var pdf = Path.Combine(Path.GetTempPath(), "nong-ocr-local-pdf-" + Guid.NewGuid().ToString("N")[..8] + ".pdf");
+        File.WriteAllText(pdf, "%PDF-1.4");
+
+        try
+        {
+            var (json, exit) = Run("ocr", "local", pdf, "--json");
+            Assert.NotEqual(0, exit);
+
+            using var doc = Parse(json);
+            Assert.Equal("error", doc.RootElement.GetProperty("status").GetString());
+            var error = doc.RootElement.GetProperty("errors")[0];
+            Assert.Equal("E002", error.GetProperty("code").GetString());
+            Assert.Contains("ocr cloud", error.GetProperty("message").GetString());
+            Assert.Contains("ocr to-word", error.GetProperty("message").GetString());
+        }
+        finally
+        {
+            try { File.Delete(pdf); } catch { }
+        }
+    }
+
+    [Fact]
+    public void LocalOcrConfidenceSanitizer_RejectsNonFiniteValues()
+    {
+        RequireCli();
+        Assert.True(File.Exists(MultiModalDll), $"MultiModal assembly not found: {MultiModalDll}");
+
+        var asm = Assembly.LoadFrom(MultiModalDll);
+        var type = asm.GetType("MultiModalCore.PpOcrV5Client", throwOnError: true)!;
+        var method = type.GetMethod("ToFiniteConfidence", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        Assert.Null(method.Invoke(null, new object[] { double.NaN }));
+        Assert.Null(method.Invoke(null, new object[] { double.PositiveInfinity }));
+        Assert.Null(method.Invoke(null, new object[] { double.NegativeInfinity }));
+
+        var finite = Assert.IsType<double>(method.Invoke(null, new object[] { 0.875d }));
+        Assert.Equal(0.875d, finite);
     }
 
     // ===== Test 4: cloud with missing file returns E001 =====
@@ -311,7 +369,7 @@ public class OcrCommandTests
         if (!Directory.Exists(sourceDir))
             return;
 
-        var packageExists = Directory.EnumerateFiles(sourceDir, "Angri450.Nong.OcrRuntime.*.3.2.3.nupkg").Any();
+        var packageExists = Directory.EnumerateFiles(sourceDir, "Angri450.Nong.OcrRuntime.*.3.2.4.nupkg").Any();
         if (!packageExists)
             return;
 

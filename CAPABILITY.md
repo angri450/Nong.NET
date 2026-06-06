@@ -1,9 +1,9 @@
-# nong CLI 当前能力表 v3.2.3
+# nong CLI 当前能力表 v3.2.4
 
-日期：2026-06-05
+日期：2026-06-06
 源：`nong commands --json` + 实测
-命令数：73 implemented
-测试：72 contract tests PASS
+命令数：77 implemented
+测试：81 CLI tests PASS
 
 ---
 
@@ -17,7 +17,7 @@ nong word read file.docx   # 第一核心命令
 
 ---
 
-## 已实现命令（73 个）
+## 已实现命令（77 个）
 
 ### word —— Word 文档引擎（32 个）
 
@@ -122,6 +122,17 @@ nong word read file.docx   # 第一核心命令
 | `nong ocr to-word <file> -o <docx> [--pages]` | 云端 OCR 转 Word 文档 | image/pdf | `nong ocr to-word scan.png -o out.docx --json` |
 
 `ocr local` 是纯 .NET 本地 PP-OCRv5 入口，使用 `Sdcb.PaddleOCR`、ChineseV5 managed 模型元数据和按平台拆分的 `Angri450.Nong.OcrRuntime.*` native runtime bundle；客户机不安装 Python、不编译模型。`ocr install-model pp-ocrv5-mobile --dry-run` 输出华为 NuGet 部署方案，非 dry-run 默认只从 Nong 第一方 runtime bundle 部署；上游 Sdcb/OpenCvSharp fallback 必须显式加 `--allow-upstream-fallback`。
+
+### pdf —— 本地 PDF 一刀三流（4 个）
+
+| 命令 | 功能 | 输入 | 示例 |
+|------|------|------|------|
+| `nong pdf check <file>` | 预检 PDF；分类 text/hybrid/scan 并报告文字层、图片覆盖率、推荐路线 | .pdf | `nong pdf check guide.pdf --json` |
+| `nong pdf dissect <file> -o <dir>` | 输出 nongpdf/nongmark 一刀三流：`content.nongmark`、JSONL blocks、structure、format、diagnostics、assets | .pdf | `nong pdf dissect guide.pdf -o guide.slice --mode auto --json` |
+| `nong pdf render <file> -o <dir>` | 通过本地 PDFium runtime 渲染页面 PNG | .pdf | `nong pdf render guide.pdf -o pages --dpi 150 --json` |
+| `nong pdf images <file> -o <dir>` | 提取 PDF 图片证据；保留 page/bbox，解码失败时保存 page-crop fallback PNG | .pdf | `nong pdf images guide.pdf -o assets --json` |
+
+`pdf dissect` 的主读物是 `content.nongmark`，不是普通 Markdown。`preview/content.md` 只是兼容预览。本地 text/hybrid 路线不需要 Python、Pandoc 可执行文件、MinerU 可执行文件或外部 OCR 进程。
 
 ### genre / icons —— 模板与素材（4 个）
 
@@ -235,7 +246,7 @@ nong skill package ./plugin --json
   "artifacts": { "png": "fig.png" },
   "metrics": { "paragraphs": 29 },
   "errors": [],
-  "meta": { "durationMs": 42, "version": "3.2.3" }
+  "meta": { "durationMs": 42, "version": "3.2.4" }
 }
 ```
 
@@ -272,6 +283,7 @@ nong skill package ./plugin --json
 | .xlsx | excel sheets / read / to-groups |
 | .pptx | pptx read / slides |
 | image/pdf | ocr cloud / to-word / analyze-image |
+| .pdf | pdf check / dissect / render / images |
 | model-id | ocr install-model |
 | LaTeX | word add math |
 | 目录 | skill validate / scan / inventory / package |
@@ -301,6 +313,6 @@ nong skill package ./plugin --json
 ## 测试
 
 ```bash
-dotnet test Cli.Tests/Cli.Tests.csproj -c Release    # 72 contract tests
+dotnet test Cli.Tests/Cli.Tests.csproj -c Release    # 81 CLI tests
 pwsh -File tests-output/stage13/verify.ps1            # 15 skill behavior tests
 ```

@@ -4,13 +4,13 @@
 
 ```bash
 dotnet tool install --global Angri450.Nong.Cli --add-source https://mirrors.huaweicloud.com/repository/nuget/v3/index.json
-nong commands --json       # discover all commands (73 implemented)
+nong commands --json       # discover all commands (77 implemented)
 nong word read file.docx   # extract text
 ```
 
 ## Command Discovery
 
-`nong commands --json` returns 73 implemented commands. `nong commands --all --json` includes all.
+`nong commands --json` returns 77 implemented commands. `nong commands --all --json` includes all.
 Use this first in any session to know what's available.
 
 ## Input Formats
@@ -204,7 +204,7 @@ Every command with `--json` returns:
   "artifacts": { "docx": "out.docx" },
   "metrics": { "paragraphs": 29 },
   "errors": [],
-  "meta": { "durationMs": 42, "version": "3.2.3" }
+  "meta": { "durationMs": 42, "version": "3.2.4" }
 }
 ```
 

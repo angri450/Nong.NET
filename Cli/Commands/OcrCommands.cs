@@ -1,6 +1,7 @@
 using System.CommandLine;
 using System.Text.Json;
 using System.IO.Compression;
+using System.Globalization;
 using MultiModalCore;
 using Nong.Cli.Common;
 
@@ -231,6 +232,15 @@ public static class OcrCommands
                 CliHelpers.WriteError("ocr local", ErrorCodes.FileNotFound with { Message = $"Image not found: {image}" }, json);
                 return;
             }
+            if (Path.GetExtension(image).Equals(".pdf", StringComparison.OrdinalIgnoreCase))
+            {
+                CliHelpers.WriteError("ocr local",
+                    ErrorCodes.UnsupportedFormat with
+                    {
+                        Message = "ocr local accepts single image files only. For PDF, multi-page layout, tables, Word output, or pandoc/Word annotation alignment, use 'nong ocr cloud' or 'nong ocr to-word' with PADDLEOCR_ACCESS_TOKEN."
+                    }, json);
+                return;
+            }
 
             try
             {
@@ -239,6 +249,8 @@ public static class OcrCommands
                     client.RecognizeAsync(image).GetAwaiter().GetResult());
                 var page = result.Pages.FirstOrDefault();
                 var blocks = page?.Blocks ?? new List<PpOcrV5Block>();
+                var invalidConfidenceBlocks = result.InvalidConfidenceBlocks;
+                var invalidGeometryBlocks = result.InvalidGeometryBlocks;
 
                 if (json)
                 {
@@ -246,6 +258,24 @@ public static class OcrCommands
                     {
                         engine = result.Engine,
                         modelId = result.ModelId,
+                        runtime = new
+                        {
+                            inferenceMode = result.InferenceMode,
+                            numericFallbackAttempted = result.NumericFallbackAttempted,
+                            numericFallbackApplied = result.NumericFallbackApplied,
+                            numericFallbackReason = result.NumericFallbackReason
+                        },
+                        capabilities = new
+                        {
+                            mode = "local-text-ocr",
+                            input = "single-image",
+                            pdf = false,
+                            layoutAnalysis = false,
+                            tableStructure = false,
+                            wordFormatting = false,
+                            pandocAnnotations = false,
+                            combineWithCloud = "Use ocr cloud/to-word for PDF, multi-page layout, tables, Word output, and pandoc/Word annotation alignment."
+                        },
                         image = Path.GetFullPath(image),
                         width = page?.Width,
                         height = page?.Height,
@@ -254,28 +284,56 @@ public static class OcrCommands
                             id = b.Id,
                             text = b.Text,
                             confidence = b.Confidence,
+                            confidenceValid = b.ConfidenceValid,
                             bbox = b.Bbox,
-                            polygon = b.Polygon
+                            polygon = b.Polygon,
+                            geometryValid = b.GeometryValid,
+                            numericIssue = b.NumericIssue
                         }).ToList()
                     };
                     var output = JsonOutput.Ok("ocr local",
                         $"Local OCR complete: {blocks.Count} text block(s)", data);
+                    output.Metrics["pages"] = result.Pages.Count;
                     output.Metrics["blocks"] = blocks.Count;
+                    output.Metrics["invalidConfidenceBlocks"] = invalidConfidenceBlocks;
+                    output.Metrics["invalidGeometryBlocks"] = invalidGeometryBlocks;
                     output.Meta.DurationMs = elapsed;
+
+                    AddLocalOcrNumericIssues(output, result, invalidConfidenceBlocks, invalidGeometryBlocks);
                     Console.WriteLine(JsonSerializer.Serialize(output, CliHelpers.JsonOpts));
                 }
                 else
                 {
                     foreach (var b in blocks)
-                        Console.WriteLine($"{b.Text}\t{b.Confidence:0.###}");
+                        Console.WriteLine($"{b.Text}\t{FormatConfidence(b.Confidence)}");
+                    WriteLocalOcrNumericWarningsToStderr(result, invalidConfidenceBlocks, invalidGeometryBlocks);
                 }
             }
             catch (PaddleOcrException ex)
             {
+                if (IsCannotDecodeImageException(ex))
+                {
+                    CliHelpers.WriteError("ocr local",
+                        ErrorCodes.UnsupportedFormat with
+                        {
+                            Message = $"Cannot decode image. ocr local supports single image files only; use ocr cloud/to-word for PDF or document layout work. Detail: {ex.Message}"
+                        }, json);
+                }
+                else
+                {
+                    CliHelpers.WriteError("ocr local",
+                        ErrorCodes.DependencyMissing with
+                        {
+                            Message = $"Local PP-OCRv5 .NET runtime is unavailable: {ex.Message}. Update Angri450.Nong.Cli, then run 'nong ocr install-model pp-ocrv5-mobile --json'. No Python is required."
+                        }, json);
+                }
+            }
+            catch (Exception ex) when (IsCannotDecodeImageException(ex))
+            {
                 CliHelpers.WriteError("ocr local",
-                    ErrorCodes.DependencyMissing with
+                    ErrorCodes.UnsupportedFormat with
                     {
-                        Message = $"Local PP-OCRv5 .NET runtime is unavailable: {ex.Message}. Update Angri450.Nong.Cli, then run 'nong ocr install-model pp-ocrv5-mobile --json'. No Python is required."
+                        Message = $"Cannot decode image. ocr local supports single image files only; use ocr cloud/to-word for PDF or document layout work. Detail: {ex.Message}"
                     }, json);
             }
             catch (Exception ex) when (IsLocalOcrDependencyException(ex))
@@ -295,6 +353,62 @@ public static class OcrCommands
 
         return cmd;
     }
+
+    static void AddLocalOcrNumericIssues(JsonOutput output, PpOcrV5Result result, int invalidConfidenceBlocks, int invalidGeometryBlocks)
+    {
+        if (result.NumericFallbackAttempted)
+        {
+            output.Issues.Add(new Issue
+            {
+                Id = "local_ocr_numeric_fallback",
+                Severity = "Warning",
+                Message = result.NumericFallbackApplied
+                    ? "Fast local OCR inference produced invalid numeric values; Nong reran the image with conservative CPU/BLAS mode."
+                    : "Fast local OCR inference produced invalid numeric values; conservative fallback was attempted but the sanitized fast result was retained."
+            });
+        }
+
+        if (invalidConfidenceBlocks > 0)
+        {
+            output.Issues.Add(new Issue
+            {
+                Id = "local_ocr_invalid_confidence",
+                Severity = "Warning",
+                Message = $"{invalidConfidenceBlocks} OCR block(s) had NaN/Infinity confidence; JSON uses confidence:null and confidenceValid:false."
+            });
+        }
+
+        if (invalidGeometryBlocks > 0)
+        {
+            output.Issues.Add(new Issue
+            {
+                Id = "local_ocr_invalid_geometry",
+                Severity = "Warning",
+                Message = $"{invalidGeometryBlocks} OCR block(s) had NaN/Infinity geometry; invalid points were removed before JSON serialization."
+            });
+        }
+    }
+
+    static void WriteLocalOcrNumericWarningsToStderr(PpOcrV5Result result, int invalidConfidenceBlocks, int invalidGeometryBlocks)
+    {
+        if (result.NumericFallbackAttempted)
+        {
+            var fallback = result.NumericFallbackApplied ? "applied" : "attempted";
+            Console.Error.WriteLine($"[local_ocr_numeric_fallback] {fallback}: {result.NumericFallbackReason}");
+        }
+        if (invalidConfidenceBlocks > 0)
+            Console.Error.WriteLine($"[local_ocr_invalid_confidence] {invalidConfidenceBlocks} block(s); confidence shown as n/a.");
+        if (invalidGeometryBlocks > 0)
+            Console.Error.WriteLine($"[local_ocr_invalid_geometry] {invalidGeometryBlocks} block(s); invalid points removed.");
+    }
+
+    static string FormatConfidence(double? confidence) =>
+        confidence.HasValue
+            ? confidence.Value.ToString("0.###", CultureInfo.InvariantCulture)
+            : "n/a";
+
+    static bool IsCannotDecodeImageException(Exception ex) =>
+        ex.Message.Contains("Cannot decode image", StringComparison.OrdinalIgnoreCase);
 
     static bool IsLocalOcrDependencyException(Exception ex)
     {

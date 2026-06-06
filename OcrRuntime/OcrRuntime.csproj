@@ -3,7 +3,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageId Condition="'$(PackageId)' == ''">Angri450.Nong.OcrRuntime.WinX64</PackageId>
-    <Version>3.2.3</Version>
+    <Version>3.2.4</Version>
     <Authors>angri450</Authors>
     <Description>Nong PP-OCRv5 native runtime bundle for one platform. Contains PaddleInference and OpenCvSharp native DLL/SO/DYLIB files only; no Python and no executable OCR wrapper.</Description>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
