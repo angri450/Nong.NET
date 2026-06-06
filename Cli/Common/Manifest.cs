@@ -113,6 +113,12 @@ public static class Manifest
         list.Add(new("ocr install-model", "Install/check first-party PP-OCRv5 platform native runtime bundle from Huawei NuGet/cache", "ocr", []));
         list.Add(new("ocr to-word", "Convert image/PDF to Word document via cloud OCR", "ocr", []));
 
+        // === pdf (implemented: check, dissect, render, images) ===
+        list.Add(new("pdf check", "Preflight PDF and classify text/hybrid/scan route", "pdf", []));
+        list.Add(new("pdf dissect", "Slice PDF into nongpdf/nongmark one-cut three-stream package", "pdf", []));
+        list.Add(new("pdf render", "Render PDF pages to PNG images through local PDFium runtime", "pdf", []));
+        list.Add(new("pdf images", "Extract embedded PDF images with page/bbox provenance", "pdf", []));
+
         return list;
     }
 }

@@ -6,3 +6,4 @@ obj/
 tests-output/*/bin/
 tests-output/*/obj/
 tests-output/09-skillmanager/
+tests-output/stage18*/

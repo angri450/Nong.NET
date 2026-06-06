@@ -33,6 +33,7 @@
     <ProjectReference Include="..\SkillManagerCore\SkillManagerCore.csproj" />
     <ProjectReference Include="..\Pptx\PptxCore.csproj" />
     <ProjectReference Include="..\MultiModal\MultiModalCore.csproj" />
+    <ProjectReference Include="..\Pdf\PdfCore.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="/" />

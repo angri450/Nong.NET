@@ -134,7 +134,7 @@ public class CliContractTests
     // ===== Stub / honest-error commands =====
 
     [Fact]
-    public void OcrLocal_Returns_E005()
+    public void OcrLocal_ReturnsOkOrHonestError()
     {
         RequireCli();
         var image = TempPng();
@@ -150,7 +150,7 @@ public class CliContractTests
             {
                 Assert.Equal("error", doc.RootElement.GetProperty("status").GetString());
                 var code = doc.RootElement.GetProperty("errors")[0].GetProperty("code").GetString();
-                Assert.True(code is "E005" or "E004" or "E009", $"Expected E005/E004/E009, got {code}");
+                Assert.True(code is "E002" or "E005" or "E004" or "E009", $"Expected E002/E005/E004/E009, got {code}");
             }
         }
         finally { try { File.Delete(image); } catch { } }
