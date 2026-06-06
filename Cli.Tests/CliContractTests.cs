@@ -37,6 +37,14 @@ public class CliContractTests
         return path;
     }
 
+    static string TempPng()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "nong-contract-image-" + Guid.NewGuid().ToString("N")[..8] + ".png");
+        var bytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=");
+        File.WriteAllBytes(path, bytes);
+        return path;
+    }
+
     JsonDocument Parse(string json) => JsonDocument.Parse(json);
 
     void RequireCli()
@@ -96,7 +104,7 @@ public class CliContractTests
 
         using var doc = Parse(json);
         var data = doc.RootElement.GetProperty("data");
-        Assert.True(data.GetArrayLength() >= 46, "commands --all should return 46+ entries");
+        Assert.True(data.GetArrayLength() >= 48, "commands --all should return 48+ entries");
         bool hasImpl = false;
         foreach (var cmd in data.EnumerateArray())
         {
@@ -129,12 +137,23 @@ public class CliContractTests
     public void OcrLocal_Returns_E005()
     {
         RequireCli();
-        var (json, exit) = Run("ocr", "local", "test.png", "--json");
-        Assert.NotEqual(0, exit);
-        using var doc = Parse(json);
-        Assert.Equal("error", doc.RootElement.GetProperty("status").GetString());
-        var code = doc.RootElement.GetProperty("errors")[0].GetProperty("code").GetString();
-        Assert.True(code is "E005" or "E009", $"Expected E005 or E009, got {code}");
+        var image = TempPng();
+        try
+        {
+            var (json, exit) = Run("ocr", "local", image, "--json");
+            using var doc = Parse(json);
+            if (exit == 0)
+            {
+                Assert.Equal("ok", doc.RootElement.GetProperty("status").GetString());
+            }
+            else
+            {
+                Assert.Equal("error", doc.RootElement.GetProperty("status").GetString());
+                var code = doc.RootElement.GetProperty("errors")[0].GetProperty("code").GetString();
+                Assert.True(code is "E005" or "E004" or "E009", $"Expected E005/E004/E009, got {code}");
+            }
+        }
+        finally { try { File.Delete(image); } catch { } }
     }
 
     // ===== Newly implemented commands: missing file → E001 =====

@@ -18,7 +18,9 @@ public static class Manifest
     {
         var list = new List<CommandInfo>();
 
-        // === word (30 implemented: 29 stage-15 canonical commands + retained legacy extract) ===
+        // === word ===
+        list.Add(new("word check", "Preflight .doc/.docx before conversion, slicing, or editing", "word", []));
+        list.Add(new("word convert", "Convert legacy .doc to .docx as a boundary step", "word", []));
         list.Add(new("word read", "Extract plain text from a .docx file", "word", []));
         list.Add(new("word preview", "7-step document structure diagnostic", "word", []));
         list.Add(new("word fill", "Template fill from JSON data", "word", []));
@@ -103,12 +105,12 @@ public static class Manifest
         list.Add(new("pptx slides", "List slide structure", "pptx", []));
 
         // === ocr (implemented: cloud, local, check-env, analyze-image, models, install-model, to-word) ===
-        list.Add(new("ocr local", "Local PP-OCRv5 text recognition (E005 if model missing)", "ocr", []));
+        list.Add(new("ocr local", "Local PP-OCRv5 Chinese text recognition through pure .NET runtime", "ocr", []));
         list.Add(new("ocr cloud", "Cloud PaddleOCR-VL-1.6 via PADDLEOCR_ACCESS_TOKEN", "ocr", []));
         list.Add(new("ocr check-env", "Check OCR environment status", "ocr", []));
         list.Add(new("ocr analyze-image", "Analyze image structure (no OCR, no token)", "ocr", []));
         list.Add(new("ocr models", "List available OCR models", "ocr", []));
-        list.Add(new("ocr install-model", "Install OCR model (E009 for pp-ocrv5-mobile)", "ocr", []));
+        list.Add(new("ocr install-model", "Install/check first-party PP-OCRv5 platform native runtime bundle from Huawei NuGet/cache", "ocr", []));
         list.Add(new("ocr to-word", "Convert image/PDF to Word document via cloud OCR", "ocr", []));
 
         return list;

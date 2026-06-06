@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -585,8 +586,18 @@ public static class WordSlice
             if (child is Run run)
             {
                 var drawings = run.Elements<Drawing>().ToList();
-                if (drawings.Count > 0)
+                var vmlImages = ExtractImagesFromVml(run, imageParts, idMap, warnings);
+                if (drawings.Count > 0 || vmlImages.Count > 0)
                 {
+                    var runText = run.InnerText;
+                    if (!string.IsNullOrWhiteSpace(runText))
+                    {
+                        var rBlock = ExtractSingleRun(run, idMap);
+                        textRuns.Add(rBlock);
+                        sb.Append(rBlock.Text ?? "");
+                        hasText = true;
+                    }
+
                     // Flush pending text first
                     if (hasText)
                     {
@@ -614,6 +625,12 @@ public static class WordSlice
                             result.Add(imgBlock);
                             pos++;
                         }
+                    }
+
+                    foreach (var imgBlock in vmlImages)
+                    {
+                        result.Add(imgBlock);
+                        pos++;
                     }
                 }
                 else
@@ -1211,6 +1228,7 @@ public static class WordSlice
         {
             Id = idMap.AllocateId("img"),
             Kind = "image",
+            Source = "drawingml",
             ImageId = rId,
             ContentType = imgPart.part?.ContentType,
             WidthEmu = widthEmu,
@@ -1219,6 +1237,80 @@ public static class WordSlice
             HeightPx = heightPx,
             AltText = altText,
         };
+    }
+
+    private static List<ImageBlock> ExtractImagesFromVml(OpenXmlElement root,
+        List<(string rId, ImagePart part)> imageParts,
+        WordBlockIdMap idMap, List<string> warnings)
+    {
+        var result = new List<ImageBlock>();
+        foreach (var imageData in root.Descendants()
+            .Where(e => e.LocalName.Equals("imagedata", StringComparison.OrdinalIgnoreCase)))
+        {
+            var rId = GetRelationshipId(imageData);
+            var altText = GetAttributeValue(imageData, "title")
+                ?? GetAttributeValue(imageData, "alt")
+                ?? "VML image";
+
+            if (string.IsNullOrWhiteSpace(rId))
+            {
+                warnings.Add("VML image data found without a relationship id; content may not be extractable.");
+                result.Add(new ImageBlock
+                {
+                    Id = idMap.AllocateId("img"),
+                    Kind = "image",
+                    Source = "vml",
+                    AltText = altText,
+                    Analysis = new ImageAnalysis { Engine = "not available" }
+                });
+                continue;
+            }
+
+            var imgPart = imageParts.FirstOrDefault(ip => ip.rId == rId);
+            if (imgPart.part == null)
+                warnings.Add($"VML image relationship '{rId}' was referenced but no image part was found.");
+            else
+                warnings.Add($"VML image '{rId}' detected and surfaced as an image block; visual layout is preserved as an extracted asset, not as editable text.");
+
+            result.Add(new ImageBlock
+            {
+                Id = idMap.AllocateId("img"),
+                Kind = "image",
+                Source = "vml",
+                ImageId = rId,
+                ContentType = imgPart.part?.ContentType,
+                AltText = altText,
+            });
+        }
+
+        return result;
+    }
+
+    private static string? GetRelationshipId(OpenXmlElement element)
+    {
+        foreach (var attr in element.GetAttributes())
+        {
+            if (attr.LocalName.Equals("id", StringComparison.OrdinalIgnoreCase) &&
+                attr.NamespaceUri.Contains("relationships", StringComparison.OrdinalIgnoreCase))
+                return attr.Value;
+
+            if (attr.LocalName.Equals("relid", StringComparison.OrdinalIgnoreCase))
+                return attr.Value;
+        }
+
+        return null;
+    }
+
+    private static string? GetAttributeValue(OpenXmlElement element, string localName)
+    {
+        foreach (var attr in element.GetAttributes())
+        {
+            if (attr.LocalName.Equals(localName, StringComparison.OrdinalIgnoreCase) &&
+                !string.IsNullOrWhiteSpace(attr.Value))
+                return attr.Value;
+        }
+
+        return null;
     }
 
     // ========================================================================
@@ -1561,10 +1653,14 @@ public static class WordSlice
         // 4. Write content.jsonl (one JSON block per line, each with id/kind)
         using (var sw = new StreamWriter(Path.Combine(outputDir, "content.jsonl"), false, Encoding.UTF8))
         {
-            foreach (var block in blocks)
+            for (int i = 0; i < blocks.Count; i++)
             {
+                var block = blocks[i];
                 string json = JsonSerializer.Serialize(block, block.GetType(), JsonlOpts);
-                sw.WriteLine(json);
+                var line = JsonNode.Parse(json)?.AsObject() ?? new JsonObject();
+                line["blockId"] = block.Id;
+                line["index"] = i;
+                sw.WriteLine(line.ToJsonString(JsonlOpts));
             }
         }
 

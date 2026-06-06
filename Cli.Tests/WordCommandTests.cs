@@ -179,6 +179,43 @@ public class WordCommandTests
         return path;
     }
 
+    static string CreateVmlImageDocx()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "test-vml-image-" + Guid.NewGuid().ToString("N")[..8] + ".docx");
+        var pngBytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=");
+        using var doc = WordprocessingDocument.Create(path, WordprocessingDocumentType.Document);
+        var main = doc.AddMainDocumentPart();
+        var imagePart = main.AddImagePart("image/png");
+        using (var s = imagePart.GetStream(FileMode.Create, FileAccess.Write))
+            s.Write(pngBytes, 0, pngBytes.Length);
+        var rid = main.GetIdOfPart(imagePart);
+        var pictRun = new Run();
+        pictRun.InnerXml =
+            $@"<w:pict xmlns:w=""http://schemas.openxmlformats.org/wordprocessingml/2006/main"" xmlns:v=""urn:schemas-microsoft-com:vml"" xmlns:o=""urn:schemas-microsoft-com:office:office"" xmlns:r=""http://schemas.openxmlformats.org/officeDocument/2006/relationships""><v:shape id=""_x0000_i1025"" type=""#_x0000_t75"" style=""width:10pt;height:10pt""><v:imagedata r:id=""{rid}"" o:title=""formula"" /></v:shape></w:pict>";
+
+        main.Document = new Document(new Body(
+            new Paragraph(new Run(new Text("before"))),
+            new Paragraph(pictRun),
+            new Paragraph(new Run(new Text("after")))));
+        return path;
+    }
+
+    static string CreateUnlinkedVmlImageDocx()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "test-vml-unlinked-image-" + Guid.NewGuid().ToString("N")[..8] + ".docx");
+        using var doc = WordprocessingDocument.Create(path, WordprocessingDocumentType.Document);
+        var main = doc.AddMainDocumentPart();
+        var pictRun = new Run();
+        pictRun.InnerXml =
+            @"<w:pict xmlns:w=""http://schemas.openxmlformats.org/wordprocessingml/2006/main"" xmlns:v=""urn:schemas-microsoft-com:vml"" xmlns:o=""urn:schemas-microsoft-com:office:office""><v:shape id=""_x0000_i1026"" type=""#_x0000_t75"" style=""width:10pt;height:10pt""><v:imagedata o:title=""formula"" /></v:shape></w:pict>";
+
+        main.Document = new Document(new Body(
+            new Paragraph(new Run(new Text("before"))),
+            new Paragraph(pictRun),
+            new Paragraph(new Run(new Text("after")))));
+        return path;
+    }
+
     static string CreateFakeTtf()
     {
         var path = Path.Combine(Path.GetTempPath(), "nong-test-font-" + Guid.NewGuid().ToString("N")[..8] + ".ttf");
@@ -529,11 +566,176 @@ public class WordCommandTests
             Assert.Equal("nongmark/v1", manifest.RootElement.GetProperty("schemaVersion").GetString());
             Assert.True(manifest.RootElement.TryGetProperty("sourceSha256", out _));
             Assert.True(manifest.RootElement.TryGetProperty("createdAt", out _));
+
+            var firstLine = File.ReadLines(Path.Combine(outDir, "content.jsonl")).First();
+            using var lineDoc = JsonDocument.Parse(firstLine);
+            Assert.Equal("p0001", lineDoc.RootElement.GetProperty("id").GetString());
+            Assert.Equal("p0001", lineDoc.RootElement.GetProperty("blockId").GetString());
+            Assert.Equal(0, lineDoc.RootElement.GetProperty("index").GetInt32());
         }
         finally
         {
             try { File.Delete(docx); } catch { }
             try { if (Directory.Exists(outDir)) Directory.Delete(outDir, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public void WordDissect_VmlImage_SurfacesImageBlockAndWarning()
+    {
+        RequireCli();
+        var docx = CreateVmlImageDocx();
+        var sliceDir = Path.Combine(Path.GetTempPath(), "nong-test-vml-slice-" + Guid.NewGuid().ToString("N")[..8]);
+        try
+        {
+            var (json, exit) = Run("word", "dissect", docx, "-o", sliceDir, "--json");
+            Assert.Equal(0, exit);
+
+            using var dissectDoc = Parse(json);
+            Assert.Equal("ok", dissectDoc.RootElement.GetProperty("status").GetString());
+            Assert.True(dissectDoc.RootElement.GetProperty("data").GetProperty("warnings").GetArrayLength() > 0);
+
+            var imageLine = File.ReadLines(Path.Combine(sliceDir, "content.jsonl"))
+                .First(line => line.Contains("\"kind\":\"image\""));
+            using var imageDoc = Parse(imageLine);
+            Assert.Equal("vml", imageDoc.RootElement.GetProperty("source").GetString());
+            Assert.Equal("img0001", imageDoc.RootElement.GetProperty("blockId").GetString());
+            Assert.True(imageDoc.RootElement.TryGetProperty("assetPath", out var assetPath));
+            Assert.Contains("assets/", assetPath.GetString());
+
+            var markdown = File.ReadAllText(Path.Combine(sliceDir, "content.md"));
+            Assert.Contains("![formula]", markdown);
+
+            using var assetManifest = Parse(File.ReadAllText(Path.Combine(sliceDir, "assets", "manifest.json")));
+            Assert.Equal(1, assetManifest.RootElement.GetProperty("items").GetArrayLength());
+            Assert.Equal("img0001", imageDoc.RootElement.GetProperty("id").GetString());
+        }
+        finally
+        {
+            try { File.Delete(docx); } catch { }
+            try { if (Directory.Exists(sliceDir)) Directory.Delete(sliceDir, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public void WordImages_VmlImage_ReturnsVmlSource()
+    {
+        RequireCli();
+        var docx = CreateVmlImageDocx();
+        try
+        {
+            var (json, exit) = Run("word", "images", docx, "--json");
+            Assert.Equal(0, exit);
+
+            using var doc = Parse(json);
+            var images = doc.RootElement.GetProperty("data").GetProperty("images");
+            Assert.Equal(1, images.GetArrayLength());
+            Assert.Equal("vml", images[0].GetProperty("source").GetString());
+            Assert.False(string.IsNullOrWhiteSpace(images[0].GetProperty("internalRelationshipId").GetString()));
+            Assert.Contains("p0002", images[0].GetProperty("usedBy").EnumerateArray().Select(e => e.GetString()));
+            Assert.True(images[0].GetProperty("extractable").GetBoolean());
+        }
+        finally
+        {
+            try { File.Delete(docx); } catch { }
+        }
+    }
+
+    [Fact]
+    public void WordImages_UnlinkedVmlImage_ReturnsNonExtractableReference()
+    {
+        RequireCli();
+        var docx = CreateUnlinkedVmlImageDocx();
+        try
+        {
+            var (json, exit) = Run("word", "images", docx, "--json");
+            Assert.Equal(0, exit);
+
+            using var doc = Parse(json);
+            var root = doc.RootElement;
+            var data = root.GetProperty("data");
+            var images = data.GetProperty("images");
+            Assert.Equal(1, images.GetArrayLength());
+            Assert.Equal("vml", images[0].GetProperty("source").GetString());
+            Assert.Equal("", images[0].GetProperty("internalRelationshipId").GetString());
+            Assert.False(images[0].GetProperty("extractable").GetBoolean());
+            Assert.Contains("p0002", images[0].GetProperty("usedBy").EnumerateArray().Select(e => e.GetString()));
+            Assert.Contains("relationship id", images[0].GetProperty("warning").GetString());
+            Assert.True(data.GetProperty("warnings").GetArrayLength() > 0);
+            Assert.True(root.GetProperty("issues").GetArrayLength() > 0);
+        }
+        finally
+        {
+            try { File.Delete(docx); } catch { }
+        }
+    }
+
+    [Fact]
+    public void WordCheck_Doc_ReturnsConversionRequired()
+    {
+        RequireCli();
+        var docPath = Path.Combine(Path.GetTempPath(), "nong-test-legacy-" + Guid.NewGuid().ToString("N")[..8] + ".doc");
+        File.WriteAllBytes(docPath, [0xD0, 0xCF, 0x11, 0xE0]);
+        try
+        {
+            var (json, exit) = Run("word", "check", docPath, "--json");
+            Assert.Equal(0, exit);
+
+            using var doc = Parse(json);
+            var data = doc.RootElement.GetProperty("data");
+            Assert.Equal("doc", data.GetProperty("inputFormat").GetString());
+            Assert.False(data.GetProperty("canProcessDirectly").GetBoolean());
+            Assert.Equal("unavailable_until_conversion", data.GetProperty("blockIdStatus").GetString());
+        }
+        finally
+        {
+            try { File.Delete(docPath); } catch { }
+        }
+    }
+
+    [Fact]
+    public void WordCheck_VmlDocx_ReportsVmlWarning()
+    {
+        RequireCli();
+        var docx = CreateVmlImageDocx();
+        try
+        {
+            var (json, exit) = Run("word", "check", docx, "--json");
+            Assert.Equal(0, exit);
+
+            using var doc = Parse(json);
+            var data = doc.RootElement.GetProperty("data");
+            Assert.Equal("docx", data.GetProperty("inputFormat").GetString());
+            Assert.True(data.GetProperty("canProcessDirectly").GetBoolean());
+            Assert.Equal(1, data.GetProperty("vmlImages").GetInt32());
+            Assert.True(data.GetProperty("warnings").GetArrayLength() > 0);
+        }
+        finally
+        {
+            try { File.Delete(docx); } catch { }
+        }
+    }
+
+    [Fact]
+    public void WordConvert_Docx_CopiesToExplicitOutput()
+    {
+        RequireCli();
+        var docx = CreateTestDocx();
+        var outPath = Path.Combine(Path.GetTempPath(), "nong-test-convert-" + Guid.NewGuid().ToString("N")[..8] + ".docx");
+        try
+        {
+            var (json, exit) = Run("word", "convert", docx, "-o", outPath, "--json");
+            Assert.Equal(0, exit);
+
+            using var doc = Parse(json);
+            Assert.Equal("ok", doc.RootElement.GetProperty("status").GetString());
+            Assert.Equal("copy", doc.RootElement.GetProperty("data").GetProperty("engine").GetString());
+            Assert.True(File.Exists(outPath));
+        }
+        finally
+        {
+            try { File.Delete(docx); } catch { }
+            try { File.Delete(outPath); } catch { }
         }
     }
 
