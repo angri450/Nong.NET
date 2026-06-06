@@ -369,7 +369,7 @@ public class OcrCommandTests
         if (!Directory.Exists(sourceDir))
             return;
 
-        var packageExists = Directory.EnumerateFiles(sourceDir, "Angri450.Nong.OcrRuntime.*.3.2.3.nupkg").Any();
+        var packageExists = Directory.EnumerateFiles(sourceDir, "Angri450.Nong.OcrRuntime.*.3.2.4.nupkg").Any();
         if (!packageExists)
             return;
 

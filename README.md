@@ -9,14 +9,14 @@
 
 <p align="center">
   <strong>Pure .NET CLI toolkit for scientific document generation and inspection.</strong><br>
-  Zero JavaScript. One binary. 73 commands. Cross-platform.
+  Zero JavaScript. One binary. 77 commands. Cross-platform.
 </p>
 
 <p align="center">
   <a href="https://www.nuget.org/packages/Angri450.Nong.Cli/"><img src="https://img.shields.io/nuget/v/Angri450.Nong.Cli.svg?label=NuGet" alt="NuGet"></a>
   <a href="https://github.com/angri450/Nong.NET/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License"></a>
   <a href="https://dotnet.microsoft.com/en-us/download"><img src="https://img.shields.io/badge/.NET-8.0-8A2BE2" alt=".NET 8.0"></a>
-  <img src="https://img.shields.io/badge/commands-73-green" alt="73 commands">
+  <img src="https://img.shields.io/badge/commands-77-green" alt="77 commands">
   <a href="#中文文档"><img src="https://img.shields.io/badge/中文-README.zh--CN.md-orange" alt="中文"></a>
 </p>
 
@@ -53,7 +53,7 @@ nong commands --json</code></pre>
 
 <hr>
 
-<h2>Capability Overview — 73 Commands</h2>
+<h2>Capability Overview — 77 commands</h2>
 
 <h3>word — Word Document Engine (32 commands)</h3>
 
@@ -166,6 +166,16 @@ nong commands --json</code></pre>
   <tr><td><code>nong ocr to-word</code></td><td>Cloud OCR → .docx conversion</td></tr>
 </table>
 
+<h3>pdf — Local PDF Slicing (4 commands)</h3>
+
+<table>
+  <tr><th>Command</th><th>What it does</th></tr>
+  <tr><td><code>nong pdf check</code></td><td>Preflight PDF and classify text, hybrid, or scan route</td></tr>
+  <tr><td><code>nong pdf dissect</code></td><td>Slice PDF into <code>content.nongmark</code>, JSONL blocks, structure, format, diagnostics, and assets</td></tr>
+  <tr><td><code>nong pdf render</code></td><td>Render PDF pages to PNG through local PDFium runtime</td></tr>
+  <tr><td><code>nong pdf images</code></td><td>Extract embedded PDF images with page/bbox provenance and page-crop fallback</td></tr>
+</table>
+
 <h3>genre / icons — Templates &amp; Assets (4 commands)</h3>
 
 <table>
@@ -243,6 +253,12 @@ nong word dissect paper.docx -o paper.slice --json</code></pre>
 nong ocr cloud scan.png -o ocr-out/ --json
 nong ocr to-word scan.png -o out.docx --json</code></pre>
 
+<h3>6. Local PDF One-Cut Three-Stream</h3>
+<pre><code>nong pdf check guide.pdf --json
+nong pdf dissect guide.pdf --output guide.slice --mode auto --json
+nong pdf render guide.pdf --output guide.pages --dpi 150 --json
+nong pdf images guide.pdf --output guide.assets --json</code></pre>
+
 <hr>
 
 <h2>JSON Output Schema</h2>
@@ -258,7 +274,7 @@ nong ocr to-word scan.png -o out.docx --json</code></pre>
   "artifacts": { "png": "fig.png" },
   "metrics": { "paragraphs": 29 },
   "errors": [],
-  "meta": { "durationMs": 42, "version": "3.2.3" }
+  "meta": { "durationMs": 42, "version": "3.2.4" }
 }</code></pre>
 
 <hr>
@@ -280,9 +296,9 @@ nong ocr to-word scan.png -o out.docx --json</code></pre>
 
 <hr>
 
-<h2>Project Structure — 9 NuGet Packages</h2>
+<h2>Project Structure — 10 NuGet Packages</h2>
 
-<p>Current CLI documentation targets <strong>Angri450.Nong.Cli 3.2.3</strong>. The libraries are purpose-built packages with single responsibilities; confirm installed package versions with NuGet or <code>nong commands --json</code>.</p>
+<p>Current CLI documentation targets <strong>Angri450.Nong.Cli 3.2.4</strong>. The libraries are purpose-built packages with single responsibilities; confirm installed package versions with NuGet or <code>nong commands --json</code>.</p>
 
 <table>
   <tr><th>Package</th><th>Purpose</th></tr>
@@ -293,6 +309,7 @@ nong ocr to-word scan.png -o out.docx --json</code></pre>
   <tr><td><code>Angri450.Nong.Diagram</code></td><td>Flowchart, network graph, phylogenetic tree rendering</td></tr>
   <tr><td><code>Angri450.Nong.Pptx</code></td><td>PowerPoint generation with 10 theme presets</td></tr>
   <tr><td><code>Angri450.Nong.MultiModal</code></td><td>PaddleOCR cloud + local OCR integration</td></tr>
+  <tr><td><code>Angri450.Nong.Pdf</code></td><td>Local PDF classification, slicing, rendering, image provenance, and NongMark projection</td></tr>
   <tr><td><code>Angri450.Nong.Bioicons</code></td><td>40 SVG scientific icons</td></tr>
   <tr><td><code>Angri450.Nong.Skill.Manager</code></td><td>Skill lifecycle management CLI</td></tr>
 </table>
@@ -333,4 +350,3 @@ nong ocr to-word scan.png -o out.docx --json</code></pre>
 <h2>中文文档</h2>
 
 <p>See <a href="README.zh-CN.md">README.zh-CN.md</a> for full Chinese documentation.</p>
-
