@@ -6,7 +6,7 @@ using Nong.Inspect;
 namespace Nong.Cli.Commands;
 
 /// <summary>
-/// Inspect command group: paper diagnose and refs check (phase 3), others stubbed.
+/// Inspect command group: paper diagnostics, references, structure, evidence, and writing.
 /// </summary>
 public static class InspectCommands
 {
@@ -28,7 +28,7 @@ public static class InspectCommands
         return cmd;
     }
 
-    // ===== paper diagnose =====
+    // ===== inspect diagnose =====
 
     static Command CreateDiagnose(Option<bool> jsonOpt)
     {

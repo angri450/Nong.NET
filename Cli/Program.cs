@@ -22,7 +22,7 @@ class Program
         // === nong --version ===
         root.SetHandler(() =>
         {
-            Console.WriteLine("nong v3.1.0");
+            Console.WriteLine($"nong v{CliVersion.Current}");
         });
 
         // === nong commands --json ===

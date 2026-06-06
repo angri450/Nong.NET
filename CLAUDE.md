@@ -8,7 +8,7 @@ Pure .NET scientific document generation toolkit. Zero JavaScript. One merged fo
 - 主分支: `master`（同时维护 `main`）
 - 协议: MIT
 
-## 包结构（9 个包，版本号全局统一）
+## 包结构（9 个常规包 + OCR runtime 部署包）
 
 | 包 | 项目路径 | 说明 |
 |----|---------|------|
@@ -18,9 +18,17 @@ Pure .NET scientific document generation toolkit. Zero JavaScript. One merged fo
 | `Angri450.Nong.Diagram` | `Diagram/` | 流程图、网络图、系统发育树 |
 | `Angri450.Nong.Docx` | `Docx/` | Word 生成 + 论文诊断 |
 | `Angri450.Nong.Pptx` | `Pptx/` | PPT 生成、10 套主题 |
-| `Angri450.Nong.MultiModal` | `MultiModal/` | PaddleOCR 云 + 本地 |
+| `Angri450.Nong.MultiModal` | `MultiModal/` | PaddleOCR 云 + 纯 .NET 本地 PP-OCRv5 |
 | `Angri450.Nong.Bioicons` | `Bioicons/` | 40 个 SVG 科学图标 |
 | `Angri450.Nong.Skill.Manager` | `SkillManager/` | Skill CLI 工具 |
+
+OCR 本地推理另有按平台拆分的部署包，不供应用代码直接引用，只给 `nong ocr install-model` 下载/解包：
+
+- `Angri450.Nong.OcrRuntime.WinX64`
+- `Angri450.Nong.OcrRuntime.LinuxX64`
+- `Angri450.Nong.OcrRuntime.LinuxArm64`
+- `Angri450.Nong.OcrRuntime.OsxX64`
+- `Angri450.Nong.OcrRuntime.OsxArm64`
 
 ## 依赖链
 
@@ -54,6 +62,17 @@ SkillManager → YamlDotNet (NuGet, 独立, CLI 工具)
 5. `gh release create v<新版> nupkg/<包名>.<新版>.nupkg --title "v<新版>" --notes "<改动说明>" --latest`
 6. `git add -A && git commit -m "release: <包名> v<新版> — <改动摘要>" && git push`
 
+### OCR runtime 发布流程
+本地 OCR 禁止 Python/pip/外部 OCR 执行文件。heavy Paddle/OpenCV native runtime 通过第一方 `Angri450.Nong.OcrRuntime.*` 包分平台部署。
+
+1. `powershell -NoProfile -ExecutionPolicy Bypass -File OcrRuntime/pack-runtimes.ps1`
+2. 先推 5 个 runtime 包到 NuGet.org：WinX64、LinuxX64、LinuxArm64、OsxX64、OsxArm64
+3. 再推 `Angri450.Nong.Cli`
+4. 等华为 NuGet 镜像同步
+5. 用华为源验证：`nong ocr install-model pp-ocrv5-mobile --source https://mirrors.huaweicloud.com/repository/nuget/v3/index.json --json`
+
+默认安装路径只接受 Nong 第一方 runtime 包。上游 Sdcb/OpenCvSharp fallback 必须由用户或维护者显式加 `--allow-upstream-fallback`，不要让 agent 静默回退到旧大包链路。
+
 ### NuGet 发布流程（大版本升级，极少用）
 全部 9 个包统一改 `<Version>` → 批量 build + pack + push → 一个 GitHub Release 包含全部 nupkg。
 
@@ -85,7 +104,7 @@ SkillManager → YamlDotNet (NuGet, 独立, CLI 工具)
 
 ## 禁止事项
 - 不要引入 JavaScript 依赖
-- 不要用 Python 实现核心功能（仅 `MultiModal/scripts/ocr_local.py` 为辅助脚本）
+- 不要用 Python 实现核心功能；本地 OCR 必须走纯 .NET PP-OCRv5，不恢复 `MultiModal/scripts/ocr_local.py`
 - 不要为第三方库创建独立的 `.csproj` — 已全部删掉，统一走 ThirdParty
 - 不要用 PowerShell 的 `-replace` 批量编辑 `.csproj` — 会损坏 XML，用 Edit 工具逐文件改
 
@@ -116,7 +135,7 @@ NuGet API Key 已保存在仓库的 CLAUDE.md 之外（环境变量 `$env:NUGET_
 | `Diagram/` | `DiagramBuilder.cs` + `Models/` + `Renderers/` + `Layout/` | ThirdParty + Bioicons |
 | `Docx/` | `Builders.cs` + `DocumentWriter.cs` + `StyleBuilder.cs` + `TemplateEngine.cs` + `PaperDiagnostics.cs` | ThirdParty |
 | `Pptx/` | `PresentationBuilder.cs` + `SlideBuilder.cs` + `ThemePreset.cs` + `LayoutSystem.cs` | ShapeCrawler (NuGet) |
-| `MultiModal/` | `PaddleOcrVlClient.cs` + `LocalOcrClient.cs` + `LayoutToWordConverter.cs` | Docx |
+| `MultiModal/` | `PaddleOcrVlClient.cs` + `PpOcrV5/` + `LayoutToWordConverter.cs` | Docx |
 | `Bioicons/` | `IconProvider.cs` + `*.svg` (40个) | 无 |
 | `SkillManager/` | `Program.cs` + `Models/` + `Tools/` + `assets/` | YamlDotNet (NuGet) |
 
