@@ -119,6 +119,13 @@ public static class Manifest
         list.Add(new("pdf render", "Render PDF pages to PNG images through local PDFium runtime", "pdf", []));
         list.Add(new("pdf images", "Extract embedded PDF images with page/bbox provenance", "pdf", []));
 
+        // === lit (implemented: parse, validate, plan, search, export) ===
+        list.Add(new("lit parse", "Parse CNKI-like literature retrieval DSL", "lit", []));
+        list.Add(new("lit validate", "Validate CNKI-like literature retrieval DSL", "lit", []));
+        list.Add(new("lit plan", "Plan provider rough queries for literature retrieval", "lit", []));
+        list.Add(new("lit search", "Search legal metadata/OA literature providers with local strict filtering", "lit", []));
+        list.Add(new("lit export", "Export normalized literature results as JSON, Markdown, or BibTeX", "lit", []));
+
         return list;
     }
 }

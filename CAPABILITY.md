@@ -1,4 +1,4 @@
-# nong CLI 当前能力表 v3.2.4
+# nong CLI 当前能力表 v3.2.5
 
 日期：2026-06-06
 源：`nong commands --json` + 实测
@@ -246,7 +246,7 @@ nong skill package ./plugin --json
   "artifacts": { "png": "fig.png" },
   "metrics": { "paragraphs": 29 },
   "errors": [],
-  "meta": { "durationMs": 42, "version": "3.2.4" }
+  "meta": { "durationMs": 42, "version": "3.2.5" }
 }
 ```
 
@@ -313,6 +313,5 @@ nong skill package ./plugin --json
 ## 测试
 
 ```bash
-dotnet test Cli.Tests/Cli.Tests.csproj -c Release    # 81 CLI tests
-pwsh -File tests-output/stage13/verify.ps1            # 15 skill behavior tests
+dotnet test Cli.Tests/Cli.Tests.csproj -c Release    # CLI tests
 ```

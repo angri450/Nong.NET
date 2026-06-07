@@ -4,13 +4,13 @@
 
 ```bash
 dotnet tool install --global Angri450.Nong.Cli --add-source https://mirrors.huaweicloud.com/repository/nuget/v3/index.json
-nong commands --json       # discover all commands (77 implemented)
+nong commands --json       # discover all commands (82 implemented)
 nong word read file.docx   # extract text
 ```
 
 ## Command Discovery
 
-`nong commands --json` returns 77 implemented commands. `nong commands --all --json` includes all.
+`nong commands --json` returns 82 implemented commands. `nong commands --all --json` includes all.
 Use this first in any session to know what's available.
 
 ## Input Formats
@@ -58,6 +58,9 @@ Use this first in any session to know what's available.
 | `ocr models` | N/A; returns available model list |
 | `ocr install-model` | model-id; installs/checks current-platform first-party `Angri450.Nong.OcrRuntime.*` PP-OCRv5 runtime bundle from Huawei NuGet/cache; `--dry-run` shows the plan; upstream fallback requires `--allow-upstream-fallback`; invalid IDs return E006 |
 | `ocr to-word` | image/pdf + output .docx (-o) + optional --pages; requires PADDLEOCR_ACCESS_TOKEN |
+| `lit parse/validate/plan` | CNKI-like query string via --query |
+| `lit search` | CNKI-like query string via --query; OpenAlex/Crossref metadata search; Unpaywall DOI/OA lookup requires configured email |
+| `lit export` | LiteratureSearchResult JSON or PaperRecord array via --input; --format json/markdown/bibtex |
 | `genre list/show` | N/A |
 | `icons list/search` | N/A |
 | `skill validate/scan/inventory/package` | directory path |
@@ -204,7 +207,7 @@ Every command with `--json` returns:
   "artifacts": { "docx": "out.docx" },
   "metrics": { "paragraphs": 29 },
   "errors": [],
-  "meta": { "durationMs": 42, "version": "3.2.4" }
+  "meta": { "durationMs": 42, "version": "3.2.5" }
 }
 ```
 
@@ -292,6 +295,17 @@ nong ocr to-word scan.png -o out.docx --json
 ```
 nong ocr analyze-image scan.png -o analysis/ --json
 ```
+
+### Literature retrieval
+```
+nong lit parse --query "SU=('腐植酸'+'腐殖酸')*('稀土'+'微肥')" --json
+nong lit validate --query "AU=钱伟长 AND (AF=清华大学 OR AF=上海大学)" --json
+nong lit plan --query "SU=('腐植酸'+'腐殖酸')*('稀土'+'微肥')" --sources openalex,crossref,unpaywall --json
+nong lit search --query "DOI='10.1016/j.chemgeo.2007.05.018'" --sources openalex,crossref --limit 10 --json
+nong lit export --input refs.json --format bibtex --out refs.bib --json
+```
+
+Stage19 implements only OpenAlex, Crossref, and Unpaywall. Unpaywall requires `NONG_LIT_UNPAYWALL_EMAIL` or `NONG_LIT_MAILTO`; missing credentials return machine-readable errors or warnings. The CLI does not scrape commercial databases, bypass paywalls, or auto-translate Chinese-English synonyms.
 
 ### Document editing (add series)
 ```

@@ -37,6 +37,8 @@ public sealed record PdfCheckResult
     public double TextCharsPerPage { get; set; }
     public int ImageCount { get; set; }
     public double ImageCoverageRatio { get; set; }
+    public double SuspiciousTextRatio { get; set; }
+    public List<string> SuspectFonts { get; set; } = new();
     public bool RenderRequired { get; set; }
     public string Classification { get; set; } = "unknown";
     public string RecommendedMode { get; set; } = "auto";
@@ -52,6 +54,8 @@ public sealed record PdfPageCheck
     public int TextCharCount { get; set; }
     public int ImageCount { get; set; }
     public double ImageCoverageRatio { get; set; }
+    public double SuspiciousTextRatio { get; set; }
+    public List<string> SuspectFonts { get; set; } = new();
 }
 
 public sealed record PdfSliceOptions
@@ -167,6 +171,8 @@ public sealed record PdfPageModel
     public string Unit { get; set; } = "pt";
     public int TextCharCount { get; set; }
     public int ImageCount { get; set; }
+    public string ReadingOrderMethod { get; set; } = "single-column-y-desc-x-asc";
+    public double? ColumnSplitX { get; set; }
 }
 
 public sealed record PdfContentBlock

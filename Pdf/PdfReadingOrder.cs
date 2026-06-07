@@ -15,7 +15,7 @@ public static class PdfReadingOrder
                     .OrderBy(b => b.Index)
                     .Select(b => b.BlockId)
                     .ToList(),
-                Method = "pdfpig-line-aggregation-y-desc-x-asc"
+                Method = page.ReadingOrderMethod
             });
         }
 

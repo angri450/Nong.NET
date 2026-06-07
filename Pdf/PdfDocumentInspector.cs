@@ -26,6 +26,7 @@ public static class PdfDocumentInspector
             {
                 var textChars = CountMeaningfulChars(page.Text);
                 var imageCoverage = EstimateImageCoverage(page);
+                var textQuality = AnalyzeTextQuality(page);
                 var pageCheck = new PdfPageCheck
                 {
                     Page = page.Number,
@@ -34,6 +35,8 @@ public static class PdfDocumentInspector
                     TextCharCount = textChars,
                     ImageCount = page.NumberOfImages,
                     ImageCoverageRatio = imageCoverage,
+                    SuspiciousTextRatio = textQuality.SuspiciousRatio,
+                    SuspectFonts = textQuality.SuspectFonts,
                 };
                 result.Pages.Add(pageCheck);
             }
@@ -42,6 +45,12 @@ public static class PdfDocumentInspector
             result.TextCharsPerPage = result.PageCount == 0 ? 0 : result.TextCharCount / (double)result.PageCount;
             result.ImageCount = result.Pages.Sum(p => p.ImageCount);
             result.ImageCoverageRatio = result.Pages.Count == 0 ? 0 : result.Pages.Average(p => p.ImageCoverageRatio);
+            result.SuspiciousTextRatio = result.Pages.Count == 0 ? 0 : result.Pages.Average(p => p.SuspiciousTextRatio);
+            result.SuspectFonts = result.Pages
+                .SelectMany(p => p.SuspectFonts)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(f => f)
+                .ToList();
             result.HasTextLayer = result.TextCharCount > 0;
 
             Classify(result);
@@ -87,6 +96,18 @@ public static class PdfDocumentInspector
         return Math.Clamp(imageArea / pageArea, 0, 1);
     }
 
+    static PdfTextQualitySummary AnalyzeTextQuality(Page page)
+    {
+        try
+        {
+            return PdfTextQuality.AnalyzeWords(page.GetWords());
+        }
+        catch
+        {
+            return new PdfTextQualitySummary();
+        }
+    }
+
     static void Classify(PdfCheckResult result)
     {
         if (result.PageCount == 0)
@@ -130,6 +151,16 @@ public static class PdfDocumentInspector
         if (!result.HasTextLayer)
         {
             result.Warnings.Add("No useful text layer found. Local OCR or cloud OCR is required for readable content.");
+        }
+
+        if (result.SuspectFonts.Count > 0)
+        {
+            result.Warnings.Add("Possible custom-encoded or corrupted PDF text font(s): " + string.Join(", ", result.SuspectFonts.Take(8)));
+        }
+
+        if (result.SuspiciousTextRatio > 0.20)
+        {
+            result.Warnings.Add($"Suspicious text ratio is high ({result.SuspiciousTextRatio:P0}); verify with pdf render or OCR.");
         }
     }
 

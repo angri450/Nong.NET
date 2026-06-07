@@ -246,8 +246,6 @@ public static class PdfSlice
     {
         var ordered = blocks
             .OrderBy(b => b.Page)
-            .ThenByDescending(b => b.Bbox.Length >= 4 ? b.Bbox[3] : double.MaxValue)
-            .ThenBy(b => b.Bbox.Length >= 4 ? b.Bbox[0] : 0)
             .ThenBy(b => b.Index)
             .ToList();
 

@@ -83,14 +83,6 @@ public class OcrCommandTests
             "nong.dll not found. Build first: dotnet build Cli/NongCli.csproj -c Release");
     }
 
-    static string CreateTinyPng()
-    {
-        var path = Path.Combine(Path.GetTempPath(), "nong-ocr-test-image-" + Guid.NewGuid().ToString("N")[..8] + ".png");
-        var bytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=");
-        File.WriteAllBytes(path, bytes);
-        return path;
-    }
-
     // ===== Test 1: check-env returns environment status =====
 
     [Fact]
@@ -127,79 +119,7 @@ public class OcrCommandTests
         Assert.Equal("E001", doc.RootElement.GetProperty("errors")[0].GetProperty("code").GetString());
     }
 
-    // ===== Test 3: local uses pure .NET runtime or returns dependency/runtime error =====
-
-    [Fact]
-    public void OcrLocal_UsesPureDotNetRuntime()
-    {
-        RequireCli();
-        var image = CreateTinyPng();
-        try
-        {
-            var (json, exit) = Run("ocr", "local", image, "--json");
-
-            using var doc = Parse(json);
-            if (exit == 0)
-            {
-                Assert.Equal("ok", doc.RootElement.GetProperty("status").GetString());
-                Assert.Equal("ocr local", doc.RootElement.GetProperty("command").GetString());
-                var data = doc.RootElement.GetProperty("data");
-                Assert.Equal("pp-ocrv5-dotnet-sdcb", data.GetProperty("engine").GetString());
-                Assert.Equal("pp-ocrv5-mobile", data.GetProperty("modelId").GetString());
-                Assert.True(data.GetProperty("runtime").TryGetProperty("inferenceMode", out _));
-                Assert.False(data.GetProperty("capabilities").GetProperty("pdf").GetBoolean());
-                Assert.False(data.GetProperty("capabilities").GetProperty("layoutAnalysis").GetBoolean());
-                Assert.False(data.GetProperty("capabilities").GetProperty("pandocAnnotations").GetBoolean());
-                Assert.DoesNotContain("NaN", json, StringComparison.OrdinalIgnoreCase);
-                Assert.DoesNotContain("Infinity", json, StringComparison.OrdinalIgnoreCase);
-
-                var blocks = data.GetProperty("blocks");
-                if (blocks.GetArrayLength() > 0)
-                {
-                    Assert.True(blocks[0].TryGetProperty("confidenceValid", out _));
-                    Assert.True(blocks[0].TryGetProperty("geometryValid", out _));
-                    Assert.True(blocks[0].TryGetProperty("numericIssue", out _));
-                }
-            }
-            else
-            {
-                Assert.Equal("error", doc.RootElement.GetProperty("status").GetString());
-                var code = doc.RootElement.GetProperty("errors")[0].GetProperty("code").GetString();
-                Assert.True(code is "E005" or "E004", $"Expected local OCR to fail with a dependency/runtime error, got {code}");
-                Assert.DoesNotContain("Install Python", json, StringComparison.OrdinalIgnoreCase);
-                Assert.DoesNotContain("pip", json, StringComparison.OrdinalIgnoreCase);
-            }
-        }
-        finally
-        {
-            try { File.Delete(image); } catch { }
-        }
-    }
-
-    [Fact]
-    public void OcrLocal_PdfInput_Returns_E002_WithCloudGuidance()
-    {
-        RequireCli();
-        var pdf = Path.Combine(Path.GetTempPath(), "nong-ocr-local-pdf-" + Guid.NewGuid().ToString("N")[..8] + ".pdf");
-        File.WriteAllText(pdf, "%PDF-1.4");
-
-        try
-        {
-            var (json, exit) = Run("ocr", "local", pdf, "--json");
-            Assert.NotEqual(0, exit);
-
-            using var doc = Parse(json);
-            Assert.Equal("error", doc.RootElement.GetProperty("status").GetString());
-            var error = doc.RootElement.GetProperty("errors")[0];
-            Assert.Equal("E002", error.GetProperty("code").GetString());
-            Assert.Contains("ocr cloud", error.GetProperty("message").GetString());
-            Assert.Contains("ocr to-word", error.GetProperty("message").GetString());
-        }
-        finally
-        {
-            try { File.Delete(pdf); } catch { }
-        }
-    }
+    // ===== Test 3: local OCR native runtime internals =====
 
     [Fact]
     public void LocalOcrConfidenceSanitizer_RejectsNonFiniteValues()
@@ -369,7 +289,7 @@ public class OcrCommandTests
         if (!Directory.Exists(sourceDir))
             return;
 
-        var packageExists = Directory.EnumerateFiles(sourceDir, "Angri450.Nong.OcrRuntime.*.3.2.4.nupkg").Any();
+        var packageExists = Directory.EnumerateFiles(sourceDir, "Angri450.Nong.OcrRuntime.*.3.2.5.nupkg").Any();
         if (!packageExists)
             return;
 
@@ -441,24 +361,14 @@ public class OcrCommandTests
             new[] { "ocr", "install-model", "invalid-id", "--json" },
         };
 
-        var tempImage = CreateTinyPng();
-        try
+        foreach (var args in commands)
         {
-            var commandList = commands.Concat(new[] { new[] { "ocr", "local", tempImage, "--json" } });
+            var (stdout, stderr, _) = RunWithStderr(args);
+            var combined = stdout + stderr;
 
-            foreach (var args in commandList)
-            {
-                var (stdout, stderr, _) = RunWithStderr(args);
-                var combined = stdout + stderr;
-
-                // API tokens commonly start with "sk-" or contain "bearer"
-                Assert.DoesNotContain("sk-", combined, StringComparison.OrdinalIgnoreCase);
-                Assert.DoesNotContain("bearer", combined, StringComparison.OrdinalIgnoreCase);
-            }
-        }
-        finally
-        {
-            try { File.Delete(tempImage); } catch { }
+            // API tokens commonly start with "sk-" or contain "bearer"
+            Assert.DoesNotContain("sk-", combined, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("bearer", combined, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

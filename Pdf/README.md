@@ -6,12 +6,16 @@ This package provides the deterministic PDF backend used by `nong pdf`:
 
 - `pdf check`: classify text, hybrid, or scan PDFs.
 - `pdf dissect`: write a Nong PDF slice with `content.nongmark`, JSONL blocks, structure, format, diagnostics, and assets.
-- `pdf render`: render pages to PNG through a local PDFium runtime.
+- `pdf render`: render pages to PNG through the PDFium runtime vendored in `Angri450.Nong.Pdf`.
 - `pdf images`: extract embedded image evidence with page and bbox provenance, including page-crop fallback when a PDF image stream cannot be decoded directly.
 
 The primary AI-readable output is `content.nongmark`, aligned with Nong's enhanced Pandoc/NongMark document stream. Plain Markdown previews are compatibility artifacts only.
 
+Text-layer slicing includes deterministic heuristics for repeated header/footer removal, two-column reading order, simple aligned-row table blocks, and suspicious custom-encoded font warnings. These heuristics preserve page/bbox provenance in `content.jsonl` and report routing/quality concerns through diagnostics and warnings.
+
 No Python, Pandoc executable, MinerU executable, or external OCR process is required for text-layer PDF slicing.
+
+Pdf text/image inspection uses the PdfPig source vendored in `Angri450.Nong.ThirdParty`; this package no longer depends on the `PdfPig` NuGet package. Page rendering uses Docnet/PDFium source and native assets vendored directly in `Angri450.Nong.Pdf`.
 
 ## Install
 

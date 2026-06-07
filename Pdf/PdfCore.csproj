@@ -6,22 +6,22 @@
     <RootNamespace>PdfCore</RootNamespace>
     <AssemblyName>Angri450.Nong.Pdf</AssemblyName>
     <PackageId>Angri450.Nong.Pdf</PackageId>
-    <Version>3.2.4</Version>
+    <Version>3.2.5</Version>
     <Authors>angri450</Authors>
     <Description>Local PDF document slicing engine for Nong: PDF classification, text extraction, rendering, assets, OCR bridge, and NongMark/Pandoc-enhanced text projection.</Description>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/angri450/Nong.NET</RepositoryUrl>
     <PackageTags>nong pdf nongmark document-parsing ocr pdfium pdfpig</PackageTags>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <NoWarn>$(NoWarn);CS0169;CS0649;CS1591;CS8600;CS8618;CS8625;CS8765</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\ThirdParty\ThirdParty.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="/" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="PdfPig" Version="0.1.14" />
-    <PackageReference Include="Docnet.Core" Version="2.6.0" />
+    <None Include="Docnet\LICENSE" Pack="true" PackagePath="third-party/docnet/" />
+    <None Include="runtimes\**\*.*" Pack="true" PackagePath="runtimes/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
