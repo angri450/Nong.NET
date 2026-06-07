@@ -172,6 +172,8 @@ foreach (var page in result.Pages)
         Console.WriteLine($"[{block.Confidence:P0}] {block.Text}");
 ```
 
+CLI `nong ocr local` performs a lightweight preflight before PP-OCRv5 inference. It first tries ZXing.Net barcode/QR decoding from the source merged into `Angri450.Nong.ThirdParty`, then falls back to image-structure heuristics for code-like or graphic-heavy non-text images. QR/barcode/code-like crops are skipped with `E006 validation_failed` and a `local_ocr_preflight_skipped` issue so the local OCR runtime does not spend tens of seconds hallucinating text from dense code/graphic patterns. Use `nong ocr local <image> --force --json` only when text OCR is explicitly required despite the warning.
+
 ---
 
 ## Word 输出管线
@@ -189,7 +191,7 @@ angri450 设计的 `ProcessToWordAsync` 生成保留布局的 `.docx`：
 ## Dependencies
 
 - `Angri450.Nong.Docx` — Word 生成（`ProcessToWordAsync` 输出用）
-- `Angri450.Nong.ThirdParty` — SkiaSharp（合并，ImageAnalyzer 使用）
+- `Angri450.Nong.ThirdParty` — SkiaSharp（ImageAnalyzer 使用）+ ZXing.Net decode-only source subset（OCR preflight 使用）
 
 ## API Reference
 

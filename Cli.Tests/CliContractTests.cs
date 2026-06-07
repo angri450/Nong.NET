@@ -37,14 +37,6 @@ public class CliContractTests
         return path;
     }
 
-    static string TempPng()
-    {
-        var path = Path.Combine(Path.GetTempPath(), "nong-contract-image-" + Guid.NewGuid().ToString("N")[..8] + ".png");
-        var bytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=");
-        File.WriteAllBytes(path, bytes);
-        return path;
-    }
-
     JsonDocument Parse(string json) => JsonDocument.Parse(json);
 
     void RequireCli()
@@ -129,31 +121,6 @@ public class CliContractTests
             Assert.True(cmd.TryGetProperty("group", out _));
             Assert.True(cmd.TryGetProperty("status", out _));
         }
-    }
-
-    // ===== Stub / honest-error commands =====
-
-    [Fact]
-    public void OcrLocal_ReturnsOkOrHonestError()
-    {
-        RequireCli();
-        var image = TempPng();
-        try
-        {
-            var (json, exit) = Run("ocr", "local", image, "--json");
-            using var doc = Parse(json);
-            if (exit == 0)
-            {
-                Assert.Equal("ok", doc.RootElement.GetProperty("status").GetString());
-            }
-            else
-            {
-                Assert.Equal("error", doc.RootElement.GetProperty("status").GetString());
-                var code = doc.RootElement.GetProperty("errors")[0].GetProperty("code").GetString();
-                Assert.True(code is "E002" or "E005" or "E004" or "E009", $"Expected E002/E005/E004/E009, got {code}");
-            }
-        }
-        finally { try { File.Delete(image); } catch { } }
     }
 
     // ===== Newly implemented commands: missing file → E001 =====

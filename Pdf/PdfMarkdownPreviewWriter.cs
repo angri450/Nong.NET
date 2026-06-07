@@ -22,6 +22,10 @@ public static class PdfMarkdownPreviewWriter
                     sb.AppendLine($"![{block.Text ?? "image"}]({block.AssetPath ?? ""})");
                     sb.AppendLine();
                     break;
+                case "table":
+                    sb.AppendLine(block.Text ?? "");
+                    sb.AppendLine();
+                    break;
                 case "pageBreak":
                     sb.AppendLine();
                     sb.AppendLine("---");

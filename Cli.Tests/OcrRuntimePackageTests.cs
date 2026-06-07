@@ -16,7 +16,7 @@ public class OcrRuntimePackageTests
         if (!Directory.Exists(NupkgDir))
             return;
 
-        var packages = Directory.EnumerateFiles(NupkgDir, "Angri450.Nong.OcrRuntime.*.3.2.4.nupkg")
+        var packages = Directory.EnumerateFiles(NupkgDir, "Angri450.Nong.OcrRuntime.*.3.2.5.nupkg")
             .OrderBy(p => p)
             .ToList();
         if (packages.Count == 0)

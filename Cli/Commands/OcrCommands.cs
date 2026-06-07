@@ -218,9 +218,10 @@ public static class OcrCommands
     static Command CreateLocal(Option<bool> jsonOpt)
     {
         var imageArg = new Argument<string>("image", "Path to image file");
-        var cmd = new Command("local", "Local PP-OCRv5 recognition with pure .NET runtime (no Python)") { imageArg };
+        var forceOpt = new Option<bool>("--force", "Run local OCR even if image preflight flags QR/code/graphic-heavy input");
+        var cmd = new Command("local", "Local PP-OCRv5 recognition with pure .NET runtime (no Python)") { imageArg, forceOpt };
 
-        cmd.SetHandler((string image, bool json) =>
+        cmd.SetHandler((string image, bool force, bool json) =>
         {
             if (string.IsNullOrWhiteSpace(image))
             {
@@ -244,6 +245,13 @@ public static class OcrCommands
 
             try
             {
+                var preflight = LocalOcrInputPreflight.Analyze(image);
+                if (preflight.ShouldSkip && !force)
+                {
+                    WriteLocalOcrPreflightSkip(image, preflight, json);
+                    return;
+                }
+
                 using var client = new PpOcrV5Client();
                 var (result, elapsed) = CliHelpers.Time(() =>
                     client.RecognizeAsync(image).GetAwaiter().GetResult());
@@ -277,6 +285,7 @@ public static class OcrCommands
                             combineWithCloud = "Use ocr cloud/to-word for PDF, multi-page layout, tables, Word output, and pandoc/Word annotation alignment."
                         },
                         image = Path.GetFullPath(image),
+                        preflight,
                         width = page?.Width,
                         height = page?.Height,
                         blocks = blocks.Select((b, i) => new
@@ -297,6 +306,7 @@ public static class OcrCommands
                     output.Metrics["blocks"] = blocks.Count;
                     output.Metrics["invalidConfidenceBlocks"] = invalidConfidenceBlocks;
                     output.Metrics["invalidGeometryBlocks"] = invalidGeometryBlocks;
+                    output.Metrics["preflightSkipped"] = 0;
                     output.Meta.DurationMs = elapsed;
 
                     AddLocalOcrNumericIssues(output, result, invalidConfidenceBlocks, invalidGeometryBlocks);
@@ -349,9 +359,44 @@ public static class OcrCommands
                 CliHelpers.WriteError("ocr local",
                     ErrorCodes.InternalError with { Message = $"Local OCR failed: {ex.Message}" }, json);
             }
-        }, imageArg, jsonOpt);
+        }, imageArg, forceOpt, jsonOpt);
 
         return cmd;
+    }
+
+    static void WriteLocalOcrPreflightSkip(string image, LocalOcrInputPreflightResult preflight, bool json)
+    {
+        var error = ErrorCodes.ValidationFailed with
+        {
+            Message = $"Local OCR skipped before PP-OCRv5 inference: {preflight.Reason} {preflight.Recommendation}"
+        };
+
+        Environment.ExitCode = 1;
+        if (!json)
+        {
+            Console.Error.WriteLine($"[{error.Code}] {error.Name}: {error.Message}");
+            return;
+        }
+
+        var output = JsonOutput.Fail("ocr local", new List<ErrorEntry> { error });
+        output.Summary = "Local OCR preflight skipped non-text image";
+        output.Data = new
+        {
+            image = Path.GetFullPath(image),
+            preflight
+        };
+        output.Issues.Add(new Issue
+        {
+            Id = "local_ocr_preflight_skipped",
+            Severity = "Warning",
+            Message = error.Message
+        });
+        output.Metrics["preflightSkipped"] = 1;
+        output.Metrics["width"] = preflight.Width;
+        output.Metrics["height"] = preflight.Height;
+        output.Metrics["regionCount"] = preflight.RegionCount;
+        output.Metrics["largestRegionRatio"] = preflight.LargestRegionRatio;
+        Console.WriteLine(JsonSerializer.Serialize(output, CliHelpers.JsonOpts));
     }
 
     static void AddLocalOcrNumericIssues(JsonOutput output, PpOcrV5Result result, int invalidConfidenceBlocks, int invalidGeometryBlocks)

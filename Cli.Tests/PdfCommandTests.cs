@@ -4,8 +4,6 @@ using UglyToad.PdfPig.Core;
 using UglyToad.PdfPig.Fonts.Standard14Fonts;
 using UglyToad.PdfPig.Writer;
 using Xunit;
-using SkiaSharp;
-using PdfCore;
 
 namespace Nong.Cli.Tests;
 
@@ -57,6 +55,85 @@ public class PdfCommandTests
         page.AddText("Row 1 | Control | 12.5", 12, new PdfPoint(72, 640), font);
         File.WriteAllBytes(path, builder.Build());
         return path;
+    }
+
+    static string CreateTwoColumnPdf()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "nong-pdf-columns-" + Guid.NewGuid().ToString("N")[..8] + ".pdf");
+        using var builder = new PdfDocumentBuilder();
+        var font = builder.AddStandard14Font(Standard14Font.Helvetica);
+        var bold = builder.AddStandard14Font(Standard14Font.HelveticaBold);
+        var page = builder.AddPage(595, 842);
+        page.AddText("Two Column Title", 18, new PdfPoint(210, 790), bold);
+        for (var i = 0; i < 4; i++)
+        {
+            var y = 740 - (i * 24);
+            page.AddText($"Left column {i + 1}", 12, new PdfPoint(72, y), font);
+            page.AddText($"Right column {i + 1}", 12, new PdfPoint(330, y), font);
+        }
+        File.WriteAllBytes(path, builder.Build());
+        return path;
+    }
+
+    static string CreateTablePdf()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "nong-pdf-table-" + Guid.NewGuid().ToString("N")[..8] + ".pdf");
+        using var builder = new PdfDocumentBuilder();
+        var font = builder.AddStandard14Font(Standard14Font.Helvetica);
+        var bold = builder.AddStandard14Font(Standard14Font.HelveticaBold);
+        var page = builder.AddPage(595, 842);
+        page.AddText("Table Test", 18, new PdfPoint(72, 790), bold);
+
+        var rows = new[]
+        {
+            new[] { "Treatment", "Yield", "Protein" },
+            new[] { "Control", "12.5", "8.1" },
+            new[] { "Nitrogen", "18.2", "9.4" },
+            new[] { "Compost", "17.1", "9.0" },
+        };
+        for (var r = 0; r < rows.Length; r++)
+        {
+            var y = 740 - (r * 24);
+            page.AddText(rows[r][0], 12, new PdfPoint(72, y), font);
+            page.AddText(rows[r][1], 12, new PdfPoint(240, y), font);
+            page.AddText(rows[r][2], 12, new PdfPoint(380, y), font);
+        }
+
+        File.WriteAllBytes(path, builder.Build());
+        return path;
+    }
+
+    static string CreateRepeatingHeaderPdf()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "nong-pdf-header-" + Guid.NewGuid().ToString("N")[..8] + ".pdf");
+        using var builder = new PdfDocumentBuilder();
+        var font = builder.AddStandard14Font(Standard14Font.Helvetica);
+        var bold = builder.AddStandard14Font(Standard14Font.HelveticaBold);
+        for (var p = 1; p <= 3; p++)
+        {
+            var page = builder.AddPage(595, 842);
+            page.AddText("Nong Trial Header", 10, new PdfPoint(72, 820), bold);
+            page.AddText($"Unique body page {p}", 12, new PdfPoint(72, 700), font);
+            page.AddText("Confidential Footer", 10, new PdfPoint(72, 40), font);
+        }
+        File.WriteAllBytes(path, builder.Build());
+        return path;
+    }
+
+    static List<(string Kind, string Text)> ReadBlocks(string outDir)
+    {
+        var blocks = new List<(string Kind, string Text)>();
+        foreach (var line in File.ReadLines(Path.Combine(outDir, "content.jsonl")))
+        {
+            using var doc = JsonDocument.Parse(line);
+            var root = doc.RootElement;
+            var kind = root.GetProperty("kind").GetString() ?? "";
+            var text = root.TryGetProperty("text", out var textElement) && textElement.ValueKind == JsonValueKind.String
+                ? textElement.GetString() ?? ""
+                : "";
+            blocks.Add((kind, text));
+        }
+        return blocks;
     }
 
     [Fact]
@@ -127,6 +204,86 @@ public class PdfCommandTests
     }
 
     [Fact]
+    public void PdfDissect_TwoColumnPdf_UsesColumnReadingOrder()
+    {
+        RequireCli();
+        var pdf = CreateTwoColumnPdf();
+        var outDir = Path.Combine(Path.GetTempPath(), "nong-pdf-columns-" + Guid.NewGuid().ToString("N")[..8]);
+        try
+        {
+            var (json, exit) = Run("pdf", "dissect", pdf, "--output", outDir, "--mode", "auto", "--json");
+            Assert.Equal(0, exit);
+
+            var blocks = ReadBlocks(outDir).Where(b => b.Kind is "heading" or "paragraph").Select(b => b.Text).ToList();
+            Assert.True(blocks.IndexOf("Left column 4") < blocks.IndexOf("Right column 1"),
+                string.Join(" | ", blocks));
+            Assert.DoesNotContain(ReadBlocks(outDir), b => b.Kind == "table");
+
+            using var diagnostics = Parse(File.ReadAllText(Path.Combine(outDir, "diagnostics", "reading-order.json")));
+            Assert.Equal("two-column-left-then-right",
+                diagnostics.RootElement.GetProperty("pages")[0].GetProperty("method").GetString());
+        }
+        finally
+        {
+            try { File.Delete(pdf); } catch { }
+            try { if (Directory.Exists(outDir)) Directory.Delete(outDir, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public void PdfDissect_AlignedRows_EmitsTableBlock()
+    {
+        RequireCli();
+        var pdf = CreateTablePdf();
+        var outDir = Path.Combine(Path.GetTempPath(), "nong-pdf-table-" + Guid.NewGuid().ToString("N")[..8]);
+        try
+        {
+            var (json, exit) = Run("pdf", "dissect", pdf, "--output", outDir, "--mode", "auto", "--json");
+            Assert.Equal(0, exit);
+
+            var table = ReadBlocks(outDir).Single(b => b.Kind == "table");
+            Assert.Contains("| Treatment | Yield | Protein |", table.Text);
+            Assert.Contains("| Compost | 17.1 | 9.0 |", table.Text);
+
+            using var doc = Parse(json);
+            Assert.True(doc.RootElement.GetProperty("metrics").GetProperty("blocks").GetInt32() >= 2);
+        }
+        finally
+        {
+            try { File.Delete(pdf); } catch { }
+            try { if (Directory.Exists(outDir)) Directory.Delete(outDir, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public void PdfDissect_RepeatingHeaderFooter_RemovesRunningText()
+    {
+        RequireCli();
+        var pdf = CreateRepeatingHeaderPdf();
+        var outDir = Path.Combine(Path.GetTempPath(), "nong-pdf-header-" + Guid.NewGuid().ToString("N")[..8]);
+        try
+        {
+            var (json, exit) = Run("pdf", "dissect", pdf, "--output", outDir, "--mode", "auto", "--json");
+            Assert.Equal(0, exit);
+
+            var text = string.Join("\n", ReadBlocks(outDir).Select(b => b.Text));
+            Assert.DoesNotContain("Nong Trial Header", text);
+            Assert.DoesNotContain("Confidential Footer", text);
+            Assert.Contains("Unique body page 1", text);
+            Assert.Contains("Unique body page 3", text);
+
+            using var doc = Parse(json);
+            Assert.Contains(doc.RootElement.GetProperty("issues").EnumerateArray(),
+                issue => issue.GetProperty("message").GetString()!.Contains("repeated header/footer", StringComparison.OrdinalIgnoreCase));
+        }
+        finally
+        {
+            try { File.Delete(pdf); } catch { }
+            try { if (Directory.Exists(outDir)) Directory.Delete(outDir, true); } catch { }
+        }
+    }
+
+    [Fact]
     public void PdfImages_TextPdf_WritesEmptyManifest()
     {
         RequireCli();
@@ -147,64 +304,6 @@ public class PdfCommandTests
         {
             try { File.Delete(pdf); } catch { }
             try { if (Directory.Exists(outDir)) Directory.Delete(outDir, true); } catch { }
-        }
-    }
-
-    [Fact]
-    public void PdfRender_TextPdf_CompositesWhiteBackground()
-    {
-        RequireCli();
-        var pdf = CreateTextPdf();
-        var outDir = Path.Combine(Path.GetTempPath(), "nong-pdf-render-" + Guid.NewGuid().ToString("N")[..8]);
-        try
-        {
-            var (json, exit) = Run("pdf", "render", pdf, "--output", outDir, "--dpi", "150", "--json");
-            Assert.Equal(0, exit);
-
-            using var doc = Parse(json);
-            Assert.Equal("ok", doc.RootElement.GetProperty("status").GetString());
-
-            var pagePath = Path.Combine(outDir, "page-0001.png");
-            Assert.True(File.Exists(pagePath));
-            using var bitmap = SKBitmap.Decode(pagePath);
-            var background = bitmap.GetPixel(bitmap.Width / 2, bitmap.Height / 2);
-            Assert.True(background.Red > 240 && background.Green > 240 && background.Blue > 240,
-                $"Expected white page background, got R={background.Red} G={background.Green} B={background.Blue}");
-        }
-        finally
-        {
-            try { File.Delete(pdf); } catch { }
-            try { if (Directory.Exists(outDir)) Directory.Delete(outDir, true); } catch { }
-        }
-    }
-
-    [Fact]
-    public void PdfRenderCrop_MapsPdfBboxToRenderedPixels()
-    {
-        var pdf = Path.Combine(Path.GetTempPath(), "nong-pdf-crop-" + Guid.NewGuid().ToString("N")[..8] + ".pdf");
-        var outPath = Path.Combine(Path.GetTempPath(), "nong-pdf-crop-" + Guid.NewGuid().ToString("N")[..8] + ".png");
-        try
-        {
-            using var builder = new PdfDocumentBuilder();
-            var page = builder.AddPage(200, 200);
-            page.SetTextAndFillColor(255, 0, 0);
-            page.DrawRectangle(new PdfPoint(50, 60), 40, 30, 0, true);
-            File.WriteAllBytes(pdf, builder.Build());
-
-            var crop = PdfPageRenderer.RenderCrop(pdf, 1, 200, 200, new[] { 50d, 60d, 90d, 90d }, outPath, dpi: 144, paddingPx: 0);
-
-            Assert.Equal(80, crop.Width);
-            Assert.Equal(60, crop.Height);
-            Assert.True(File.Exists(outPath));
-            using var bitmap = SKBitmap.Decode(outPath);
-            var center = bitmap.GetPixel(bitmap.Width / 2, bitmap.Height / 2);
-            Assert.True(center.Red > 180 && center.Green < 80 && center.Blue < 80,
-                $"Expected red crop center, got R={center.Red} G={center.Green} B={center.Blue}");
-        }
-        finally
-        {
-            try { File.Delete(pdf); } catch { }
-            try { File.Delete(outPath); } catch { }
         }
     }
 

@@ -8,11 +8,11 @@ Pure .NET scientific document generation toolkit. Zero JavaScript. One merged fo
 - 主分支: `master`（同时维护 `main`）
 - 协议: MIT
 
-## 包结构（9 个常规包 + OCR runtime 部署包）
+## 包结构（当前 CLI 主线包 + OCR runtime 部署包）
 
 | 包 | 项目路径 | 说明 |
 |----|---------|------|
-| `Angri450.Nong.ThirdParty` | `ThirdParty/` | **地基** — 合入 15 个第三方库源码编译为单一 DLL |
+| `Angri450.Nong.ThirdParty` | `ThirdParty/` | **地基** — 合入第三方库源码编译为单一 DLL |
 | `Angri450.Nong.Excel` | `Excel/` | 链式 Excel 生成 API |
 | `Angri450.Nong.Chart` | `Chart/` | 18 种图表 + ANOVA/Duncan MRT |
 | `Angri450.Nong.Diagram` | `Diagram/` | 流程图、网络图、系统发育树 |
@@ -20,7 +20,9 @@ Pure .NET scientific document generation toolkit. Zero JavaScript. One merged fo
 | `Angri450.Nong.Pptx` | `Pptx/` | PPT 生成、10 套主题 |
 | `Angri450.Nong.MultiModal` | `MultiModal/` | PaddleOCR 云 + 纯 .NET 本地 PP-OCRv5 |
 | `Angri450.Nong.Bioicons` | `Bioicons/` | 40 个 SVG 科学图标 |
-| `Angri450.Nong.Skill.Manager` | `SkillManager/` | Skill CLI 工具 |
+| `Angri450.Nong.Pdf` | `Pdf/` | PDF 文本/图片切片 + PDFium 渲染 |
+| `Angri450.Nong.Literature` | `Literature/` | 文献检索 DSL、聚合、导出 |
+| Skill core | `SkillManagerCore/` | `nong skill ...` 的核心库 |
 
 OCR 本地推理另有按平台拆分的部署包，不供应用代码直接引用，只给 `nong ocr install-model` 下载/解包：
 
@@ -40,8 +42,10 @@ ThirdParty (ClosedXML + OpenXml + ScottPlot + MSAGL + SkiaSharp + HarfBuzz + Six
   └── Docx
        └── MultiModal
 
-Pptx → ShapeCrawler (NuGet, 独立)
-SkillManager → YamlDotNet (NuGet, 独立, CLI 工具)
+Pptx → ThirdParty
+Pdf → ThirdParty + vendored Docnet/PDFium assets
+Literature → System.Text.Json / HttpClient
+Cli → SkillManagerCore
 ```
 
 ## 开发约定
@@ -74,7 +78,7 @@ SkillManager → YamlDotNet (NuGet, 独立, CLI 工具)
 默认安装路径只接受 Nong 第一方 runtime 包。上游 Sdcb/OpenCvSharp fallback 必须由用户或维护者显式加 `--allow-upstream-fallback`，不要让 agent 静默回退到旧大包链路。
 
 ### NuGet 发布流程（大版本升级，极少用）
-全部 9 个包统一改 `<Version>` → 批量 build + pack + push → 一个 GitHub Release 包含全部 nupkg。
+全部主线包统一改 `<Version>` → 批量 build + pack + push → 一个 GitHub Release 包含全部 nupkg。
 
 ### 编译
 - TargetFramework: `net8.0`（向前兼容 net9.0 / net10.0 / net11.0）
@@ -137,7 +141,9 @@ NuGet API Key 已保存在仓库的 CLAUDE.md 之外（环境变量 `$env:NUGET_
 | `Pptx/` | `PresentationBuilder.cs` + `SlideBuilder.cs` + `ThemePreset.cs` + `LayoutSystem.cs` | ShapeCrawler (NuGet) |
 | `MultiModal/` | `PaddleOcrVlClient.cs` + `PpOcrV5/` + `LayoutToWordConverter.cs` | Docx |
 | `Bioicons/` | `IconProvider.cs` + `*.svg` (40个) | 无 |
-| `SkillManager/` | `Program.cs` + `Models/` + `Tools/` + `assets/` | YamlDotNet (NuGet) |
+| `SkillManagerCore/` | skill validate/scan/inventory/package 核心能力 | CLI 主线项目引用 |
+| `Pdf/` | PDF 切片、文本/图片抽取、PDFium 渲染 | ThirdParty + vendored Docnet/PDFium |
+| `Literature/` | 文献检索 DSL、provider、rank/export | 无第三方运行时包 |
 
 ### 第三方源码（15 个目录，不要动）
 
@@ -156,23 +162,24 @@ NuGet API Key 已保存在仓库的 CLAUDE.md 之外（环境变量 `$env:NUGET_
 |------|------|
 | `data/` | OpenXml 源生成器的数据文件（JSON/Schema） |
 | `common/` | 旧 TFM 的 polyfill（net8.0 不需要） |
-| `nupkg/` | 打包输出临时目录 |
+| `nupkg/` | 当前发布线打包输出临时目录；旧版本包不进主线提交 |
 | `Tests/` | xUnit 测试项目（`Tests.csproj`） |
-| `tests-output/` | 测试生成文件/输出 |
+| `tests-output/` | 测试生成文件/输出；不作为主线提交内容 |
 | `DocumentFormat.OpenXml.Generator/` | Roslyn 源生成器（分析器项目） |
 | `DocumentFormat.OpenXml.Generator.Models/` | 源生成器模型 |
 | `UnicodeTrieGenerator/` | SixLabors 用到的 Unicode 状态机 |
-| `changelog/` | 版本变更记录（NuGet 包 Agent ↔ Skill Agent 通讯） |
-| `.gitignore` | 排除 bin/obj/nupkg |
+| `log/changelog/` | 版本变更记录（NuGet 包 Agent ↔ Skill Agent 通讯） |
+| `_archive/` | 本机归档目录，已被 `.gitignore` 忽略，不作为主线提交内容 |
+| `.gitignore` | 排除 bin/obj/nupkg、测试输出、本机归档 |
 | `CLAUDE.md` | 就是这个文件 |
 | `README.md` + `README.zh-CN.md` | 中英文仓库首页 |
 | `LICENSE` | MIT |
 
 ### changelog 目录约定
 
-`changelog/` 是 NuGet 包开发 Agent 与 Skill 开发 Agent 之间的**通讯桥梁**。
+`log/changelog/` 是 NuGet 包开发 Agent 与 Skill 开发 Agent 之间的**通讯桥梁**。
 
-**格式**：`changelog/YYYY-MM-DD-topic.md`
+**格式**：`log/changelog/YYYY-MM-DD-topic.md`
 
 **规则**：
 - 每次版本发布后，写入一个或多个 changelog 文件
@@ -181,7 +188,7 @@ NuGet API Key 已保存在仓库的 CLAUDE.md 之外（环境变量 `$env:NUGET_
 - 文件内容包含：时间、影响包、变更类型、详细说明、技能须知
 
 **Skill Agent 职责**：
-- 每次接管时，先读取 `changelog/` 目录中比上次更新时间晚的文件
+- 每次接管时，先读取 `log/changelog/` 目录中比上次更新时间晚的文件
 - 根据"技能须知"更新对应 skill
 - 更新后记录已处理的文件
 

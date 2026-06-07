@@ -2,14 +2,14 @@
 
 <p align="center">
   <strong>纯 .NET CLI 农学文档与科研图表工具集</strong><br>
-  零 JavaScript。一个二进制文件。77 个命令。跨平台运行。
+  零 JavaScript。一个二进制文件。82 个命令。跨平台运行。
 </p>
 
 <p align="center">
   <a href="https://www.nuget.org/packages/Angri450.Nong.Cli/"><img src="https://img.shields.io/nuget/v/Angri450.Nong.Cli.svg?label=NuGet" alt="NuGet"></a>
   <a href="https://github.com/angri450/Nong.NET/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License"></a>
   <a href="https://dotnet.microsoft.com/en-us/download"><img src="https://img.shields.io/badge/.NET-8.0-8A2BE2" alt=".NET 8.0"></a>
-  <img src="https://img.shields.io/badge/commands-77-green" alt="77 commands">
+  <img src="https://img.shields.io/badge/commands-82-green" alt="82 commands">
   <a href="README.md"><img src="https://img.shields.io/badge/English-README.md-blue" alt="English"></a>
 </p>
 
@@ -46,7 +46,7 @@ nong commands --json</code></pre>
 
 <hr>
 
-<h2>能力概览 — 全部 77 个命令</h2>
+<h2>能力概览 — 全部 82 个命令</h2>
 
 <h3>word — Word 文档引擎（32 个命令）</h3>
 
@@ -169,6 +169,19 @@ nong commands --json</code></pre>
   <tr><td><code>nong pdf images</code></td><td>提取 PDF 图片证据，保留 page/bbox，并在解码失败时用页面裁剪兜底</td></tr>
 </table>
 
+<h3>lit — 文献检索 DSL（5 个命令）</h3>
+
+<table>
+  <tr><th>命令</th><th>功能</th></tr>
+  <tr><td><code>nong lit parse</code></td><td>把类 CNKI 检索式解析为确定性 JSON</td></tr>
+  <tr><td><code>nong lit validate</code></td><td>校验字段、布尔运算符和年份范围</td></tr>
+  <tr><td><code>nong lit plan</code></td><td>为 OpenAlex、Crossref、Unpaywall 规划粗查询</td></tr>
+  <tr><td><code>nong lit search</code></td><td>检索合法元数据/OA 来源，再本地过滤、合并、排序</td></tr>
+  <tr><td><code>nong lit export</code></td><td>导出 JSON、Markdown 或 BibTeX</td></tr>
+</table>
+
+<p>Stage19 只实现 OpenAlex、Crossref、Unpaywall。全文检索、爬虫、绕过付费墙、自动中英同义词翻译均未实现。</p>
+
 <h3>genre / icons — 模板与素材（4 个命令）</h3>
 
 <table>
@@ -252,6 +265,11 @@ nong pdf dissect guide.pdf --output guide.slice --mode auto --json
 nong pdf render guide.pdf --output guide.pages --dpi 150 --json
 nong pdf images guide.pdf --output guide.assets --json</code></pre>
 
+<h3>7. 文献 DSL 检索</h3>
+<pre><code>nong lit parse --query "SU=('腐植酸'+'腐殖酸')*('稀土'+'微肥')" --json
+nong lit plan --query "SU=('腐植酸'+'腐殖酸')*('稀土'+'微肥')" --sources openalex,crossref,unpaywall --json
+nong lit export --input refs.json --format bibtex --out refs.bib --json</code></pre>
+
 <hr>
 
 <h2>JSON 输出格式</h2>
@@ -267,7 +285,7 @@ nong pdf images guide.pdf --output guide.assets --json</code></pre>
   "artifacts": { "png": "fig.png" },
   "metrics": { "paragraphs": 29 },
   "errors": [],
-  "meta": { "durationMs": 42, "version": "3.2.4" }
+  "meta": { "durationMs": 42, "version": "3.2.5" }
 }</code></pre>
 
 <hr>
@@ -289,13 +307,13 @@ nong pdf images guide.pdf --output guide.assets --json</code></pre>
 
 <hr>
 
-<h2>项目结构 — 10 个 NuGet 包</h2>
+<h2>项目结构 — 当前 CLI 主线包</h2>
 
-<p>当前 CLI 文档对应 <strong>Angri450.Nong.Cli 3.2.4</strong>。各库包职责单一，实际安装版本以 NuGet 或 <code>nong commands --json</code> 为准。</p>
+<p>当前 CLI 文档对应 <strong>Angri450.Nong.Cli 3.2.5</strong>。各库包职责单一，实际安装版本以 NuGet 或 <code>nong commands --json</code> 为准。</p>
 
 <table>
   <tr><th>包名</th><th>用途</th></tr>
-  <tr><td><code>Angri450.Nong.ThirdParty</code></td><td><strong>地基</strong> — 合入 15 个第三方开源库源码，编译为单一 DLL</td></tr>
+  <tr><td><code>Angri450.Nong.ThirdParty</code></td><td><strong>地基</strong> — 合入第三方开源库源码，编译为单一 DLL</td></tr>
   <tr><td><code>Angri450.Nong.Docx</code></td><td>Word 生成、模板填充、论文诊断</td></tr>
   <tr><td><code>Angri450.Nong.Excel</code></td><td>链式 Excel 生成 API，支持公式验证</td></tr>
   <tr><td><code>Angri450.Nong.Chart</code></td><td>18 种图表 + ANOVA/Duncan MRT 统计分析</td></tr>
@@ -303,8 +321,9 @@ nong pdf images guide.pdf --output guide.assets --json</code></pre>
   <tr><td><code>Angri450.Nong.Pptx</code></td><td>PowerPoint 生成，10 套主题预设</td></tr>
   <tr><td><code>Angri450.Nong.MultiModal</code></td><td>PaddleOCR 云 + 本地 OCR 集成</td></tr>
   <tr><td><code>Angri450.Nong.Pdf</code></td><td>本地 PDF 分类、切片、渲染、图片证据和 NongMark 投影</td></tr>
+  <tr><td><code>Angri450.Nong.Literature</code></td><td>文献检索 DSL、provider 聚合、排序和导出</td></tr>
   <tr><td><code>Angri450.Nong.Bioicons</code></td><td>40 个 SVG 科学图标</td></tr>
-  <tr><td><code>Angri450.Nong.Skill.Manager</code></td><td>Skill 生命周期管理 CLI</td></tr>
+  <tr><td><code>nong skill</code></td><td>主 CLI 内置 Skill 生命周期命令；旧 Skill.Manager 工具已归档为 legacy</td></tr>
 </table>
 
 <hr>

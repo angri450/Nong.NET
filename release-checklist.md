@@ -1,12 +1,16 @@
-# Release Checklist — nong CLI v3.2.4
+# Release Checklist — nong CLI v3.2.5
 
 Date: 2026-06-06
 
 ## Build
 
 - [x] `dotnet build Cli/NongCli.csproj -c Release` — 0 errors
-- [x] `dotnet test Cli.Tests/Cli.Tests.csproj -c Release` — 81 PASS, 0 SKIP
+- [x] `dotnet test Cli.Tests/Cli.Tests.csproj -c Release` — 89 PASS, 0 SKIP
+- [x] `dotnet test Tests/Tests.csproj -c Release` — 125 PASS, 0 SKIP
 - [x] `powershell -NoProfile -ExecutionPolicy Bypass -File OcrRuntime/pack-runtimes.ps1` — generates and validates 5 first-party OCR runtime packages
+- [ ] Verify dependency control plan: fork URLs in `DEPENDENCY_CONTROL.md`, committed `packages.lock.json`, and locked restore before release
+
+Native image rendering tests are opt-in with `NONG_RUN_NATIVE_IMAGE_TESTS=1` because Skia/ScottPlot native cleanup can crash `testhost.exe` with Windows access violation `0xc0000005` on this machine.
 
 ## Contract
 
@@ -49,7 +53,7 @@ Date: 2026-06-06
 
 ## Skill Manager Legacy
 
-- [x] `dotnet build SkillManager/SkillManager.Cli.csproj -c Release` — 0 errors (legacy only)
+- [x] Legacy `skill-manager` entry point removed from mainline tree
 - [ ] Do NOT pack or publish `Angri450.Nong.Skill.Manager` as a public global tool in the CLI-first line
 - [x] Only `Angri450.Nong.Cli` is the public tool entry point
 - [x] Users should use `nong skill validate/scan/inventory/package` instead of `skill-manager`
@@ -57,12 +61,12 @@ Date: 2026-06-06
 ## NuGet Publish
 
 - [x] Push OCR runtime packages first:
-  - `dotnet nuget push nupkg/Angri450.Nong.OcrRuntime.WinX64.3.2.4.nupkg --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json`
-  - `dotnet nuget push nupkg/Angri450.Nong.OcrRuntime.LinuxX64.3.2.4.nupkg --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json`
-  - `dotnet nuget push nupkg/Angri450.Nong.OcrRuntime.LinuxArm64.3.2.4.nupkg --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json`
-  - `dotnet nuget push nupkg/Angri450.Nong.OcrRuntime.OsxX64.3.2.4.nupkg --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json`
-  - `dotnet nuget push nupkg/Angri450.Nong.OcrRuntime.OsxArm64.3.2.4.nupkg --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json`
-- [x] Push PDF package: `dotnet nuget push nupkg/Angri450.Nong.Pdf.3.2.4.nupkg --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json`
-- [x] Push CLI after runtime and PDF packages: `dotnet nuget push nupkg/Angri450.Nong.Cli.3.2.4.nupkg --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json`
+  - `dotnet nuget push nupkg/Angri450.Nong.OcrRuntime.WinX64.3.2.5.nupkg --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json`
+  - `dotnet nuget push nupkg/Angri450.Nong.OcrRuntime.LinuxX64.3.2.5.nupkg --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json`
+  - `dotnet nuget push nupkg/Angri450.Nong.OcrRuntime.LinuxArm64.3.2.5.nupkg --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json`
+  - `dotnet nuget push nupkg/Angri450.Nong.OcrRuntime.OsxX64.3.2.5.nupkg --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json`
+  - `dotnet nuget push nupkg/Angri450.Nong.OcrRuntime.OsxArm64.3.2.5.nupkg --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json`
+- [x] Push PDF package: `dotnet nuget push nupkg/Angri450.Nong.Pdf.3.2.5.nupkg --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json`
+- [x] Push CLI after runtime and PDF packages: `dotnet nuget push nupkg/Angri450.Nong.Cli.3.2.5.nupkg --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json`
 - [ ] Wait for Huawei mirror sync, then verify: `nong ocr install-model pp-ocrv5-mobile --source https://mirrors.huaweicloud.com/repository/nuget/v3/index.json --json`
-- [ ] GitHub Release: `gh release create v3.2.4-cli nupkg/Angri450.Nong.OcrRuntime.*.3.2.4.nupkg nupkg/Angri450.Nong.Pdf.3.2.4.nupkg nupkg/Angri450.Nong.Cli.3.2.4.nupkg`
+- [ ] GitHub Release: `gh release create v3.2.5-cli nupkg/Angri450.Nong.OcrRuntime.*.3.2.5.nupkg nupkg/Angri450.Nong.Pdf.3.2.5.nupkg nupkg/Angri450.Nong.Cli.3.2.5.nupkg`
