@@ -17,6 +17,7 @@
     <NoWarn>$(NoWarn);CS0169;CS0649;CS1591;CS8600;CS8618;CS8625;CS8765</NoWarn>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Pandoc\PandocCore.csproj" />
     <ProjectReference Include="..\ThirdParty\ThirdParty.csproj" />
   </ItemGroup>
   <ItemGroup>

@@ -165,9 +165,20 @@
           "xunit.extensibility.core": "[2.9.0]"
         }
       },
+      "Angri450.Nong.Pandoc": {
+        "type": "Project"
+      },
       "Angri450.Nong.Pdf": {
         "type": "Project",
         "dependencies": {
+          "Angri450.Nong.Pandoc": "[3.2.5, )",
+          "Angri450.Nong.ThirdParty": "[3.2.5, )"
+        }
+      },
+      "Angri450.Nong.Pptx": {
+        "type": "Project",
+        "dependencies": {
+          "Angri450.Nong.Pandoc": "[3.2.5, )",
           "Angri450.Nong.ThirdParty": "[3.2.5, )"
         }
       },

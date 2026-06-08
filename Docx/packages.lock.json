@@ -71,6 +71,9 @@
           "System.Formats.Nrbf": "9.0.0"
         }
       },
+      "Angri450.Nong.Pandoc": {
+        "type": "Project"
+      },
       "Angri450.Nong.ThirdParty": {
         "type": "Project",
         "dependencies": {

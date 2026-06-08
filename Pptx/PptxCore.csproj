@@ -25,9 +25,11 @@
     <Compile Include="SlidePreview.cs" />
     <Compile Include="SlideValidator.cs" />
     <Compile Include="PptxReader.cs" />
+    <Compile Include="PptxSlice.cs" />
     <Compile Include="ThemePreset.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Pandoc\PandocCore.csproj" />
     <ProjectReference Include="..\ThirdParty\ThirdParty.csproj" />
   </ItemGroup>
   <ItemGroup>

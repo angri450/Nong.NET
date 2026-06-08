@@ -17,6 +17,7 @@
     <PackageTags>nong agriculture docx word openxml document-generation table footnote endnote template ooxml</PackageTags>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Pandoc\PandocCore.csproj" />
     <ProjectReference Include="..\ThirdParty\ThirdParty.csproj" />
   </ItemGroup>
   <ItemGroup>

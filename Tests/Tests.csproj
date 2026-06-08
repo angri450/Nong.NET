@@ -25,6 +25,7 @@
     <ProjectReference Include="..\Bioicons\Bioicons.csproj" />
     <ProjectReference Include="..\ThirdParty\ThirdParty.csproj" />
     <ProjectReference Include="..\Literature\LiteratureCore.csproj" />
+    <ProjectReference Include="..\Pandoc\PandocCore.csproj" />
   </ItemGroup>
 
   <ItemGroup>

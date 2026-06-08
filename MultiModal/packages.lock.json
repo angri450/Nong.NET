@@ -294,8 +294,12 @@
       "Angri450.Nong.Docx": {
         "type": "Project",
         "dependencies": {
+          "Angri450.Nong.Pandoc": "[0.1.0, )",
           "Angri450.Nong.ThirdParty": "[3.2.5, )"
         }
+      },
+      "Angri450.Nong.Pandoc": {
+        "type": "Project"
       },
       "Angri450.Nong.ThirdParty": {
         "type": "Project",

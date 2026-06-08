@@ -13,6 +13,7 @@ public static class PptxCommands
         var cmd = new Command("pptx", "PowerPoint operations");
         cmd.AddCommand(CreateRead(jsonOpt));
         cmd.AddCommand(CreateSlides(jsonOpt));
+        cmd.AddCommand(CreateDissect(jsonOpt));
         return cmd;
     }
 
@@ -130,6 +131,60 @@ public static class PptxCommands
             }
 
         }, fileArg, jsonOpt);
+
+        return cmd;
+    }
+
+    // ===== pptx dissect =====
+
+    static Command CreateDissect(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to .pptx file");
+        var outOpt = new Option<string>(new[] { "-o", "--output" }, "Output directory for NongPandoc slice") { IsRequired = true };
+        var cmd = new Command("dissect", "Slice pptx into a NongPandoc package") { fileArg, outOpt };
+
+        cmd.SetHandler((string file, string output, bool json) =>
+        {
+            var err = ValidatePptxFile(file);
+            if (err != null) { CliHelpers.WriteError("pptx dissect", err, json); return; }
+
+            try
+            {
+                CliHelpers.EnsureParentDir(Path.Combine(output, ".keep"));
+                var (result, elapsed) = CliHelpers.Time(() => PptxSlice.Slice(file, output));
+                if (json)
+                {
+                    var o = JsonOutput.Ok("pptx dissect",
+                        $"Sliced: {result.SlideCount} slides, {result.BlockCount} blocks",
+                        new { outputDir = result.OutputDir, slideCount = result.SlideCount, blockCount = result.BlockCount, warnings = result.Warnings });
+                    o.Artifacts["dir"] = Path.GetFullPath(output);
+                    o.Metrics["slides"] = result.SlideCount;
+                    o.Metrics["blocks"] = result.BlockCount;
+                    o.Metrics["warnings"] = result.Warnings.Count;
+                    o.Meta.DurationMs = elapsed;
+                    Console.WriteLine(JsonSerializer.Serialize(o, CliHelpers.JsonOpts));
+                }
+                else
+                {
+                    Console.WriteLine($"Sliced to {Path.GetFullPath(output)}: {result.SlideCount} slides, {result.BlockCount} blocks");
+                    foreach (var warning in result.Warnings)
+                        Console.Error.WriteLine($"[WARN] {warning}");
+                }
+            }
+            catch (FileNotFoundException ex)
+            {
+                CliHelpers.WriteError("pptx dissect", ErrorCodes.FileNotFound with { Message = ex.Message }, json);
+            }
+            catch (InvalidDataException ex)
+            {
+                CliHelpers.WriteError("pptx dissect", ErrorCodes.UnsupportedFormat with { Message = ex.Message }, json);
+            }
+            catch (Exception ex)
+            {
+                CliHelpers.WriteError("pptx dissect", ErrorCodes.ReadFailed with { Message = ex.Message }, json);
+            }
+
+        }, fileArg, outOpt, jsonOpt);
 
         return cmd;
     }

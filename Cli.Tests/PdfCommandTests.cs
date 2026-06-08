@@ -177,10 +177,18 @@ public class PdfCommandTests
             Assert.True(File.Exists(Path.Combine(outDir, "structure.json")));
             Assert.True(File.Exists(Path.Combine(outDir, "format.json")));
             Assert.True(File.Exists(Path.Combine(outDir, "content.nongmark")));
-            Assert.True(File.Exists(Path.Combine(outDir, "preview", "content.md")));
+            Assert.True(File.Exists(Path.Combine(outDir, "diagnostics.json")));
+            Assert.True(File.Exists(Path.Combine(outDir, "preview", "content.txt")));
+            Assert.False(File.Exists(Path.Combine(outDir, "preview", "content.md")));
             Assert.True(File.Exists(Path.Combine(outDir, "assets", "manifest.json")));
             Assert.True(File.Exists(Path.Combine(outDir, "diagnostics", "check.json")));
             Assert.True(new FileInfo(Path.Combine(outDir, "content.nongmark")).Length > 0);
+
+            using var manifest = Parse(File.ReadAllText(Path.Combine(outDir, "manifest.json")));
+            Assert.Equal("nong-pandoc/package/v1", manifest.RootElement.GetProperty("schemaVersion").GetString());
+            Assert.Equal("pdf", manifest.RootElement.GetProperty("source").GetProperty("format").GetString());
+            Assert.Equal("content.nongmark", manifest.RootElement.GetProperty("streams").GetProperty("contentNongMark").GetString());
+            Assert.Equal("diagnostics.json", manifest.RootElement.GetProperty("streams").GetProperty("diagnostics").GetString());
 
             var firstContentLine = File.ReadLines(Path.Combine(outDir, "content.jsonl"))
                 .First(line => line.Contains("\"kind\":\"heading\"") || line.Contains("\"kind\":\"paragraph\""));
@@ -190,6 +198,14 @@ public class PdfCommandTests
             Assert.True(lineRoot.GetProperty("page").GetInt32() >= 1);
             Assert.Equal("pdfText", lineRoot.GetProperty("source").GetString());
             Assert.True(lineRoot.GetProperty("bbox").GetArrayLength() == 4);
+
+            using var structure = Parse(File.ReadAllText(Path.Combine(outDir, "structure.json")));
+            var firstEntry = structure.RootElement.GetProperty("blockIndex").EnumerateObject().First().Value;
+            var provenance = firstEntry.GetProperty("provenance");
+            Assert.Equal("pdf", provenance.GetProperty("format").GetString());
+            Assert.Equal("pdfText", provenance.GetProperty("source").GetString());
+            Assert.True(provenance.GetProperty("page").GetInt32() >= 1);
+            Assert.Equal(4, provenance.GetProperty("bbox").GetArrayLength());
 
             var nongmark = File.ReadAllText(Path.Combine(outDir, "content.nongmark"));
             Assert.Contains("::: page", nongmark);
