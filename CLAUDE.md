@@ -10,29 +10,28 @@ Pure .NET scientific document generation toolkit. Zero JavaScript. One merged fo
 - 主分支: `master`
 - 协议: Apache-2.0
 
-## 当前进度（2026-06-07）
+## 当前进度（2026-06-08）
 
-- 最新发布提交: `73730c6e7c976fb333a54a35a37ee25edd0118c5`
-- 发布版本: `3.2.5`
-- 代码已推送: GitHub / Gitee / GitCode 的 `master` 均指向 `73730c6`
-- NuGet 已发布主线包:
-  - `Angri450.Nong.ThirdParty 3.2.5`
-  - `Angri450.Nong.Pdf 3.2.5`
-  - `Angri450.Nong.MultiModal 3.2.5`
-  - `Angri450.Nong.Literature 3.2.5`
-  - `Angri450.Nong.OcrRuntime.WinX64 3.2.5`
-  - `Angri450.Nong.Cli 3.2.5`
-- NuGet 误发布但后续不再作为主线目标的包:
-  - `Angri450.Nong.OcrRuntime.LinuxX64 3.2.5`
-  - `Angri450.Nong.OcrRuntime.LinuxArm64 3.2.5`
-  - `Angri450.Nong.OcrRuntime.OsxX64 3.2.5`
-  - `Angri450.Nong.OcrRuntime.OsxArm64 3.2.5`
-  - 当前 `NUGET_API_KEY` 只有 push 权限，unlist/delete 返回 403；后续需用有 unlist 权限的 key 或网页手动隐藏。
-- 验证通过:
-  - `Cli.Tests`: 83 passed
-  - `Tests`: 110 passed
-  - 本地 tool smoke: `nong --version`、`nong commands --json`、`nong lit parse`、`nong ocr install-model --dry-run`
-  - worker smoke: `nong chart bar ...`、`nong diagram tree ...` 生成 PNG
+- 发布版本: `4.0.0`
+- 当前主线: GitHub / Gitee / GitCode 的 `master`
+- 4.0.0 NuGet 主线包:
+  - `Angri450.Nong.ThirdParty 4.0.0`
+  - `Angri450.Nong.Bioicons 4.0.0`
+  - `Angri450.Nong.Genre 4.0.0`
+  - `Angri450.Nong.Pandoc 4.0.0`
+  - `Angri450.Nong.Docx 4.0.0`
+  - `Angri450.Nong.Excel 4.0.0`
+  - `Angri450.Nong.Chart 4.0.0`
+  - `Angri450.Nong.Diagram 4.0.0`
+  - `Angri450.Nong.Pdf 4.0.0`
+  - `Angri450.Nong.Pptx 4.0.0`
+  - `Angri450.Nong.Literature 4.0.0`
+  - `Angri450.Nong.MultiModal 4.0.0`
+  - `Angri450.Nong.Inspect 4.0.0`
+  - `Angri450.Nong.Cli 4.0.0`
+  - `Angri450.Nong.OcrRuntime.WinX64 4.0.0`
+- OCR runtime 主线策略仍是只发布 Windows x64 runtime 包；非 Windows runtime 包不作为主线稳定目标。
+- 4.0.0 发布验证见 `log/changelog/2026-06-08-nong-4.0.0-release.md`。
 - 重要架构变化:
   - `chart` / `diagram` PNG 渲染已隔离到隐藏 worker: `nong __render-worker ...`
   - 主 CLI 进程只做参数校验和子进程调度，不再直接执行 SkiaSharp/ScottPlot native 渲染。
@@ -78,15 +77,15 @@ SkillManager → YamlDotNet (NuGet, 独立, CLI 工具)
 ## 开发约定
 
 ### 版本号
-- 当前大版本: **3.x.x**
-- 大版本号（3）全局统一，小版本号（x.x）各包独立
-- 改一个包 → 只 bump 那个包的次版本号（如 3.0.1 → 3.0.2）→ 只推送那个包
-- 大版本升级（3.x → 4.0.0）时才全部统一更新
-- 不要为了小改动 bump 全部 9 个包
+- 当前大版本: **4.x.x**
+- 大版本号（4）全局统一，小版本号（x.x）各包独立
+- 改一个包 → 只 bump 那个包的次版本号（如 4.0.0 → 4.0.1）→ 只推送那个包
+- 大版本升级（4.x → 5.0.0）时才全部统一更新
+- 不要为了小改动 bump 全部包
 
 ### NuGet 发布流程（单包更新）
 改一个包的代码后，按顺序：
-1. 改 `<Version>`（如 `3.0.1` → `3.0.2`）
+1. 改 `<Version>`（如 `4.0.0` → `4.0.1`）
 2. `dotnet build <那个项目>.csproj -c Release`
 3. `dotnet pack <那个项目>.csproj -c Release -o nupkg/ --no-build`
 4. `dotnet nuget push nupkg/<包名>.<新版>.nupkg --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json`

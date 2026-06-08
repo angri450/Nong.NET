@@ -1,16 +1,16 @@
-# Agent Contract for nong CLI v3.2.x
+# Agent Contract for nong CLI v4.0.x
 
 ## Quick Start
 
 ```bash
 dotnet tool install --global Angri450.Nong.Cli --add-source https://mirrors.huaweicloud.com/repository/nuget/v3/index.json
-nong commands --json       # discover all commands (92 implemented)
+nong commands --json       # discover all commands (93 implemented)
 nong word read file.docx   # extract text
 ```
 
 ## Command Discovery
 
-`nong commands --json` returns 92 implemented commands. `nong commands --all --json` includes all.
+`nong commands --json` returns 93 implemented commands. `nong commands --all --json` includes all.
 Use this first in any session to know what's available.
 
 ## Input Formats
@@ -34,6 +34,7 @@ Use this first in any session to know what's available.
 | `word academic-format` | .docx + output .docx (-o); visible academic formatting repair for headings/body/tables/fonts/spacing |
 | `word format-audit` | .docx; read-only visible formatting evidence for headings/body/tables/fonts/spacing; add `--fail-on-warning` and/or `--min-score <0-100>` for CI gates |
 | `word repair-plan` | N/A; machine-readable routing rules for choosing Word repair commands |
+| `word table-reflow` | .docx + output .docx (-o); explicit long/wide table continuation layout |
 | `word protect` | .docx + output .docx (-o) + optional --mode (readonly/comments/tracked/forms) + optional -p |
 | `word embed-font` | .docx + .ttf/.otf font + output .docx (-o) + optional --name |
 | `word add paragraph` | .docx + --spec JSON file or inline JSON + output .docx (-o) + optional --after |
@@ -217,7 +218,7 @@ Every command with `--json` returns:
   "artifacts": { "docx": "out.docx" },
   "metrics": { "paragraphs": 29 },
   "errors": [],
-  "meta": { "durationMs": 42, "version": "3.2.5" }
+  "meta": { "durationMs": 42, "version": "4.0.0" }
 }
 ```
 

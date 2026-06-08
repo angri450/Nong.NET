@@ -9,14 +9,14 @@
 
 <p align="center">
   <strong>Pure .NET CLI toolkit for scientific document generation and inspection.</strong><br>
-  Zero JavaScript. One binary. 82 commands. Cross-platform.
+  Zero JavaScript. One binary. 93 commands. Cross-platform.
 </p>
 
 <p align="center">
   <a href="https://www.nuget.org/packages/Angri450.Nong.Cli/"><img src="https://img.shields.io/nuget/v/Angri450.Nong.Cli.svg?label=NuGet" alt="NuGet"></a>
   <a href="https://github.com/angri450/Nong.NET/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License"></a>
   <a href="https://dotnet.microsoft.com/en-us/download"><img src="https://img.shields.io/badge/.NET-8.0-8A2BE2" alt=".NET 8.0"></a>
-  <img src="https://img.shields.io/badge/commands-82-green" alt="82 commands">
+  <img src="https://img.shields.io/badge/commands-93-green" alt="93 commands">
   <a href="#中文文档"><img src="https://img.shields.io/badge/中文-README.zh--CN.md-orange" alt="中文"></a>
 </p>
 
@@ -53,14 +53,26 @@ nong commands --json</code></pre>
 
 <hr>
 
-<h2>Capability Overview — 82 commands</h2>
+<h2>4.0.0 Release Line</h2>
 
-<h3>word — Word Document Engine (32 commands)</h3>
+<ul>
+  <li>All main Nong packages now share the <code>4.0.0</code> version line.</li>
+  <li>Word formatting work is no longer judged by OOXML validation alone: <code>word format-audit</code> can gate visual evidence for headings, body text, fonts, line spacing, three-line tables, and chemistry subscripts.</li>
+  <li>Word, PDF, Excel, and PowerPoint dissect outputs align on the shared <code>nong-pandoc/package/v1</code> slice contract for AI-readable package inspection.</li>
+  <li>Controlled dirty OOXML regression assets cover table ordering, legacy <code>tblLook</code>, misplaced <code>tcPr</code>, math property order, document-grid line spacing conflicts, table shading, table indentation, and mixed fonts.</li>
+</ul>
+
+<hr>
+
+<h2>Capability Overview — 93 commands</h2>
+
+<h3>word — Word Document Engine (37 commands)</h3>
 
 <table>
   <tr><th>Command</th><th>What it does</th></tr>
   <tr><td><code>nong word check</code></td><td>Preflight .doc/.docx and report conversion, VML image, and block-id readiness</td></tr>
   <tr><td><code>nong word convert</code></td><td>Convert/copy to .docx using LibreOffice or Word COM as boundary converters when needed</td></tr>
+  <tr><td><code>nong word create</code></td><td>Create DOCX directly from authored NongMark</td></tr>
   <tr><td><code>nong word read</code></td><td>Extract plain text from .docx</td></tr>
   <tr><td><code>nong word preview</code></td><td>7-step diagnostic report</td></tr>
   <tr><td><code>nong word fill</code></td><td>Template fill from .docx + .json</td></tr>
@@ -78,6 +90,10 @@ nong commands --json</code></pre>
   <tr><td><code>nong word revisions</code></td><td>List tracked revisions</td></tr>
   <tr><td><code>nong word infer-format</code></td><td>Infer format from Chinese description</td></tr>
   <tr><td><code>nong word fix-order</code></td><td>Fix OOXML element ordering</td></tr>
+  <tr><td><code>nong word academic-format</code></td><td>Visible academic formatting repair for headings, body text, tables, fonts, and spacing</td></tr>
+  <tr><td><code>nong word format-audit</code></td><td>Read-only visible formatting evidence audit with CI gates</td></tr>
+  <tr><td><code>nong word repair-plan</code></td><td>Explain which Word repair command to use and how to verify it</td></tr>
+  <tr><td><code>nong word table-reflow</code></td><td>Explicitly split long or wide tables into continuation tables</td></tr>
   <tr><td><code>nong word protect</code></td><td>Document protection (readonly, comments, track-changes)</td></tr>
   <tr><td><code>nong word embed-font</code></td><td>Embed TrueType font into document</td></tr>
   <tr><td><code>nong word add paragraph</code></td><td>Append paragraph from JSON spec</td></tr>
@@ -124,7 +140,7 @@ nong commands --json</code></pre>
 
 <p>Charts are rendered with <strong>ScottPlot</strong>. Statistical analysis uses simplified Q-value approximations — verify with formal tools for publication.</p>
 
-<h3>excel — Excel Data Entry (4 commands)</h3>
+<h3>excel — Excel Data Entry (5 commands)</h3>
 
 <table>
   <tr><th>Command</th><th>What it does</th></tr>
@@ -132,6 +148,7 @@ nong commands --json</code></pre>
   <tr><td><code>nong excel read</code></td><td>Read cell content</td></tr>
   <tr><td><code>nong excel to-groups</code></td><td>Convert treatment/value columns to grouped JSON</td></tr>
   <tr><td><code>nong excel create</code></td><td>Create .xlsx from JSON spec</td></tr>
+  <tr><td><code>nong excel dissect</code></td><td>Slice .xlsx into a <code>nong-pandoc/package/v1</code> package</td></tr>
 </table>
 
 <h3>diagram — Scientific Diagrams (3 commands)</h3>
@@ -145,12 +162,13 @@ nong commands --json</code></pre>
 
 <p>Rendered with <strong>MSAGL</strong> (automatic layout) + <strong>SkiaSharp</strong> (rasterization). No Graphviz, no Mermaid, no JavaScript.</p>
 
-<h3>pptx — Slide Reading (2 commands)</h3>
+<h3>pptx — Slide Reading (3 commands)</h3>
 
 <table>
   <tr><th>Command</th><th>What it does</th></tr>
   <tr><td><code>nong pptx read</code></td><td>Extract all slide text</td></tr>
   <tr><td><code>nong pptx slides</code></td><td>Count shapes/elements per slide</td></tr>
+  <tr><td><code>nong pptx dissect</code></td><td>Slice .pptx into a <code>nong-pandoc/package/v1</code> package</td></tr>
 </table>
 
 <h3>ocr — Optical Character Recognition (7 commands)</h3>
@@ -188,6 +206,16 @@ nong commands --json</code></pre>
 </table>
 
 <p>Stage19 providers are OpenAlex, Crossref, and Unpaywall only. Full-text search, scraping, paywall bypass, and automatic Chinese-English synonym translation are not implemented.</p>
+
+<h3>slice — Unified Package Inspection (4 commands)</h3>
+
+<table>
+  <tr><th>Command</th><th>What it does</th></tr>
+  <tr><td><code>nong slice inspect</code></td><td>Inspect a <code>nong-pandoc/package/v1</code> contract and AI read order</td></tr>
+  <tr><td><code>nong slice blocks</code></td><td>List canonical content blocks from a slice package</td></tr>
+  <tr><td><code>nong slice block</code></td><td>Read one block with content, structure, format, diagnostics, and asset evidence</td></tr>
+  <tr><td><code>nong slice assets</code></td><td>List assets from a slice package</td></tr>
+</table>
 
 <h3>genre / icons — Templates &amp; Assets (4 commands)</h3>
 
@@ -292,7 +320,7 @@ nong lit export --input refs.json --format bibtex --out refs.bib --json</code></
   "artifacts": { "png": "fig.png" },
   "metrics": { "paragraphs": 29 },
   "errors": [],
-  "meta": { "durationMs": 42, "version": "3.2.5" }
+  "meta": { "durationMs": 42, "version": "4.0.0" }
 }</code></pre>
 
 <hr>
@@ -316,12 +344,14 @@ nong lit export --input refs.json --format bibtex --out refs.bib --json</code></
 
 <h2>Project Structure — Current CLI Packages</h2>
 
-<p>Current CLI documentation targets <strong>Angri450.Nong.Cli 3.2.5</strong>. The libraries are purpose-built packages with single responsibilities; confirm installed package versions with NuGet or <code>nong commands --json</code>.</p>
+<p>Current CLI documentation targets <strong>Angri450.Nong.Cli 4.0.0</strong>. The libraries are purpose-built packages with single responsibilities; confirm installed package versions with NuGet or <code>nong commands --json</code>.</p>
 
 <table>
   <tr><th>Package</th><th>Purpose</th></tr>
   <tr><td><code>Angri450.Nong.ThirdParty</code></td><td><strong>Foundation</strong> — inlined open-source libraries compiled as a single DLL</td></tr>
+  <tr><td><code>Angri450.Nong.Pandoc</code></td><td>Shared <code>nong-pandoc/package/v1</code> slice contract and readers</td></tr>
   <tr><td><code>Angri450.Nong.Docx</code></td><td>Word generation, template fill, paper diagnostics</td></tr>
+  <tr><td><code>Angri450.Nong.Inspect</code></td><td>Paper diagnostics and structured writing workflows</td></tr>
   <tr><td><code>Angri450.Nong.Excel</code></td><td>Chainable Excel generation API with formula validation</td></tr>
   <tr><td><code>Angri450.Nong.Chart</code></td><td>18 chart types + ANOVA/Duncan MRT statistical analysis</td></tr>
   <tr><td><code>Angri450.Nong.Diagram</code></td><td>Flowchart, network graph, phylogenetic tree rendering</td></tr>
@@ -329,6 +359,7 @@ nong lit export --input refs.json --format bibtex --out refs.bib --json</code></
   <tr><td><code>Angri450.Nong.MultiModal</code></td><td>PaddleOCR cloud + local OCR integration</td></tr>
   <tr><td><code>Angri450.Nong.Pdf</code></td><td>Local PDF classification, slicing, rendering, image provenance, and NongMark projection</td></tr>
   <tr><td><code>Angri450.Nong.Literature</code></td><td>Literature search DSL, provider aggregation, ranking, and export</td></tr>
+  <tr><td><code>Angri450.Nong.Genre</code></td><td>Scientific writing format templates</td></tr>
   <tr><td><code>Angri450.Nong.Bioicons</code></td><td>40 SVG scientific icons</td></tr>
   <tr><td><code>nong skill</code></td><td>Skill lifecycle commands in the main CLI; the old Skill.Manager tool is archived as legacy</td></tr>
 </table>

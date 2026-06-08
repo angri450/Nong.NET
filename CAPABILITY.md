@@ -1,9 +1,9 @@
-# nong CLI 当前能力表 v3.2.5
+# nong CLI 当前能力表 v4.0.0
 
-日期：2026-06-07
+日期：2026-06-08
 源：`nong commands --json` + 实测
-命令数：84 implemented
-测试：87 CLI tests PASS
+命令数：93 implemented
+测试：见 `log/changelog/2026-06-08-nong-4.0.0-release.md`
 
 ---
 
@@ -17,11 +17,11 @@ nong word read file.docx   # 第一核心命令
 
 ---
 
-## 已实现命令（84 个）
+## 已实现命令（93 个）
 
-### word —— Word 文档引擎（34 个）
+### word —— Word 文档引擎（37 个）
 
-口径：29 个阶段 15 canonical Word leaf commands + 保留旧能力 `word extract` + 文档预检 `word check` + 边界转换 `word convert` + NongMark 直建 `word create` + 现有 DOCX 学术格式化 `word academic-format`，所以 Word 实际为 34 个 implemented leaf commands。`word add-*` hyphen 入口保留兼容，文档和 `commands --json` 以 `word add ...` 为 canonical。
+口径：canonical Word leaf commands 以 `commands --json` 为准。`word add-*` hyphen 入口保留兼容，文档和 `commands --json` 以 `word add ...` 为 canonical。
 
 | 命令 | 功能 | 输入 | 示例 |
 |------|------|------|------|
@@ -46,6 +46,9 @@ nong word read file.docx   # 第一核心命令
 | `nong word infer-format <text>` | 从中文推断格式 | 文本 | `nong word infer-format "黑体 四号 居中" --json` |
 | `nong word fix-order <file> -o <f>` | 修复 OOXML 元素顺序 | .docx | `nong word fix-order broken.docx -o fixed.docx` |
 | `nong word academic-format <file> -o <f>` | 对现有 DOCX 应用论文格式：宋体/Times New Roman、标题层级、三线表、括号英文斜体 | .docx | `nong word academic-format draft.docx -o draft.academic.docx --json` |
+| `nong word format-audit <file>` | 只读可见排版证据审计；支持 `--fail-on-warning` 和 `--min-score` 作为 CI 闸门 | .docx | `nong word format-audit draft.academic.docx --fail-on-warning --min-score 95 --json` |
+| `nong word repair-plan` | 机器可读 Word 修复路由；避免把 OOXML 修复误判为可见排版修复 | 无 | `nong word repair-plan --json` |
+| `nong word table-reflow <file> -o <f>` | 显式拆分过长/过宽表格；生成续表、重复表头和关键列 | .docx | `nong word table-reflow table.docx -o table.reflow.docx --json` |
 | `nong word protect <file> -o <f> [--mode] [-p]` | 文档保护 | .docx | `nong word protect paper.docx -o protected.docx --mode readonly` |
 | `nong word embed-font <file> <font> -o <f> [--name]` | 嵌入字体 | .docx + .ttf | `nong word embed-font paper.docx font.ttf -o out.docx` |
 | `nong word add paragraph <file> --spec <spec.json> -o <f> [--after]` | 追加段落 | .docx + JSON | `nong word add paragraph doc.docx --spec paragraph.json -o out.docx` |
@@ -87,7 +90,7 @@ nong word read file.docx   # 第一核心命令
 | `nong chart scatter <spec> -o <png>` | 散点图（可选 trendline） | .json | `nong chart scatter spec.json -o scatter.png --json` |
 | `nong chart pie <spec> -o <png>` | 饼图 | .json | `nong chart pie spec.json -o pie.png --json` |
 
-### excel —— Excel 数据入口（4 个）
+### excel —— Excel 数据入口（5 个）
 
 | 命令 | 功能 | 输入 | 示例 |
 |------|------|------|------|
@@ -95,6 +98,7 @@ nong word read file.docx   # 第一核心命令
 | `nong excel read <file> [--sheet] [--range]` | 读取内容 | .xlsx | `nong excel read data.xlsx --json` |
 | `nong excel to-groups <file> --group <col> --value <col> [--raw]` | Excel→分组数据 | .xlsx | `nong excel to-groups data.xlsx --group A --value B --raw` |
 | `nong excel create <spec> -o <file>` | 从 JSON 创建 xlsx | .json | `nong excel create spec.json -o data.xlsx --json` |
+| `nong excel dissect <file> -o <dir>` | 切出 `nong-pandoc/package/v1` slice 包 | .xlsx | `nong excel dissect data.xlsx -o data.slice --json` |
 
 ### diagram —— 科学图表（3 个）
 
@@ -104,12 +108,13 @@ nong word read file.docx   # 第一核心命令
 | `nong diagram network <spec> -o <png>` | 网络图 | .json | `nong diagram network spec.json -o net.png` |
 | `nong diagram tree <spec> -o <png>` | 系统发育树（Newick/JSON） | .nwk/.json | `nong diagram tree tree.nwk -o tree.png --json` |
 
-### pptx —— 幻灯片读取（2 个）
+### pptx —— 幻灯片读取（3 个）
 
 | 命令 | 功能 | 输入 | 示例 |
 |------|------|------|------|
 | `nong pptx read <file>` | 抽取全部 slide 文本 | .pptx | `nong pptx read slides.pptx --json` |
 | `nong pptx slides <file>` | 按 slide 统计形状/元素 | .pptx | `nong pptx slides slides.pptx --json` |
+| `nong pptx dissect <file> -o <dir>` | 切出 `nong-pandoc/package/v1` slice 包 | .pptx | `nong pptx dissect slides.pptx -o slides.slice --json` |
 
 ### ocr —— 文字识别（7 个）
 
@@ -135,6 +140,25 @@ nong word read file.docx   # 第一核心命令
 | `nong pdf images <file> -o <dir>` | 提取 PDF 图片证据；保留 page/bbox，解码失败时保存 page-crop fallback PNG | .pdf | `nong pdf images guide.pdf -o assets --json` |
 
 `pdf dissect` 的主读物是 `content.nongmark`，不是普通 Markdown。`preview/content.txt` 是纯文本预览。本地 text/hybrid 路线不需要 Python、Pandoc 可执行文件、MinerU 可执行文件或外部 OCR 进程。
+
+### lit —— 文献检索 DSL（5 个）
+
+| 命令 | 功能 | 输入 | 示例 |
+|------|------|------|------|
+| `nong lit parse --query <q>` | 解析类 CNKI 检索式为确定性 JSON | query | `nong lit parse --query "SU=('腐植酸'+'腐殖酸')" --json` |
+| `nong lit validate --query <q>` | 校验字段、布尔运算符和年份范围 | query | `nong lit validate --query "YE BETWEEN ('2000','2013')" --json` |
+| `nong lit plan --query <q> [--sources]` | 为 OpenAlex、Crossref、Unpaywall 规划粗查询 | query | `nong lit plan --query "DOI='10.1016/j.chemgeo.2007.05.018'" --json` |
+| `nong lit search --query <q> [--sources] [--limit]` | 检索合法元数据/OA provider，再本地过滤、合并、排序 | query | `nong lit search --query "TI='zeolite'" --limit 10 --json` |
+| `nong lit export --input <json> --format <f> --out <file>` | 导出 JSON、Markdown 或 BibTeX | refs JSON | `nong lit export --input refs.json --format bibtex --out refs.bib --json` |
+
+### slice —— 统一 NongPandoc 包检查（4 个）
+
+| 命令 | 功能 | 输入 | 示例 |
+|------|------|------|------|
+| `nong slice inspect <dir>` | 检查 `nong-pandoc/package/v1` 合同、AI 读取顺序和 strict 证据 | slice dir | `nong slice inspect paper.slice --strict --json` |
+| `nong slice blocks <dir>` | 列出 canonical `content.jsonl` 内容块 | slice dir | `nong slice blocks paper.slice --json` |
+| `nong slice block <dir> <id>` | 读取单个 block 的内容、结构、格式、诊断和素材证据 | slice dir + block id | `nong slice block paper.slice p0001 --json` |
+| `nong slice assets <dir>` | 列出 slice 包素材 | slice dir | `nong slice assets paper.slice --json` |
 
 ### genre / icons —— 模板与素材（4 个）
 
@@ -192,13 +216,16 @@ nong inspect gap paper.txt --json
 ```bash
 nong word stats paper.docx --json
 nong word fonts paper.docx --json
+nong word format-audit paper.docx --json
 nong word dissect paper.docx --json
 nong word dissect paper.docx -o paper.slice --json
+nong slice inspect paper.slice --strict --json
 ```
 ### 6. 从零建 Excel
 ```bash
 nong excel create spec.json -o data.xlsx --json
 nong excel sheets data.xlsx --json
+nong excel dissect data.xlsx -o data.slice --json
 ```
 ### 7. 图表生成（3 种新类型）
 ```bash
@@ -210,6 +237,7 @@ nong chart pie pie-spec.json -o pie.png --json
 ```bash
 nong pptx read slides.pptx --json
 nong pptx slides slides.pptx --json
+nong pptx dissect slides.pptx -o slides.slice --json
 ```
 ### 9. 文档扩写（add 系列）
 ```bash
@@ -234,6 +262,12 @@ nong skill validate ./word --json
 nong skill scan ./plugin --json
 nong skill package ./plugin --json
 ```
+### 13. 文献检索和导出
+```bash
+nong lit parse --query "SU=('腐植酸'+'腐殖酸')*('稀土'+'微肥')" --json
+nong lit plan --query "SU=('腐植酸'+'腐殖酸')*('稀土'+'微肥')" --sources openalex,crossref,unpaywall --json
+nong lit export --input refs.json --format bibtex --out refs.bib --json
+```
 
 ---
 
@@ -251,7 +285,7 @@ nong skill package ./plugin --json
   "artifacts": { "png": "fig.png" },
   "metrics": { "paragraphs": 29 },
   "errors": [],
-  "meta": { "durationMs": 42, "version": "3.2.5" }
+  "meta": { "durationMs": 42, "version": "4.0.0" }
 }
 ```
 
@@ -286,10 +320,11 @@ nong skill package ./plugin --json
 | .json (excel spec) | excel create |
 | .json (paragraph spec) | word add paragraph |
 | .json (table spec) | word add table |
-| .xlsx | excel sheets / read / to-groups |
-| .pptx | pptx read / slides |
+| .xlsx | excel sheets / read / to-groups / dissect |
+| .pptx | pptx read / slides / dissect |
 | image/pdf | ocr cloud / to-word / analyze-image |
 | .pdf | pdf check / dissect / render / images |
+| slice 目录 | slice inspect / blocks / block / assets |
 | model-id | ocr install-model |
 | LaTeX | word add math |
 | 目录 | skill validate / scan / inventory / package |
@@ -304,6 +339,9 @@ nong skill package ./plugin --json
 - word rebuild — 输入输出不能同一路径
 - word merge — 输入输出不能同一路径
 - word fix-order / protect / embed-font / add-* — 输入输出不能同一路径
+- word format-audit — 只读审计；`--fail-on-warning` 和 `--min-score` 可让可见排版证据不足时返回 E006
+- word table-reflow — 显式 layout/reflow 命令，按阈值拆长表/宽表；还不是自动分页检测器
+- word/pdf/excel/pptx dissect — 统一输出 `nong-pandoc/package/v1` slice 包，AI 读取优先看 `content.nongmark` 和 `slice inspect --strict`
 - excel to-groups — `--raw` 输出裸 JSON 用于管道给 chart 命令；`--json` 输出含完整 schema，`data` 直接为分组字典
 - excel to-groups — sheet 名不存在返回 E006 而非崩溃；支持 AA/AB 等多字母列
 - ocr cloud — 需 `PADDLEOCR_ACCESS_TOKEN` 环境变量（旧名 `PADDLEOCR_TOKEN` 已弃用）

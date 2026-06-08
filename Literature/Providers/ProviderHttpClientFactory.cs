@@ -21,7 +21,7 @@ public static class ProviderHttpClientFactory
 
         client.Timeout = timeout ?? TimeSpan.FromSeconds(20);
         client.BaseAddress = baseAddress;
-        client.DefaultRequestHeaders.UserAgent.ParseAdd($"Nong-Literature/3.2.5 ({providerName})");
+        client.DefaultRequestHeaders.UserAgent.ParseAdd($"Nong-Literature/4.0.0 ({providerName})");
         return client;
     }
 
@@ -33,7 +33,7 @@ public static class ProviderHttpClientFactory
         {
             Timeout = timeout
         };
-        client.DefaultRequestHeaders.UserAgent.ParseAdd($"Nong-Literature/3.2.5 ({providerName})");
+        client.DefaultRequestHeaders.UserAgent.ParseAdd($"Nong-Literature/4.0.0 ({providerName})");
         return client;
     }
 

@@ -6,7 +6,7 @@
     <RootNamespace>PptxCore</RootNamespace>
     <AssemblyName>PptxCore</AssemblyName>
     <PackageId>Angri450.Nong.Pptx</PackageId>
-    <Version>3.0.2</Version>
+    <Version>4.0.0</Version>
     <Authors>angri450</Authors>
     <Description>ShapeCrawler wrapper for AI agents.</Description>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>

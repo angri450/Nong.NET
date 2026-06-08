@@ -2,14 +2,14 @@
 
 <p align="center">
   <strong>纯 .NET CLI 农学文档与科研图表工具集</strong><br>
-  零 JavaScript。一个二进制文件。82 个命令。跨平台运行。
+  零 JavaScript。一个二进制文件。93 个命令。跨平台运行。
 </p>
 
 <p align="center">
   <a href="https://www.nuget.org/packages/Angri450.Nong.Cli/"><img src="https://img.shields.io/nuget/v/Angri450.Nong.Cli.svg?label=NuGet" alt="NuGet"></a>
   <a href="https://github.com/angri450/Nong.NET/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License"></a>
   <a href="https://dotnet.microsoft.com/en-us/download"><img src="https://img.shields.io/badge/.NET-8.0-8A2BE2" alt=".NET 8.0"></a>
-  <img src="https://img.shields.io/badge/commands-82-green" alt="82 commands">
+  <img src="https://img.shields.io/badge/commands-93-green" alt="93 commands">
   <a href="README.md"><img src="https://img.shields.io/badge/English-README.md-blue" alt="English"></a>
 </p>
 
@@ -46,14 +46,26 @@ nong commands --json</code></pre>
 
 <hr>
 
-<h2>能力概览 — 全部 82 个命令</h2>
+<h2>4.0.0 发布线</h2>
 
-<h3>word — Word 文档引擎（32 个命令）</h3>
+<ul>
+  <li>所有 Nong 主线包统一进入 <code>4.0.0</code> 版本线。</li>
+  <li>Word 排版不再只看 OOXML validate：<code>word format-audit</code> 可以把标题、正文、字体、行距、三线表和化学式下标这些肉眼排版证据作为质量闸门。</li>
+  <li>Word、PDF、Excel、PowerPoint 的 dissect 输出统一对齐 <code>nong-pandoc/package/v1</code> slice 合同，便于 AI 读取同一套包证据。</li>
+  <li>可控脏 OOXML 回归样本覆盖表格顺序、旧版 <code>tblLook</code>、错误 <code>tcPr</code>、数学属性顺序、文档网格行距冲突、表格阴影、表格缩进和字体混排。</li>
+</ul>
+
+<hr>
+
+<h2>能力概览 — 全部 93 个命令</h2>
+
+<h3>word — Word 文档引擎（37 个命令）</h3>
 
 <table>
   <tr><th>命令</th><th>功能</th></tr>
   <tr><td><code>nong word check</code></td><td>预检 .doc/.docx，报告转换需求、VML 图片和 blockId 可用性</td></tr>
   <tr><td><code>nong word convert</code></td><td>转换/复制到 .docx，必要时把 LibreOffice 或 Word COM 作为边界转换器</td></tr>
+  <tr><td><code>nong word create</code></td><td>从 NongMark 直接生成 DOCX</td></tr>
   <tr><td><code>nong word read</code></td><td>提取纯文本</td></tr>
   <tr><td><code>nong word preview</code></td><td>7 步诊断报告</td></tr>
   <tr><td><code>nong word fill</code></td><td>模板填充（.docx + .json）</td></tr>
@@ -71,6 +83,10 @@ nong commands --json</code></pre>
   <tr><td><code>nong word revisions</code></td><td>列出修订记录</td></tr>
   <tr><td><code>nong word infer-format</code></td><td>从中文描述推断格式</td></tr>
   <tr><td><code>nong word fix-order</code></td><td>修复 OOXML 元素顺序</td></tr>
+  <tr><td><code>nong word academic-format</code></td><td>可见学术格式修复：标题、正文、表格、字体和行距</td></tr>
+  <tr><td><code>nong word format-audit</code></td><td>只读可见排版证据审计，支持 CI 闸门</td></tr>
+  <tr><td><code>nong word repair-plan</code></td><td>解释 Word 修复命令路由和验收证据</td></tr>
+  <tr><td><code>nong word table-reflow</code></td><td>显式把过长或过宽表格拆成续表</td></tr>
   <tr><td><code>nong word protect</code></td><td>文档保护（readonly/comments/track-changes）</td></tr>
   <tr><td><code>nong word embed-font</code></td><td>嵌入 TrueType 字体</td></tr>
   <tr><td><code>nong word add paragraph</code></td><td>追加段落（JSON spec）</td></tr>
@@ -117,7 +133,7 @@ nong commands --json</code></pre>
 
 <p>图表基于 <strong>ScottPlot</strong> 渲染，统计分析使用简化 Q 值近似——正式发表论文请用专业工具复核。</p>
 
-<h3>excel — Excel 数据入口（4 个命令）</h3>
+<h3>excel — Excel 数据入口（5 个命令）</h3>
 
 <table>
   <tr><th>命令</th><th>功能</th></tr>
@@ -125,6 +141,7 @@ nong commands --json</code></pre>
   <tr><td><code>nong excel read</code></td><td>读取单元格内容</td></tr>
   <tr><td><code>nong excel to-groups</code></td><td>处理/值列转为分组 JSON</td></tr>
   <tr><td><code>nong excel create</code></td><td>从 JSON spec 创建 .xlsx</td></tr>
+  <tr><td><code>nong excel dissect</code></td><td>把 .xlsx 切成 <code>nong-pandoc/package/v1</code> 包</td></tr>
 </table>
 
 <h3>diagram — 科学图表（3 个命令）</h3>
@@ -138,12 +155,13 @@ nong commands --json</code></pre>
 
 <p>基于 <strong>MSAGL</strong>（自动布局）+ <strong>SkiaSharp</strong>（光栅化）渲染。不需要 Graphviz、不需要 Mermaid、不需要 JavaScript。</p>
 
-<h3>pptx — 幻灯片读取（2 个命令）</h3>
+<h3>pptx — 幻灯片读取（3 个命令）</h3>
 
 <table>
   <tr><th>命令</th><th>功能</th></tr>
   <tr><td><code>nong pptx read</code></td><td>抽取全部 slide 文本</td></tr>
   <tr><td><code>nong pptx slides</code></td><td>按 slide 统计形状/元素</td></tr>
+  <tr><td><code>nong pptx dissect</code></td><td>把 .pptx 切成 <code>nong-pandoc/package/v1</code> 包</td></tr>
 </table>
 
 <h3>ocr — 文字识别（7 个命令）</h3>
@@ -181,6 +199,16 @@ nong commands --json</code></pre>
 </table>
 
 <p>Stage19 只实现 OpenAlex、Crossref、Unpaywall。全文检索、爬虫、绕过付费墙、自动中英同义词翻译均未实现。</p>
+
+<h3>slice — 统一包检查（4 个命令）</h3>
+
+<table>
+  <tr><th>命令</th><th>功能</th></tr>
+  <tr><td><code>nong slice inspect</code></td><td>检查 <code>nong-pandoc/package/v1</code> 合同和 AI 读取顺序</td></tr>
+  <tr><td><code>nong slice blocks</code></td><td>列出 slice 包中的标准内容块</td></tr>
+  <tr><td><code>nong slice block</code></td><td>读取单个块的内容、结构、格式、诊断和素材证据</td></tr>
+  <tr><td><code>nong slice assets</code></td><td>列出 slice 包中的素材</td></tr>
+</table>
 
 <h3>genre / icons — 模板与素材（4 个命令）</h3>
 
@@ -285,7 +313,7 @@ nong lit export --input refs.json --format bibtex --out refs.bib --json</code></
   "artifacts": { "png": "fig.png" },
   "metrics": { "paragraphs": 29 },
   "errors": [],
-  "meta": { "durationMs": 42, "version": "3.2.5" }
+  "meta": { "durationMs": 42, "version": "4.0.0" }
 }</code></pre>
 
 <hr>
@@ -309,12 +337,14 @@ nong lit export --input refs.json --format bibtex --out refs.bib --json</code></
 
 <h2>项目结构 — 当前 CLI 主线包</h2>
 
-<p>当前 CLI 文档对应 <strong>Angri450.Nong.Cli 3.2.5</strong>。各库包职责单一，实际安装版本以 NuGet 或 <code>nong commands --json</code> 为准。</p>
+<p>当前 CLI 文档对应 <strong>Angri450.Nong.Cli 4.0.0</strong>。各库包职责单一，实际安装版本以 NuGet 或 <code>nong commands --json</code> 为准。</p>
 
 <table>
   <tr><th>包名</th><th>用途</th></tr>
   <tr><td><code>Angri450.Nong.ThirdParty</code></td><td><strong>地基</strong> — 合入第三方开源库源码，编译为单一 DLL</td></tr>
+  <tr><td><code>Angri450.Nong.Pandoc</code></td><td>共享 <code>nong-pandoc/package/v1</code> slice 合同和读取器</td></tr>
   <tr><td><code>Angri450.Nong.Docx</code></td><td>Word 生成、模板填充、论文诊断</td></tr>
+  <tr><td><code>Angri450.Nong.Inspect</code></td><td>论文诊断和结构化写作工作流</td></tr>
   <tr><td><code>Angri450.Nong.Excel</code></td><td>链式 Excel 生成 API，支持公式验证</td></tr>
   <tr><td><code>Angri450.Nong.Chart</code></td><td>18 种图表 + ANOVA/Duncan MRT 统计分析</td></tr>
   <tr><td><code>Angri450.Nong.Diagram</code></td><td>流程图、网络图、系统发育树渲染</td></tr>
@@ -322,6 +352,7 @@ nong lit export --input refs.json --format bibtex --out refs.bib --json</code></
   <tr><td><code>Angri450.Nong.MultiModal</code></td><td>PaddleOCR 云 + 本地 OCR 集成</td></tr>
   <tr><td><code>Angri450.Nong.Pdf</code></td><td>本地 PDF 分类、切片、渲染、图片证据和 NongMark 投影</td></tr>
   <tr><td><code>Angri450.Nong.Literature</code></td><td>文献检索 DSL、provider 聚合、排序和导出</td></tr>
+  <tr><td><code>Angri450.Nong.Genre</code></td><td>科研写作格式模板</td></tr>
   <tr><td><code>Angri450.Nong.Bioicons</code></td><td>40 个 SVG 科学图标</td></tr>
   <tr><td><code>nong skill</code></td><td>主 CLI 内置 Skill 生命周期命令；旧 Skill.Manager 工具已归档为 legacy</td></tr>
 </table>

@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <PackageId>Angri450.Nong.Literature</PackageId>
     <AssemblyName>Angri450.Nong.Literature</AssemblyName>
-    <Version>3.2.5</Version>
+    <Version>4.0.0</Version>
     <Authors>angri450</Authors>
     <Description>CNKI-like literature retrieval DSL, metadata providers, ranking, and exports for Nong.NET.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
