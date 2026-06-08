@@ -42,6 +42,7 @@ public static class Manifest
         list.Add(new("word academic-format", "Visible academic Word formatting repair for headings, body text, tables, fonts, and spacing", "word", []));
         list.Add(new("word format-audit", "Read-only visible Word formatting evidence audit for headings, body text, tables, fonts, spacing, and CI gates", "word", []));
         list.Add(new("word repair-plan", "Explain which Word repair command to use and how to verify visible formatting repairs", "word", []));
+        list.Add(new("word table-reflow", "Explicitly split long or wide tables into continuation tables", "word", []));
         list.Add(new("word protect", "Apply document protection", "word", []));
         list.Add(new("word embed-font", "Embed font into document", "word", []));
         list.Add(new("word add paragraph", "Append paragraph to document", "word", ["word add-paragraph"]));
