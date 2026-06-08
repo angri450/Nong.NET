@@ -5,14 +5,44 @@ Pure .NET scientific document generation toolkit. Zero JavaScript. One merged fo
 ## 仓库
 
 - GitHub: `https://github.com/angri450/Nong.NET`
-- 主分支: `master`（同时维护 `main`）
-- 协议: MIT
+- Gitee: `https://gitee.com/angri450/Nong.NET`
+- GitCode: `git@gitcode.com:angri450/Nong.NET.git`
+- 主分支: `master`
+- 协议: Apache-2.0
 
-## 包结构（9 个常规包 + OCR runtime 部署包）
+## 当前进度（2026-06-08）
+
+- 发布版本: `4.0.0`
+- 当前主线: GitHub / Gitee / GitCode 的 `master`
+- 4.0.0 NuGet 主线包:
+  - `Angri450.Nong.ThirdParty 4.0.0`
+  - `Angri450.Nong.Bioicons 4.0.0`
+  - `Angri450.Nong.Genre 4.0.0`
+  - `Angri450.Nong.Pandoc 4.0.0`
+  - `Angri450.Nong.Docx 4.0.0`
+  - `Angri450.Nong.Excel 4.0.0`
+  - `Angri450.Nong.Chart 4.0.0`
+  - `Angri450.Nong.Diagram 4.0.0`
+  - `Angri450.Nong.Pdf 4.0.0`
+  - `Angri450.Nong.Pptx 4.0.0`
+  - `Angri450.Nong.Literature 4.0.0`
+  - `Angri450.Nong.MultiModal 4.0.0`
+  - `Angri450.Nong.Inspect 4.0.0`
+  - `Angri450.Nong.Cli 4.0.0`
+  - `Angri450.Nong.OcrRuntime.WinX64 4.0.0`
+- OCR runtime 主线策略仍是只发布 Windows x64 runtime 包；非 Windows runtime 包不作为主线稳定目标。
+- 4.0.0 发布验证见 `log/changelog/2026-06-08-nong-4.0.0-release.md`。
+- 重要架构变化:
+  - `chart` / `diagram` PNG 渲染已隔离到隐藏 worker: `nong __render-worker ...`
+  - 主 CLI 进程只做参数校验和子进程调度，不再直接执行 SkiaSharp/ScottPlot native 渲染。
+  - 如果 native 渲染崩溃，最多 worker 子进程退出，主 CLI 返回结构化错误，不拖垮主进程。
+  - 默认测试套件不再运行 Chart/Diagram/OCR/PDF 的 native 图像渲染路径。
+
+## 包结构（当前 CLI 主线包 + OCR runtime 部署包）
 
 | 包 | 项目路径 | 说明 |
 |----|---------|------|
-| `Angri450.Nong.ThirdParty` | `ThirdParty/` | **地基** — 合入 15 个第三方库源码编译为单一 DLL |
+| `Angri450.Nong.ThirdParty` | `ThirdParty/` | **地基** — 合入第三方库源码编译为单一 DLL |
 | `Angri450.Nong.Excel` | `Excel/` | 链式 Excel 生成 API |
 | `Angri450.Nong.Chart` | `Chart/` | 18 种图表 + ANOVA/Duncan MRT |
 | `Angri450.Nong.Diagram` | `Diagram/` | 流程图、网络图、系统发育树 |
@@ -20,15 +50,17 @@ Pure .NET scientific document generation toolkit. Zero JavaScript. One merged fo
 | `Angri450.Nong.Pptx` | `Pptx/` | PPT 生成、10 套主题 |
 | `Angri450.Nong.MultiModal` | `MultiModal/` | PaddleOCR 云 + 纯 .NET 本地 PP-OCRv5 |
 | `Angri450.Nong.Bioicons` | `Bioicons/` | 40 个 SVG 科学图标 |
-| `Angri450.Nong.Skill.Manager` | `SkillManager/` | Skill CLI 工具 |
+| `Angri450.Nong.Pdf` | `Pdf/` | PDF 文本/图片切片 + PDFium 渲染 |
+| `Angri450.Nong.Literature` | `Literature/` | 文献检索 DSL、聚合、导出 |
+| Skill core | `SkillManagerCore/` | `nong skill ...` 的核心库 |
 
-OCR 本地推理另有按平台拆分的部署包，不供应用代码直接引用，只给 `nong ocr install-model` 下载/解包：
+OCR 本地推理另有部署包，不供应用代码直接引用，只给 `nong ocr install-model` 下载/解包。
+
+当前主线策略：**只发布 Windows x64 runtime 包**。
 
 - `Angri450.Nong.OcrRuntime.WinX64`
-- `Angri450.Nong.OcrRuntime.LinuxX64`
-- `Angri450.Nong.OcrRuntime.LinuxArm64`
-- `Angri450.Nong.OcrRuntime.OsxX64`
-- `Angri450.Nong.OcrRuntime.OsxArm64`
+
+非 Windows runtime 包先放本地 `_archive/` 存档，不纳入主线打包/发布。跨平台发布等 Windows 主线稳定后再单独规划。
 
 ## 依赖链
 
@@ -40,22 +72,24 @@ ThirdParty (ClosedXML + OpenXml + ScottPlot + MSAGL + SkiaSharp + HarfBuzz + Six
   └── Docx
        └── MultiModal
 
-Pptx → ShapeCrawler (NuGet, 独立)
-SkillManager → YamlDotNet (NuGet, 独立, CLI 工具)
+Pptx → ThirdParty
+Pdf → ThirdParty + vendored Docnet/PDFium assets
+Literature → System.Text.Json / HttpClient
+Cli → SkillManagerCore
 ```
 
 ## 开发约定
 
 ### 版本号
-- 当前大版本: **3.x.x**
-- 大版本号（3）全局统一，小版本号（x.x）各包独立
-- 改一个包 → 只 bump 那个包的次版本号（如 3.0.1 → 3.0.2）→ 只推送那个包
-- 大版本升级（3.x → 4.0.0）时才全部统一更新
-- 不要为了小改动 bump 全部 9 个包
+- 当前大版本: **4.x.x**
+- 大版本号（4）全局统一，小版本号（x.x）各包独立
+- 改一个包 → 只 bump 那个包的次版本号（如 4.0.0 → 4.0.1）→ 只推送那个包
+- 大版本升级（4.x → 5.0.0）时才全部统一更新
+- 不要为了小改动 bump 全部包
 
 ### NuGet 发布流程（单包更新）
 改一个包的代码后，按顺序：
-1. 改 `<Version>`（如 `3.0.1` → `3.0.2`）
+1. 改 `<Version>`（如 `4.0.0` → `4.0.1`）
 2. `dotnet build <那个项目>.csproj -c Release`
 3. `dotnet pack <那个项目>.csproj -c Release -o nupkg/ --no-build`
 4. `dotnet nuget push nupkg/<包名>.<新版>.nupkg --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json`
@@ -65,8 +99,16 @@ SkillManager → YamlDotNet (NuGet, 独立, CLI 工具)
 ### OCR runtime 发布流程
 本地 OCR 禁止 Python/pip/外部 OCR 执行文件。heavy Paddle/OpenCV native runtime 通过第一方 `Angri450.Nong.OcrRuntime.*` 包分平台部署。
 
-1. `powershell -NoProfile -ExecutionPolicy Bypass -File OcrRuntime/pack-runtimes.ps1`
-2. 先推 5 个 runtime 包到 NuGet.org：WinX64、LinuxX64、LinuxArm64、OsxX64、OsxArm64
+当前发布边界：
+
+- 只发布 `Angri450.Nong.OcrRuntime.WinX64`
+- `LinuxX64`、`LinuxArm64`、`OsxX64`、`OsxArm64` 只允许生成到本地 `_archive/`，不推 NuGet
+- 下一次整理时，把本地 `nupkg/Angri450.Nong.OcrRuntime.{LinuxX64,LinuxArm64,OsxX64,OsxArm64}.*.nupkg` 挪到 `_archive/`，并确保 `.gitignore` 覆盖归档目录
+
+发布步骤：
+
+1. 只打 Windows runtime 包，或打完整包后立即把非 Windows 包移到 `_archive/`
+2. 先推 `Angri450.Nong.OcrRuntime.WinX64` 到 NuGet.org
 3. 再推 `Angri450.Nong.Cli`
 4. 等华为 NuGet 镜像同步
 5. 用华为源验证：`nong ocr install-model pp-ocrv5-mobile --source https://mirrors.huaweicloud.com/repository/nuget/v3/index.json --json`
@@ -74,7 +116,7 @@ SkillManager → YamlDotNet (NuGet, 独立, CLI 工具)
 默认安装路径只接受 Nong 第一方 runtime 包。上游 Sdcb/OpenCvSharp fallback 必须由用户或维护者显式加 `--allow-upstream-fallback`，不要让 agent 静默回退到旧大包链路。
 
 ### NuGet 发布流程（大版本升级，极少用）
-全部 9 个包统一改 `<Version>` → 批量 build + pack + push → 一个 GitHub Release 包含全部 nupkg。
+全部主线包统一改 `<Version>` → 批量 build + pack + push → 一个 GitHub Release 包含全部 nupkg。
 
 ### 编译
 - TargetFramework: `net8.0`（向前兼容 net9.0 / net10.0 / net11.0）
@@ -95,11 +137,13 @@ SkillManager → YamlDotNet (NuGet, 独立, CLI 工具)
 - 只推 `master`，`main` 由人工手动合并
 - 不要自动切到 `main`，也不要把 `main` 合并回 `master`（只允许把 `master` 合并到 `main`）
 
-### 双仓库同步 (GitHub + Gitee)
+### 三仓库同步 (GitHub + Gitee + GitCode)
 - GitHub: `https://github.com/angri450/Nong.NET`（主仓库）
 - Gitee: `https://gitee.com/angri450/Nong.NET`（镜像）
-- 每次 push 完 GitHub master，同步执行 `git push gitee master`
+- GitCode: `git@gitcode.com:angri450/Nong.NET.git`（镜像）
+- 每次 push 完 GitHub master，同步执行 `git push gitee master` 和 `git push gitcode master`
 - Gitee remote 名称: `gitee`
+- GitCode remote 名称: `gitcode`
 - 初始化（仅首次）: `git remote add gitee https://gitee.com/angri450/Nong.NET.git`
 
 ## 禁止事项
@@ -137,7 +181,9 @@ NuGet API Key 已保存在仓库的 CLAUDE.md 之外（环境变量 `$env:NUGET_
 | `Pptx/` | `PresentationBuilder.cs` + `SlideBuilder.cs` + `ThemePreset.cs` + `LayoutSystem.cs` | ShapeCrawler (NuGet) |
 | `MultiModal/` | `PaddleOcrVlClient.cs` + `PpOcrV5/` + `LayoutToWordConverter.cs` | Docx |
 | `Bioicons/` | `IconProvider.cs` + `*.svg` (40个) | 无 |
-| `SkillManager/` | `Program.cs` + `Models/` + `Tools/` + `assets/` | YamlDotNet (NuGet) |
+| `SkillManagerCore/` | skill validate/scan/inventory/package 核心能力 | CLI 主线项目引用 |
+| `Pdf/` | PDF 切片、文本/图片抽取、PDFium 渲染 | ThirdParty + vendored Docnet/PDFium |
+| `Literature/` | 文献检索 DSL、provider、rank/export | 无第三方运行时包 |
 
 ### 第三方源码（15 个目录，不要动）
 
@@ -156,23 +202,24 @@ NuGet API Key 已保存在仓库的 CLAUDE.md 之外（环境变量 `$env:NUGET_
 |------|------|
 | `data/` | OpenXml 源生成器的数据文件（JSON/Schema） |
 | `common/` | 旧 TFM 的 polyfill（net8.0 不需要） |
-| `nupkg/` | 打包输出临时目录 |
+| `nupkg/` | 当前发布线打包输出临时目录；旧版本包不进主线提交 |
 | `Tests/` | xUnit 测试项目（`Tests.csproj`） |
-| `tests-output/` | 测试生成文件/输出 |
+| `tests-output/` | 测试生成文件/输出；不作为主线提交内容 |
 | `DocumentFormat.OpenXml.Generator/` | Roslyn 源生成器（分析器项目） |
 | `DocumentFormat.OpenXml.Generator.Models/` | 源生成器模型 |
 | `UnicodeTrieGenerator/` | SixLabors 用到的 Unicode 状态机 |
-| `changelog/` | 版本变更记录（NuGet 包 Agent ↔ Skill Agent 通讯） |
-| `.gitignore` | 排除 bin/obj/nupkg |
+| `log/changelog/` | 版本变更记录（NuGet 包 Agent ↔ Skill Agent 通讯） |
+| `_archive/` | 本机归档目录，已被 `.gitignore` 忽略，不作为主线提交内容 |
+| `.gitignore` | 排除 bin/obj/nupkg、测试输出、本机归档 |
 | `CLAUDE.md` | 就是这个文件 |
 | `README.md` + `README.zh-CN.md` | 中英文仓库首页 |
 | `LICENSE` | MIT |
 
 ### changelog 目录约定
 
-`changelog/` 是 NuGet 包开发 Agent 与 Skill 开发 Agent 之间的**通讯桥梁**。
+`log/changelog/` 是 NuGet 包开发 Agent 与 Skill 开发 Agent 之间的**通讯桥梁**。
 
-**格式**：`changelog/YYYY-MM-DD-topic.md`
+**格式**：`log/changelog/YYYY-MM-DD-topic.md`
 
 **规则**：
 - 每次版本发布后，写入一个或多个 changelog 文件
@@ -181,7 +228,7 @@ NuGet API Key 已保存在仓库的 CLAUDE.md 之外（环境变量 `$env:NUGET_
 - 文件内容包含：时间、影响包、变更类型、详细说明、技能须知
 
 **Skill Agent 职责**：
-- 每次接管时，先读取 `changelog/` 目录中比上次更新时间晚的文件
+- 每次接管时，先读取 `log/changelog/` 目录中比上次更新时间晚的文件
 - 根据"技能须知"更新对应 skill
 - 更新后记录已处理的文件
 
@@ -197,3 +244,5 @@ NuGet API Key 已保存在仓库的 CLAUDE.md 之外（环境变量 `$env:NUGET_
 6. **MSAGL 命名冲突**: `Path` 与 `System.IO.Path` 冲突，在 `RectilinearEdgeRouter.cs` 和 `StaticGraphUtility.cs` 中加了 using alias。`Timer` 与 `System.Threading.Timer` 冲突，在 `GlobalUsings.cs` 中加了全局 alias。
 7. **OpenXml 源生成器**: 必须保留为独立项目（Roslyn 分析器），不能在 ThirdParty 中合入。`ThirdParty.csproj` 通过 `OutputItemType="Analyzer"` 引用。
 8. **PowerShell 批量编辑 csproj 会损坏 XML**: 已写入禁止事项。用 Edit 工具逐个文件改。
+9. **Chart/Diagram native 渲染隔离**: `SkiaSharp/ScottPlot` 仍是 native 图像链。CLI 命令层必须通过 `NativeRenderWorkerHost` 启动隐藏 worker，不要把 `new Plot()`、`SavePng()`、`DiagramBuilder.*` 重新放回普通命令处理器。
+10. **默认测试不跑 native 图像渲染**: 不要把 Chart/Diagram/OCR/PDF render 的真实 PNG 生成测试加回默认 `dotnet test`。需要人工验证时用单独 smoke 或 worker 子进程。

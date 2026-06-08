@@ -2,6 +2,7 @@ using System.Globalization;
 using System.CommandLine;
 using System.Text.Json;
 using ClosedXML.Excel;
+using ExcelCore;
 using Nong.Cli.Common;
 
 namespace Nong.Cli.Commands;
@@ -19,6 +20,7 @@ public static class ExcelCommands
         cmd.AddCommand(CreateRead(jsonOpt));
         cmd.AddCommand(CreateToGroups(jsonOpt));
         cmd.AddCommand(CreateCreateXlsx(jsonOpt));
+        cmd.AddCommand(CreateDissect(jsonOpt));
 
         return cmd;
     }
@@ -228,6 +230,57 @@ public static class ExcelCommands
     }
 
     // ===== helpers =====
+
+    static Command CreateDissect(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to .xlsx file");
+        var outOpt = new Option<string>(new[] { "-o", "--output" }, "Output directory for NongPandoc slice") { IsRequired = true };
+        var cmd = new Command("dissect", "Slice xlsx into a NongPandoc package") { fileArg, outOpt };
+
+        cmd.SetHandler((string file, string output, bool json) =>
+        {
+            var err = ValidateXlsx(file);
+            if (err != null) { CliHelpers.WriteError("excel dissect", err, json); return; }
+
+            try
+            {
+                CliHelpers.EnsureParentDir(Path.Combine(output, ".keep"));
+                var (result, elapsed) = CliHelpers.Time(() => ExcelSlice.Slice(file, output));
+                if (json)
+                {
+                    var o = JsonOutput.Ok("excel dissect",
+                        $"Sliced: {result.SheetCount} sheets, {result.BlockCount} blocks",
+                        new { outputDir = result.OutputDir, sheetCount = result.SheetCount, blockCount = result.BlockCount, warnings = result.Warnings });
+                    o.Artifacts["dir"] = Path.GetFullPath(output);
+                    o.Metrics["sheets"] = result.SheetCount;
+                    o.Metrics["blocks"] = result.BlockCount;
+                    o.Metrics["warnings"] = result.Warnings.Count;
+                    o.Meta.DurationMs = elapsed;
+                    Console.WriteLine(JsonSerializer.Serialize(o, CliHelpers.JsonOpts));
+                }
+                else
+                {
+                    Console.WriteLine($"Sliced to {Path.GetFullPath(output)}: {result.SheetCount} sheets, {result.BlockCount} blocks");
+                    foreach (var warning in result.Warnings)
+                        Console.Error.WriteLine($"[WARN] {warning}");
+                }
+            }
+            catch (FileNotFoundException ex)
+            {
+                CliHelpers.WriteError("excel dissect", ErrorCodes.FileNotFound with { Message = ex.Message }, json);
+            }
+            catch (InvalidDataException ex)
+            {
+                CliHelpers.WriteError("excel dissect", ErrorCodes.UnsupportedFormat with { Message = ex.Message }, json);
+            }
+            catch (Exception ex)
+            {
+                CliHelpers.WriteError("excel dissect", ErrorCodes.InternalError with { Message = ex.Message }, json);
+            }
+        }, fileArg, outOpt, jsonOpt);
+
+        return cmd;
+    }
 
     static ErrorEntry? ValidateXlsx(string? path)
     {
