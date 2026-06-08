@@ -16,6 +16,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Pandoc\PandocCore.csproj" />
     <ProjectReference Include="..\ThirdParty\ThirdParty.csproj" />
   </ItemGroup>
 

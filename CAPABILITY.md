@@ -1,9 +1,9 @@
 # nong CLI 当前能力表 v3.2.5
 
-日期：2026-06-06
+日期：2026-06-07
 源：`nong commands --json` + 实测
-命令数：77 implemented
-测试：81 CLI tests PASS
+命令数：84 implemented
+测试：87 CLI tests PASS
 
 ---
 
@@ -17,16 +17,17 @@ nong word read file.docx   # 第一核心命令
 
 ---
 
-## 已实现命令（77 个）
+## 已实现命令（84 个）
 
-### word —— Word 文档引擎（32 个）
+### word —— Word 文档引擎（34 个）
 
-口径：29 个阶段 15 canonical Word leaf commands + 保留旧能力 `word extract` + 文档预检 `word check` + 边界转换 `word convert`，所以 Word 实际为 32 个 implemented leaf commands。`word add-*` hyphen 入口保留兼容，文档和 `commands --json` 以 `word add ...` 为 canonical。
+口径：29 个阶段 15 canonical Word leaf commands + 保留旧能力 `word extract` + 文档预检 `word check` + 边界转换 `word convert` + NongMark 直建 `word create` + 现有 DOCX 学术格式化 `word academic-format`，所以 Word 实际为 34 个 implemented leaf commands。`word add-*` hyphen 入口保留兼容，文档和 `commands --json` 以 `word add ...` 为 canonical。
 
 | 命令 | 功能 | 输入 | 示例 |
 |------|------|------|------|
 | `nong word check <file>` | 预检 .doc/.docx；报告转换需求、VML 图片、blockId 可用性 | .doc/.docx | `nong word check legacy.doc --json` |
 | `nong word convert <file> -o <f>` | 转换/复制为 .docx；.doc 使用 LibreOffice 或 Word COM 边界转换 | .doc/.docx | `nong word convert legacy.doc -o legacy.docx --json` |
+| `nong word create <file> -o <f>` | 从 NongMark 直接生成论文式 DOCX；长文档生成主路径 | .nongmark/.nmk | `nong word create document.nongmark -o document.docx --json` |
 | `nong word read <file>` | 提取纯文本 | .docx | `nong word read paper.docx` |
 | `nong word preview <file>` | 7 步诊断 | .docx | `nong word preview paper.docx` |
 | `nong word fill <tmpl> <data> -o <f>` | 模板填充 | .docx + .json | `nong word fill t.docx d.json -o out.docx` |
@@ -44,6 +45,7 @@ nong word read file.docx   # 第一核心命令
 | `nong word revisions <file>` | 列出修订记录 | .docx | `nong word revisions paper.docx --json` |
 | `nong word infer-format <text>` | 从中文推断格式 | 文本 | `nong word infer-format "黑体 四号 居中" --json` |
 | `nong word fix-order <file> -o <f>` | 修复 OOXML 元素顺序 | .docx | `nong word fix-order broken.docx -o fixed.docx` |
+| `nong word academic-format <file> -o <f>` | 对现有 DOCX 应用论文格式：宋体/Times New Roman、标题层级、三线表、括号英文斜体 | .docx | `nong word academic-format draft.docx -o draft.academic.docx --json` |
 | `nong word protect <file> -o <f> [--mode] [-p]` | 文档保护 | .docx | `nong word protect paper.docx -o protected.docx --mode readonly` |
 | `nong word embed-font <file> <font> -o <f> [--name]` | 嵌入字体 | .docx + .ttf | `nong word embed-font paper.docx font.ttf -o out.docx` |
 | `nong word add paragraph <file> --spec <spec.json> -o <f> [--after]` | 追加段落 | .docx + JSON | `nong word add paragraph doc.docx --spec paragraph.json -o out.docx` |
@@ -128,11 +130,11 @@ nong word read file.docx   # 第一核心命令
 | 命令 | 功能 | 输入 | 示例 |
 |------|------|------|------|
 | `nong pdf check <file>` | 预检 PDF；分类 text/hybrid/scan 并报告文字层、图片覆盖率、推荐路线 | .pdf | `nong pdf check guide.pdf --json` |
-| `nong pdf dissect <file> -o <dir>` | 输出 nongpdf/nongmark 一刀三流：`content.nongmark`、JSONL blocks、structure、format、diagnostics、assets | .pdf | `nong pdf dissect guide.pdf -o guide.slice --mode auto --json` |
+| `nong pdf dissect <file> -o <dir>` | 输出 nongpdf/nongmark 一刀三流：`content.nongmark`、`preview/content.txt`、JSONL blocks、structure、format、diagnostics、assets | .pdf | `nong pdf dissect guide.pdf -o guide.slice --mode auto --json` |
 | `nong pdf render <file> -o <dir>` | 通过本地 PDFium runtime 渲染页面 PNG | .pdf | `nong pdf render guide.pdf -o pages --dpi 150 --json` |
 | `nong pdf images <file> -o <dir>` | 提取 PDF 图片证据；保留 page/bbox，解码失败时保存 page-crop fallback PNG | .pdf | `nong pdf images guide.pdf -o assets --json` |
 
-`pdf dissect` 的主读物是 `content.nongmark`，不是普通 Markdown。`preview/content.md` 只是兼容预览。本地 text/hybrid 路线不需要 Python、Pandoc 可执行文件、MinerU 可执行文件或外部 OCR 进程。
+`pdf dissect` 的主读物是 `content.nongmark`，不是普通 Markdown。`preview/content.txt` 是纯文本预览。本地 text/hybrid 路线不需要 Python、Pandoc 可执行文件、MinerU 可执行文件或外部 OCR 进程。
 
 ### genre / icons —— 模板与素材（4 个）
 
@@ -166,7 +168,10 @@ nong chart bar groups.json -o fig.png --json
 ```
 ### 2. Word 生成 → 再读取
 ```bash
-nong inspect write-paper spec.json -o paper.docx --json
+nong word create document.nongmark -o paper.docx --json
+nong word validate paper.docx --json
+nong word dissect paper.docx -o paper.slice --json
+nong inspect write-paper spec.json -o paper.docx --json  # JSON spec 老路径，非 NongMark 主路径
 nong word preview paper.docx --json
 nong word read paper.docx --json
 ```
@@ -272,6 +277,7 @@ nong skill package ./plugin --json
 |------|------------|
 | .docx | word 主要命令；`.docx` 可直接 `check/convert/read/dissect/edit` |
 | .doc | 先 `word check`，再 `word convert` 为 .docx |
+| .nongmark/.nmk | word create；长文档和论文式 DOCX 生成主源 |
 | .txt | inspect 全部 10 个命令 |
 | .json (paper spec) | inspect write-paper |
 | .json (groups: `{"A":[1,2],"B":[3,4]}`) | chart analyze / anova / duncan / bar |

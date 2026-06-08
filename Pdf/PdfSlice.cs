@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using PandocCore;
 
 namespace PdfCore;
 
@@ -76,12 +77,11 @@ public static class PdfSlice
         ReindexBlocks(model.Blocks);
 
         WriteSliceFiles(pdfPath, outputDir, model, check);
-        VerifyCriticalArtifacts(outputDir);
 
         return new PdfSliceResult
         {
             OutputDir = Path.GetFullPath(outputDir),
-            ManifestPath = Path.GetFullPath(Path.Combine(outputDir, "manifest.json")),
+            ManifestPath = Path.GetFullPath(Path.Combine(outputDir, NongPandocArtifactNames.Manifest)),
             BlockCount = model.Blocks.Count,
             AssetCount = model.Assets.Count,
             PageCount = model.Pages.Count,
@@ -260,41 +260,79 @@ public static class PdfSlice
 
     static void WriteSliceFiles(string pdfPath, string outputDir, PdfDocumentModel model, PdfCheckResult check)
     {
-        Directory.CreateDirectory(outputDir);
-        Directory.CreateDirectory(Path.Combine(outputDir, "preview"));
-        Directory.CreateDirectory(Path.Combine(outputDir, "diagnostics"));
-        Directory.CreateDirectory(Path.Combine(outputDir, "assets"));
-        Directory.CreateDirectory(Path.Combine(outputDir, "ocr"));
-
-        var metrics = ComputeMetrics(model);
-        var manifest = new PdfManifest
+        try
         {
-            Source = model.Source,
-            CreatedAt = DateTime.UtcNow,
-            Metrics = metrics,
-            Warnings = model.Warnings.Distinct().ToList(),
-        };
-        PdfUtilities.WriteJson(Path.Combine(outputDir, "manifest.json"), manifest);
-        PdfUtilities.WriteJson(Path.Combine(outputDir, "document.json"), model);
+            Directory.CreateDirectory(outputDir);
+            Directory.CreateDirectory(Path.Combine(outputDir, "diagnostics"));
+            Directory.CreateDirectory(Path.Combine(outputDir, "ocr"));
 
-        using (var sw = new StreamWriter(Path.Combine(outputDir, "content.jsonl"), false, Encoding.UTF8))
-        {
-            foreach (var block in model.Blocks.OrderBy(b => b.Index))
+            var source = Path.GetFileName(pdfPath);
+            var metrics = ComputeMetrics(model);
+            var warnings = model.Warnings.Distinct().ToList();
+            var manifest = new NongPandocSliceManifest
             {
-                sw.WriteLine(JsonSerializer.Serialize(block, PdfUtilities.JsonlOpts));
-            }
+                Source = new NongPandocSourceInfo
+                {
+                    Path = source,
+                    Format = "pdf",
+                    Sha256 = model.Source.Sha256,
+                    PageCount = model.Source.PageCount,
+                },
+                CreatedAt = DateTime.UtcNow,
+                Metrics = ToPandocMetrics(metrics),
+                Warnings = warnings,
+            };
+            var structure = BuildStructure(source, model);
+            var format = BuildFormat(source, model);
+            var diagnostics = new
+            {
+                schemaVersion = "nongpdf/diagnostics/v1",
+                source,
+                warnings,
+                files = new[]
+                {
+                    Path.Combine("diagnostics", "check.json"),
+                    Path.Combine("diagnostics", "reading-order.json"),
+                    Path.Combine("diagnostics", "warnings.json"),
+                },
+            };
+            var assetManifest = new PdfAssetManifest { Source = source, Items = model.Assets };
+
+            NongPandocSlicePackageWriter.Write(
+                new NongPandocSliceWritePayload
+                {
+                    OutputDirectory = outputDir,
+                    Manifest = manifest,
+                    Document = model,
+                    ContentJsonlItems = model.Blocks.OrderBy(b => b.Index).Cast<object>().ToList(),
+                    NongMarkText = PdfNongMarkTextWriter.Write(model),
+                    Structure = structure,
+                    Format = format,
+                    Diagnostics = diagnostics,
+                    AssetsManifest = assetManifest,
+                    TextPreview = PdfTextPreviewWriter.Write(model),
+                },
+                new NongPandocSliceWriteOptions
+                {
+                    JsonOptions = PdfUtilities.JsonOpts,
+                    JsonlOptions = PdfUtilities.JsonlOpts,
+                    RequiredArtifacts = NongPandocSlicePackageWriter.DefaultRequiredArtifacts
+                        .Concat(new[] { NongPandocArtifactNames.TextPreview })
+                        .ToArray(),
+                });
+
+            PdfUtilities.WriteJson(Path.Combine(outputDir, "diagnostics", "check.json"), check);
+            PdfUtilities.WriteJson(Path.Combine(outputDir, "diagnostics", "reading-order.json"), PdfReadingOrder.BuildDiagnostics(model));
+            PdfUtilities.WriteJson(Path.Combine(outputDir, "diagnostics", "warnings.json"), warnings);
         }
-
-        var structure = BuildStructure(Path.GetFileName(pdfPath), model);
-        PdfUtilities.WriteJson(Path.Combine(outputDir, "structure.json"), structure);
-        PdfUtilities.WriteJson(Path.Combine(outputDir, "format.json"), BuildFormat(Path.GetFileName(pdfPath), model));
-
-        File.WriteAllText(Path.Combine(outputDir, "content.nongmark"), PdfNongMarkTextWriter.Write(model), Encoding.UTF8);
-        File.WriteAllText(Path.Combine(outputDir, "preview", "content.md"), PdfMarkdownPreviewWriter.Write(model), Encoding.UTF8);
-        PdfUtilities.WriteJson(Path.Combine(outputDir, "diagnostics", "check.json"), check);
-        PdfUtilities.WriteJson(Path.Combine(outputDir, "diagnostics", "reading-order.json"), PdfReadingOrder.BuildDiagnostics(model));
-        PdfUtilities.WriteJson(Path.Combine(outputDir, "diagnostics", "warnings.json"), model.Warnings.Distinct().ToList());
-        WriteIfMissing(Path.Combine(outputDir, "assets", "manifest.json"), new PdfAssetManifest { Source = Path.GetFileName(pdfPath), Items = model.Assets });
+        catch (NongPandocSliceWriteException ex)
+        {
+            throw new PdfProcessingException(PdfErrorKind.WriteFailed, ex.Message, ex);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or NotSupportedException)
+        {
+            throw new PdfProcessingException(PdfErrorKind.WriteFailed, $"Failed to write PDF slice package: {ex.Message}", ex);
+        }
     }
 
     static PdfSliceMetrics ComputeMetrics(PdfDocumentModel model) => new()
@@ -307,6 +345,18 @@ public static class PdfSlice
         OcrTextBlocks = model.Blocks.Count(b => b.Kind == "ocrText"),
         Tables = model.Blocks.Count(b => b.Kind == "table"),
         Warnings = model.Warnings.Distinct().Count(),
+    };
+
+    static NongPandocMetrics ToPandocMetrics(PdfSliceMetrics metrics) => new()
+    {
+        Blocks = metrics.Blocks,
+        Paragraphs = metrics.Paragraphs,
+        Headings = metrics.Headings,
+        Tables = metrics.Tables,
+        Figures = 0,
+        Images = metrics.Images,
+        References = 0,
+        Warnings = metrics.Warnings,
     };
 
     static PdfStructure BuildStructure(string source, PdfDocumentModel model)
@@ -322,6 +372,17 @@ public static class PdfSlice
                 TextPreview = PdfUtilities.Preview(block.Text),
                 Bbox = block.Bbox,
                 Source = block.Source,
+                Provenance = new NongPandocBlockProvenance
+                {
+                    Format = "pdf",
+                    Source = block.Source,
+                    Page = block.Page,
+                    Position = block.Index,
+                    Bbox = block.Bbox.Length > 0 ? block.Bbox : null,
+                    AssetId = block.AssetId,
+                    Confidence = block.Confidence ?? "high",
+                    Notes = block.Warnings.Count > 0 ? block.Warnings : null,
+                },
             };
 
             var page = structure.Pages.FirstOrDefault(p => p.Page == block.Page);
@@ -380,6 +441,23 @@ public static class PdfSlice
         }
 
         format.Fonts = format.Fonts.Distinct().OrderBy(f => f).ToList();
+        format.VisualEvidence = new NongPandocVisualEvidence
+        {
+            Format = "pdf",
+            Source = source,
+            Fonts = format.Fonts,
+            Tables = model.Blocks
+                .Where(b => b.Kind == "table")
+                .Select(b => $"{b.BlockId}:page={b.Page};bbox={string.Join(",", b.Bbox)}")
+                .ToList(),
+            Layout = model.Pages
+                .Select(p => $"page{p.Page}:{p.Width}x{p.Height}{p.Unit};readingOrder={p.ReadingOrderMethod}")
+                .ToList(),
+            Assets = model.Assets
+                .Select(a => $"{a.Id}:page={a.Page};bbox={string.Join(",", a.Bbox)};method={a.ExtractionMethod}")
+                .ToList(),
+            Warnings = format.Warnings,
+        };
         return format;
     }
 
@@ -395,32 +473,4 @@ public static class PdfSlice
         Directory.CreateDirectory(full);
     }
 
-    static void WriteIfMissing(string path, object value)
-    {
-        if (!File.Exists(path))
-            PdfUtilities.WriteJson(path, value);
-    }
-
-    static void VerifyCriticalArtifacts(string outputDir)
-    {
-        var required = new[]
-        {
-            "manifest.json",
-            "document.json",
-            "content.jsonl",
-            "structure.json",
-            "format.json",
-            "content.nongmark",
-            Path.Combine("assets", "manifest.json")
-        };
-
-        foreach (var relative in required)
-        {
-            var path = Path.Combine(outputDir, relative);
-            if (!File.Exists(path))
-                throw new PdfProcessingException(PdfErrorKind.WriteFailed, $"Required artifact was not created: {relative}");
-            if (new FileInfo(path).Length == 0)
-                throw new PdfProcessingException(PdfErrorKind.WriteFailed, $"Required artifact is empty: {relative}");
-        }
-    }
 }

@@ -4,13 +4,13 @@
 
 ```bash
 dotnet tool install --global Angri450.Nong.Cli --add-source https://mirrors.huaweicloud.com/repository/nuget/v3/index.json
-nong commands --json       # discover all commands (82 implemented)
+nong commands --json       # discover all commands (92 implemented)
 nong word read file.docx   # extract text
 ```
 
 ## Command Discovery
 
-`nong commands --json` returns 82 implemented commands. `nong commands --all --json` includes all.
+`nong commands --json` returns 92 implemented commands. `nong commands --all --json` includes all.
 Use this first in any session to know what's available.
 
 ## Input Formats
@@ -19,8 +19,9 @@ Use this first in any session to know what's available.
 |---------|---------------|
 | `word check` | .doc or .docx preflight |
 | `word convert` | .doc or .docx input + output .docx (-o); .doc uses LibreOffice or Word COM boundary conversion |
+| `word create` | .nongmark/.nmk input + output .docx (-o) |
 | `word read/preview/rebuild/stats/fonts/styles/validate` | .docx |
-| `word dissect` | .docx; optional `-o <dir>` writes nongmark/v1 one-cut three-stream output |
+| `word dissect` | .docx; optional `-o <dir>` writes `nong-pandoc/package/v1` package |
 | `word fill` | template .docx + data .json |
 | `word extract` | .docx + output dir (-o) |
 | `word merge` | 2+ .docx + output path (-o) |
@@ -29,7 +30,10 @@ Use this first in any session to know what's available.
 | `word comments` | .docx |
 | `word revisions` | .docx |
 | `word infer-format` | Chinese format text |
-| `word fix-order` | .docx + output .docx (-o) |
+| `word fix-order` | .docx + output .docx (-o); internal OOXML/structure repair only, not visible formatting completion |
+| `word academic-format` | .docx + output .docx (-o); visible academic formatting repair for headings/body/tables/fonts/spacing |
+| `word format-audit` | .docx; read-only visible formatting evidence for headings/body/tables/fonts/spacing |
+| `word repair-plan` | N/A; machine-readable routing rules for choosing Word repair commands |
 | `word protect` | .docx + output .docx (-o) + optional --mode (readonly/comments/tracked/forms) + optional -p |
 | `word embed-font` | .docx + .ttf/.otf font + output .docx (-o) + optional --name |
 | `word add paragraph` | .docx + --spec JSON file or inline JSON + output .docx (-o) + optional --after |
@@ -48,9 +52,11 @@ Use this first in any session to know what's available.
 | `chart bar/line/scatter/pie` | spec .json + output .png (-o) |
 | `excel sheets/read/to-groups` | .xlsx |
 | `excel create` | spec .json + output .xlsx (-o) |
+| `excel dissect` | .xlsx + output slice dir (-o); writes `nong-pandoc/package/v1` package |
 | `diagram flowchart/network` | spec .json + output .png (-o) |
 | `diagram tree` | Newick .nwk/.txt or .json + output .png (-o) |
 | `pptx read/slides` | .pptx |
+| `pptx dissect` | .pptx + output slice dir (-o); writes `nong-pandoc/package/v1` package |
 | `ocr cloud` | image/pdf + output dir (-o); requires PADDLEOCR_ACCESS_TOKEN |
 | `ocr local` | image file; local PP-OCRv5 through pure .NET runtime; no Python |
 | `ocr check-env` | N/A; returns imageAnalyzer, cloudToken, localModel, localDotNetPpOcrV5 status |
@@ -61,6 +67,10 @@ Use this first in any session to know what's available.
 | `lit parse/validate/plan` | CNKI-like query string via --query |
 | `lit search` | CNKI-like query string via --query; OpenAlex/Crossref metadata search; Unpaywall DOI/OA lookup requires configured email |
 | `lit export` | LiteratureSearchResult JSON or PaperRecord array via --input; --format json/markdown/bibtex |
+| `slice inspect` | NongPandoc slice directory; verifies package contract and reports AI read order; add `--strict` for provenance evidence checks |
+| `slice blocks` | NongPandoc slice directory; lists canonical `content.jsonl` blocks through the shared reader |
+| `slice block` | NongPandoc slice directory + block ID; reads unified content, structure, format, diagnostics, and asset evidence |
+| `slice assets` | NongPandoc slice directory; lists package assets through the shared reader |
 | `genre list/show` | N/A |
 | `icons list/search` | N/A |
 | `skill validate/scan/inventory/package` | directory path |
@@ -246,6 +256,7 @@ nong inspect gap paper.txt --json          # gap grade only
 nong excel to-groups data.xlsx --group A --value B --raw > groups.json
 nong chart analyze groups.json --json
 nong chart bar groups.json -o fig.png --json
+nong excel dissect data.xlsx -o data.slice --json
 → Read: artifacts.png for the generated chart
 ```
 
@@ -258,6 +269,9 @@ nong chart pie pie-spec.json -o pie.png --json
 
 ### Generate a paper from spec
 ```
+nong word create document.nongmark -o paper.docx --json
+nong word validate paper.docx --json
+nong word dissect paper.docx -o paper.slice --json
 nong inspect write-paper spec.json -o paper.docx --json
 → Read: artifacts.docx
 ```
@@ -274,7 +288,34 @@ nong word dissect paper.docx -o paper.slice --json
 ```
 nong pptx read slides.pptx --json
 nong pptx slides slides.pptx --json
+nong pptx dissect slides.pptx -o slides.slice --json
 ```
+
+`word dissect`, `pdf dissect`, `excel dissect`, and `pptx dissect` all write the same top-level NongPandoc package contract. Read `content.nongmark` first, then `structure.json`, `format.json`, and `diagnostics.json`. `manifest.json` uses `schemaVersion: "nong-pandoc/package/v1"`.
+
+### Word repair routing
+```
+nong word repair-plan --json
+nong word fix-order input.docx -o input.ooxml-fixed.docx --json
+nong word academic-format input.docx -o input.academic-fixed.docx --json
+nong word format-audit input.academic-fixed.docx --json
+```
+
+Do not treat `word fix-order`, `word validate`, `word preview`, `word outline`, or `word dissect` as proof that a Word document is visibly repaired. `fix-order` is for internal OOXML/structure cleanup. For a user request like "make this Word document look better", use `word academic-format`, then verify with `word format-audit`, `word validate`, `word dissect`, `slice inspect --strict`, and `format.json.visualEvidence`. Output names should say what changed: use `.ooxml-fixed.docx` for internal repair and `.academic-fixed.docx` for visible academic formatting.
+
+`word format-audit` is read-only. Read `data.statusLevel`, `data.score`, `data.headings`, `data.body`, `data.tables`, `data.fonts`, `data.lineSpacing`, `data.latinNames`, and top-level `issues` before claiming visible formatting quality. Warnings mean the command ran successfully but found visible-format risks.
+
+Inspect any slice before handing it to an AI:
+
+```
+nong slice inspect paper.slice --json
+nong slice inspect paper.slice --strict --json
+nong slice blocks paper.slice --json
+nong slice block paper.slice p0001 --json
+nong slice assets paper.slice --json
+```
+
+Read `data.aiReadOrder`, `data.streams`, `data.metrics`, `data.warnings`, `data.evidence`, and `data.artifacts`. `preview/content.txt` is a lossy preview; do not treat it as canonical content. For AI block-level reads, prefer `slice block <id>` over opening format-specific files directly.
 
 ### Skill lifecycle
 ```

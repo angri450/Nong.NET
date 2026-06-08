@@ -26,6 +26,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Docx\DocxCore.csproj" />
     <ProjectReference Include="..\Inspect\Inspect.csproj" />
+    <ProjectReference Include="..\Excel\ExcelCore.csproj" />
     <ProjectReference Include="..\Chart\ChartCore.csproj" />
     <ProjectReference Include="..\Diagram\DiagramCore.csproj" />
     <ProjectReference Include="..\Genre\Genre.csproj" />
@@ -35,6 +36,7 @@
     <ProjectReference Include="..\MultiModal\MultiModalCore.csproj" />
     <ProjectReference Include="..\Pdf\PdfCore.csproj" />
     <ProjectReference Include="..\Literature\LiteratureCore.csproj" />
+    <ProjectReference Include="..\Pandoc\PandocCore.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="/" />

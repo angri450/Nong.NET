@@ -21,12 +21,13 @@ public static class Manifest
         // === word ===
         list.Add(new("word check", "Preflight .doc/.docx before conversion, slicing, or editing", "word", []));
         list.Add(new("word convert", "Convert legacy .doc to .docx as a boundary step", "word", []));
+        list.Add(new("word create", "Create DOCX directly from authored NongMark", "word", []));
         list.Add(new("word read", "Extract plain text from a .docx file", "word", []));
         list.Add(new("word preview", "7-step document structure diagnostic", "word", []));
         list.Add(new("word fill", "Template fill from JSON data", "word", []));
         list.Add(new("word rebuild", "Clean OOXML style pollution", "word", []));
         list.Add(new("word extract", "Extract embedded images", "word", []));
-        list.Add(new("word dissect", "Format fingerprint or nongmark/v1 one-cut three-stream slice", "word", []));
+        list.Add(new("word dissect", "Format fingerprint or NongPandoc package slice", "word", []));
         list.Add(new("word stats", "Document statistics", "word", []));
         list.Add(new("word fonts", "List all fonts", "word", []));
         list.Add(new("word styles", "List all style definitions", "word", []));
@@ -37,7 +38,10 @@ public static class Manifest
         list.Add(new("word comments", "Read document comments", "word", []));
         list.Add(new("word revisions", "List tracked changes", "word", []));
         list.Add(new("word infer-format", "Infer OpenXML format from Chinese description", "word", []));
-        list.Add(new("word fix-order", "Fix OOXML element ordering", "word", []));
+        list.Add(new("word fix-order", "Internal OOXML/structure repair only; not a visible formatting repair", "word", []));
+        list.Add(new("word academic-format", "Visible academic Word formatting repair for headings, body text, tables, fonts, and spacing", "word", []));
+        list.Add(new("word format-audit", "Read-only visible Word formatting evidence audit for headings, body text, tables, fonts, and spacing", "word", []));
+        list.Add(new("word repair-plan", "Explain which Word repair command to use and how to verify visible formatting repairs", "word", []));
         list.Add(new("word protect", "Apply document protection", "word", []));
         list.Add(new("word embed-font", "Embed font into document", "word", []));
         list.Add(new("word add paragraph", "Append paragraph to document", "word", ["word add-paragraph"]));
@@ -75,11 +79,12 @@ public static class Manifest
         list.Add(new("chart scatter", "Scatter plot", "chart", []));
         list.Add(new("chart pie", "Pie chart", "chart", []));
 
-        // === excel (implemented: sheets, read, to-groups, create) ===
+        // === excel (implemented: sheets, read, to-groups, create, dissect) ===
         list.Add(new("excel sheets", "List worksheets", "excel", []));
         list.Add(new("excel read", "Read xlsx content", "excel", []));
         list.Add(new("excel to-groups", "Convert Excel columns to grouped data", "excel", []));
         list.Add(new("excel create", "Create xlsx from JSON spec", "excel", []));
+        list.Add(new("excel dissect", "Slice xlsx into a NongPandoc package", "excel", []));
 
         // === diagram (implemented: flowchart, network, tree) ===
         list.Add(new("diagram flowchart", "Flowchart from JSON spec", "diagram", []));
@@ -100,9 +105,10 @@ public static class Manifest
         list.Add(new("skill inventory", "List skill directory contents", "skill", []));
         list.Add(new("skill package", "Validate + scan + package skill into .zip", "skill", []));
 
-        // === pptx (implemented: read, slides) ===
+        // === pptx (implemented: read, slides, dissect) ===
         list.Add(new("pptx read", "Extract slide text", "pptx", []));
         list.Add(new("pptx slides", "List slide structure", "pptx", []));
+        list.Add(new("pptx dissect", "Slice pptx into a NongPandoc package", "pptx", []));
 
         // === ocr (implemented: cloud, local, check-env, analyze-image, models, install-model, to-word) ===
         list.Add(new("ocr local", "Local PP-OCRv5 Chinese text recognition through pure .NET runtime", "ocr", []));
@@ -115,7 +121,7 @@ public static class Manifest
 
         // === pdf (implemented: check, dissect, render, images) ===
         list.Add(new("pdf check", "Preflight PDF and classify text/hybrid/scan route", "pdf", []));
-        list.Add(new("pdf dissect", "Slice PDF into nongpdf/nongmark one-cut three-stream package", "pdf", []));
+        list.Add(new("pdf dissect", "Slice PDF into a NongPandoc package", "pdf", []));
         list.Add(new("pdf render", "Render PDF pages to PNG images through local PDFium runtime", "pdf", []));
         list.Add(new("pdf images", "Extract embedded PDF images with page/bbox provenance", "pdf", []));
 
@@ -125,6 +131,12 @@ public static class Manifest
         list.Add(new("lit plan", "Plan provider rough queries for literature retrieval", "lit", []));
         list.Add(new("lit search", "Search legal metadata/OA literature providers with local strict filtering", "lit", []));
         list.Add(new("lit export", "Export normalized literature results as JSON, Markdown, or BibTeX", "lit", []));
+
+        // === slice (implemented: inspect, blocks, block, assets) ===
+        list.Add(new("slice inspect", "Inspect a NongPandoc package contract and AI read order", "slice", []));
+        list.Add(new("slice blocks", "List content blocks from a NongPandoc package", "slice", []));
+        list.Add(new("slice block", "Read one block with unified content, structure, format, diagnostics, and assets", "slice", []));
+        list.Add(new("slice assets", "List assets from a NongPandoc package", "slice", []));
 
         return list;
     }

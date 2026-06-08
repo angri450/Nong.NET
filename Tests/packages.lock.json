@@ -184,11 +184,15 @@
       "Angri450.Nong.Excel": {
         "type": "Project",
         "dependencies": {
+          "Angri450.Nong.Pandoc": "[3.2.5, )",
           "Angri450.Nong.ThirdParty": "[3.2.5, )",
           "System.IO.Packaging": "[10.0.2, )"
         }
       },
       "Angri450.Nong.Literature": {
+        "type": "Project"
+      },
+      "Angri450.Nong.Pandoc": {
         "type": "Project"
       },
       "Angri450.Nong.ThirdParty": {

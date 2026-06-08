@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using PandocCore;
 
 namespace PdfCore;
 
@@ -131,13 +132,14 @@ public sealed record PdfSourceInfo
 
 public sealed record PdfStreamPaths
 {
-    public string DocumentJson { get; set; } = "document.json";
-    public string ContentJsonl { get; set; } = "content.jsonl";
-    public string StructureJson { get; set; } = "structure.json";
-    public string FormatJson { get; set; } = "format.json";
-    public string NongmarkText { get; set; } = "content.nongmark";
-    public string MarkdownPreview { get; set; } = "preview/content.md";
-    public string AssetsManifest { get; set; } = "assets/manifest.json";
+    public string DocumentJson { get; set; } = NongPandocArtifactNames.Document;
+    public string ContentJsonl { get; set; } = NongPandocArtifactNames.ContentJsonl;
+    public string StructureJson { get; set; } = NongPandocArtifactNames.Structure;
+    public string FormatJson { get; set; } = NongPandocArtifactNames.Format;
+    public string NongmarkText { get; set; } = NongPandocArtifactNames.ContentNongMark;
+    public string TextPreview { get; set; } = NongPandocArtifactNames.TextPreview;
+    public string AssetsManifest { get; set; } = NongPandocArtifactNames.AssetsManifest;
+    public string Diagnostics { get; set; } = NongPandocArtifactNames.Diagnostics;
 }
 
 public sealed record PdfSliceMetrics
@@ -245,6 +247,7 @@ public sealed record PdfBlockIndexEntry
     public string? TextPreview { get; set; }
     public double[] Bbox { get; set; } = Array.Empty<double>();
     public string Source { get; set; } = "";
+    public NongPandocBlockProvenance? Provenance { get; set; }
 }
 
 public sealed record PdfPageStructure
@@ -260,6 +263,7 @@ public sealed record PdfFormatDocument
     public List<PdfPageFormat> Pages { get; set; } = new();
     public List<string> Fonts { get; set; } = new();
     public List<string> Warnings { get; set; } = new();
+    public NongPandocVisualEvidence VisualEvidence { get; set; } = new();
 }
 
 public sealed record PdfPageFormat
