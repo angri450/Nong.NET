@@ -7,6 +7,9 @@ using ClosedXML.Excel;
 using D = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
 using PandocCore;
+using UglyToad.PdfPig.Core;
+using UglyToad.PdfPig.Fonts.Standard14Fonts;
+using UglyToad.PdfPig.Writer;
 using Xunit;
 
 namespace Nong.Cli.Tests;
@@ -490,13 +493,19 @@ public class CliContractTests
             var pptxSlice = Path.Combine(dir, "pptx.slice");
             Assert.Equal(0, Run("pptx", "dissect", pptxPath, "-o", pptxSlice, "--json").exitCode);
 
+            var pdfPath = Path.Combine(dir, "sample.pdf");
+            CreateContractPdf(pdfPath);
             var pdfSlice = Path.Combine(dir, "pdf.slice");
-            WriteSyntheticPackage(pdfSlice, "pdf", "pdf paragraph");
+            Assert.Equal(0, Run("pdf", "dissect", pdfPath, "-o", pdfSlice, "--json").exitCode);
 
             AssertSliceInspect(wordSlice, "docx");
             AssertSliceInspect(excelSlice, "xlsx");
             AssertSliceInspect(pptxSlice, "pptx");
             AssertSliceInspect(pdfSlice, "pdf");
+            AssertStrictSliceInspect(wordSlice, "docx");
+            AssertStrictSliceInspect(excelSlice, "xlsx");
+            AssertStrictSliceInspect(pptxSlice, "pptx");
+            AssertStrictSliceInspect(pdfSlice, "pdf");
         }
         finally
         {
@@ -615,8 +624,10 @@ public class CliContractTests
                 Assert.True(layout.GetProperty("width").GetDouble() > 0);
             });
 
+            var pdfPath = Path.Combine(dir, "sample.pdf");
+            CreateContractPdf(pdfPath);
             var pdfSlice = Path.Combine(dir, "pdf.slice");
-            WriteSyntheticPackage(pdfSlice, "pdf", "pdf paragraph");
+            Assert.Equal(0, Run("pdf", "dissect", pdfPath, "-o", pdfSlice, "--json").exitCode);
             AssertBlockProvenance(pdfSlice, "pdf", p =>
             {
                 Assert.Equal("pdfText", p.GetProperty("source").GetString());
@@ -656,8 +667,10 @@ public class CliContractTests
             Assert.Equal(0, Run("pptx", "dissect", pptxPath, "-o", pptxSlice, "--json").exitCode);
             AssertVisualEvidence(pptxSlice, "pptx");
 
+            var pdfPath = Path.Combine(dir, "sample.pdf");
+            CreateContractPdf(pdfPath);
             var pdfSlice = Path.Combine(dir, "pdf.slice");
-            WriteSyntheticPackage(pdfSlice, "pdf", "pdf paragraph");
+            Assert.Equal(0, Run("pdf", "dissect", pdfPath, "-o", pdfSlice, "--json").exitCode);
             AssertVisualEvidence(pdfSlice, "pdf");
         }
         finally
@@ -794,6 +807,19 @@ public class CliContractTests
         workbook.SaveAs(path);
     }
 
+    static void CreateContractPdf(string path)
+    {
+        using var builder = new PdfDocumentBuilder();
+        var font = builder.AddStandard14Font(Standard14Font.Helvetica);
+        var bold = builder.AddStandard14Font(Standard14Font.HelveticaBold);
+        var page = builder.AddPage(595, 842);
+        page.AddText("Nong PDF Contract Title", 18, new PdfPoint(72, 760), bold);
+        page.AddText("This PDF has selectable text and stable coordinates.", 12, new PdfPoint(72, 720), font);
+        page.AddText("Table A | Treatment | Yield", 12, new PdfPoint(72, 680), font);
+        page.AddText("Row 1 | Control | 12.5", 12, new PdfPoint(72, 660), font);
+        File.WriteAllBytes(path, builder.Build());
+    }
+
     static void WriteSyntheticPackage(string sliceDir, string format, string text, bool includeProvenance = true)
     {
         NongPandocSlicePackageWriter.Write(new NongPandocSliceWritePayload
@@ -884,6 +910,19 @@ public class CliContractTests
         Assert.True(new FileInfo(Path.Combine(sliceDir, "structure.json")).Length > 0);
         Assert.True(new FileInfo(Path.Combine(sliceDir, "format.json")).Length > 0);
         Assert.True(new FileInfo(Path.Combine(sliceDir, "diagnostics.json")).Length > 0);
+    }
+
+    void AssertStrictSliceInspect(string sliceDir, string expectedFormat)
+    {
+        var (json, exit) = Run("slice", "inspect", sliceDir, "--strict", "--json");
+        Assert.Equal(0, exit);
+
+        using var doc = Parse(json);
+        var data = doc.RootElement.GetProperty("data");
+        Assert.Equal(expectedFormat, data.GetProperty("source").GetProperty("format").GetString());
+        var evidence = data.GetProperty("evidence");
+        Assert.True(evidence.GetProperty("valid").GetBoolean());
+        Assert.True(evidence.GetProperty("checkedBlocks").GetInt32() > 0);
     }
 
     void AssertBlockProvenance(string sliceDir, string expectedFormat, Action<JsonElement> extraAssertions)

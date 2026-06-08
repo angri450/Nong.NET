@@ -1648,8 +1648,16 @@ public static class WordCommands
     {
         var fileArg = new Argument<string>("file", "Path to .docx file");
         var profileOpt = new Option<string>("--profile", () => "academic", "Audit profile: academic");
-        var cmd = new Command("format-audit", "Audit visible Word formatting evidence for headings, body text, tables, fonts, and spacing") { fileArg, profileOpt };
-        cmd.SetHandler((string file, string profile, bool json) =>
+        var failOnWarningOpt = new Option<bool>("--fail-on-warning", () => false, "Return E006 when the audit reports warning or fail status.");
+        var minScoreOpt = new Option<int?>("--min-score", "Return E006 when the audit score is lower than this threshold.");
+        var cmd = new Command("format-audit", "Audit visible Word formatting evidence for headings, body text, tables, fonts, and spacing")
+        {
+            fileArg,
+            profileOpt,
+            failOnWarningOpt,
+            minScoreOpt,
+        };
+        cmd.SetHandler((string file, string profile, bool failOnWarning, int? minScore, bool json) =>
         {
             const string command = "word format-audit";
             var err = CliHelpers.ValidateDocxFile(file);
@@ -1660,21 +1668,46 @@ public static class WordCommands
                     ErrorCodes.ValidationFailed with { Message = "Unsupported --profile. Supported: academic." }, json);
                 return;
             }
+            if (minScore is < 0 or > 100)
+            {
+                CliHelpers.WriteError(command,
+                    ErrorCodes.ValidationFailed with { Message = "--min-score must be between 0 and 100." }, json);
+                return;
+            }
 
             try
             {
                 var (result, elapsed) = CliHelpers.Time(() => WordFormatAuditor.Audit(file, profile));
+                var gateFailures = GetFormatAuditGateFailures(result, failOnWarning, minScore);
+                var gateFailed = gateFailures.Count > 0;
                 if (json)
                 {
-                    var output = JsonOutput.Ok(command,
-                        $"Format audit {result.StatusLevel}: {result.Summary.Issues} issue(s), score {result.Score}",
-                        result);
+                    var output = gateFailed
+                        ? new JsonOutput
+                        {
+                            Status = "error",
+                            Command = command,
+                            Summary = $"Format audit gate failed: {string.Join("; ", gateFailures)}",
+                            Data = result,
+                            Errors = new List<ErrorEntry>
+                            {
+                                ErrorCodes.ValidationFailed with
+                                {
+                                    Message = $"Format audit gate failed: {string.Join("; ", gateFailures)}",
+                                },
+                            },
+                            Meta = new MetaInfo { Version = CliVersion.Current },
+                        }
+                        : JsonOutput.Ok(command,
+                            $"Format audit {result.StatusLevel}: {result.Summary.Issues} issue(s), score {result.Score}",
+                            result);
                     output.Metrics["score"] = result.Score;
                     output.Metrics["issues"] = result.Summary.Issues;
                     output.Metrics["headings"] = result.Summary.Headings;
                     output.Metrics["bodyParagraphs"] = result.Summary.BodyParagraphs;
                     output.Metrics["tables"] = result.Summary.Tables;
                     output.Metrics["threeLineTables"] = result.Tables.ThreeLineLike;
+                    output.Metrics["gateFailed"] = gateFailed;
                     output.Meta.DurationMs = elapsed;
                     foreach (var issue in result.Issues)
                     {
@@ -1685,6 +1718,15 @@ public static class WordCommands
                             Message = issue.BlockId == null
                                 ? issue.Message
                                 : $"{issue.BlockId}: {issue.Message}",
+                        });
+                    }
+                    foreach (var failure in gateFailures)
+                    {
+                        output.Issues.Add(new Issue
+                        {
+                            Id = "format_audit_gate",
+                            Severity = "error",
+                            Message = failure,
                         });
                     }
                     Console.WriteLine(JsonSerializer.Serialize(output, CliHelpers.JsonOpts));
@@ -1698,14 +1740,31 @@ public static class WordCommands
                     Console.WriteLine($"Tables: {result.Tables.ThreeLineLike}/{result.Tables.Total} three-line-like");
                     foreach (var issue in result.Issues.Take(20))
                         Console.WriteLine($"[{issue.Severity}] {issue.BlockId ?? "-"} {issue.Id}: {issue.Message}");
+                    foreach (var failure in gateFailures)
+                        Console.Error.WriteLine($"[error] format_audit_gate: {failure}");
                 }
+
+                if (gateFailed)
+                    Environment.ExitCode = 1;
             }
             catch (Exception ex)
             {
                 CliHelpers.WriteError(command, ErrorCodes.InternalError with { Message = ex.Message }, json);
             }
-        }, fileArg, profileOpt, jsonOpt);
+        }, fileArg, profileOpt, failOnWarningOpt, minScoreOpt, jsonOpt);
         return cmd;
+    }
+
+    static List<string> GetFormatAuditGateFailures(WordFormatAuditResult result, bool failOnWarning, int? minScore)
+    {
+        var failures = new List<string>();
+        if (result.StatusLevel.Equals("fail", StringComparison.OrdinalIgnoreCase))
+            failures.Add("statusLevel is fail");
+        if (failOnWarning && result.StatusLevel.Equals("warn", StringComparison.OrdinalIgnoreCase))
+            failures.Add("statusLevel is warn and --fail-on-warning was set");
+        if (minScore.HasValue && result.Score < minScore.Value)
+            failures.Add($"score {result.Score} is lower than --min-score {minScore.Value}");
+        return failures;
     }
 
     static Command CreateRepairPlan(Option<bool> jsonOpt)

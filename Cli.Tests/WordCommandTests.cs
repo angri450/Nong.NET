@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using M = DocumentFormat.OpenXml.Math;
 using DocumentFormat.OpenXml.Wordprocessing;
 using Xunit;
 
@@ -381,6 +382,110 @@ public class WordCommandTests
   </w:tr>
 </w:tbl>";
 
+        return path;
+    }
+
+    static string CreateControlledDirtyAcademicDocx()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "test-controlled-dirty-academic-" + Guid.NewGuid().ToString("N")[..8] + ".docx");
+        using var doc = WordprocessingDocument.Create(path, WordprocessingDocumentType.Document);
+        var main = doc.AddMainDocumentPart();
+
+        var stylesPart = main.AddNewPart<StyleDefinitionsPart>();
+        stylesPart.Styles = new Styles();
+        stylesPart.Styles.InnerXml =
+            @"<w:style xmlns:w=""http://schemas.openxmlformats.org/wordprocessingml/2006/main"" w:type=""paragraph"" w:default=""1"" w:styleId=""Normal""><w:name w:val=""Normal"" /></w:style>
+  <w:style w:type=""table"" w:styleId=""DirtyTableStyle"">
+    <w:name w:val=""Dirty Table Style"" />
+    <w:tblPr><w:tblBorders><w:top w:val=""single"" w:sz=""4"" /></w:tblBorders></w:tblPr>
+    <w:tcPr><w:tcW w:w=""5000"" w:type=""pct"" /></w:tcPr>
+  </w:style>";
+
+        var settingsPart = main.AddNewPart<DocumentSettingsPart>();
+        settingsPart.Settings = new Settings(
+            new ThemeFontLanguages { Val = "zh-CN" },
+            new M.MathProperties(),
+            new Rsids(new RsidRoot { Val = "00112233" }));
+
+        main.Document = new Document(new Body());
+        main.Document.Body!.InnerXml =
+            @"<w:p xmlns:w=""http://schemas.openxmlformats.org/wordprocessingml/2006/main"">
+  <w:r><w:rPr><w:rFonts w:eastAsia=""仿宋"" w:ascii=""Calibri""/><w:sz w:val=""22""/></w:rPr><w:t>校企共建沸石基矿物材料教授工作站方案书</w:t></w:r>
+</w:p>
+<w:p xmlns:w=""http://schemas.openxmlformats.org/wordprocessingml/2006/main"">
+  <w:r><w:rPr><w:rFonts w:eastAsia=""仿宋"" w:ascii=""Calibri""/><w:sz w:val=""18""/></w:rPr><w:t>一、项目摘要</w:t></w:r>
+</w:p>
+<w:p xmlns:w=""http://schemas.openxmlformats.org/wordprocessingml/2006/main"">
+  <w:pPr><w:spacing w:line=""120"" w:lineRule=""exact""/><w:shd w:val=""clear"" w:fill=""D9EAF7""/></w:pPr>
+  <w:r><w:rPr><w:rFonts w:eastAsia=""微软雅黑"" w:ascii=""Calibri""/><w:sz w:val=""18""/></w:rPr><w:t>本研究以番茄（Solanum lycopersicum）为对象，验证N2O、H2O2与O2-格式。</w:t></w:r>
+</w:p>
+<w:p xmlns:w=""http://schemas.openxmlformats.org/wordprocessingml/2006/main"">
+  <w:pPr><w:ind w:firstLine=""480""/><w:shd w:val=""clear"" w:fill=""D9EAF7""/></w:pPr>
+  <w:r><w:rPr><w:shd w:val=""clear"" w:fill=""D9EAF7""/></w:rPr><w:t>表1 试验结果统计</w:t></w:r>
+</w:p>
+<w:tbl xmlns:w=""http://schemas.openxmlformats.org/wordprocessingml/2006/main"">
+  <w:tblPr>
+    <w:tblStyle w:val=""DirtyTableStyle"" />
+    <w:tblW w:w=""5000"" w:type=""pct"" />
+    <w:tblBorders>
+      <w:left w:val=""single"" w:sz=""4"" />
+      <w:insideV w:val=""single"" w:sz=""4"" />
+    </w:tblBorders>
+    <w:shd w:val=""clear"" w:fill=""D9EAF7""/>
+    <w:tblLook w:val=""04A0"" w:firstRow=""1"" w:lastRow=""0"" w:firstColumn=""1"" w:lastColumn=""0"" w:noHBand=""0"" w:noVBand=""1"" />
+  </w:tblPr>
+  <w:tblGrid><w:gridCol w:w=""2500"" /><w:gridCol w:w=""2500"" /></w:tblGrid>
+  <w:tr>
+    <w:tc>
+      <w:p><w:pPr><w:ind w:firstLine=""480""/><w:shd w:val=""clear"" w:fill=""D9EAF7""/></w:pPr><w:r><w:rPr><w:shd w:val=""clear"" w:fill=""D9EAF7""/></w:rPr><w:t>指标</w:t></w:r></w:p>
+      <w:tcPr><w:tcW w:w=""2500"" w:type=""pct""/><w:shd w:val=""clear"" w:fill=""D9EAF7""/></w:tcPr>
+    </w:tc>
+    <w:tc>
+      <w:p><w:pPr><w:ind w:firstLine=""480""/></w:pPr><w:r><w:t>结果</w:t></w:r></w:p>
+      <w:tcPr><w:tcW w:w=""2500"" w:type=""pct""/></w:tcPr>
+    </w:tc>
+  </w:tr>
+  <w:tr>
+    <w:tc><w:p><w:pPr><w:ind w:firstLine=""480""/></w:pPr><w:r><w:t>材料吸附性能</w:t></w:r></w:p><w:tcPr><w:tcW w:w=""2500"" w:type=""pct""/></w:tcPr></w:tc>
+    <w:tc><w:p><w:pPr><w:ind w:firstLine=""480""/></w:pPr><w:r><w:t>稳定提升</w:t></w:r></w:p><w:tcPr><w:tcW w:w=""2500"" w:type=""pct""/></w:tcPr></w:tc>
+  </w:tr>
+</w:tbl>
+<w:sectPr xmlns:w=""http://schemas.openxmlformats.org/wordprocessingml/2006/main"">
+  <w:cols w:space=""720"" />
+  <w:docGrid w:type=""lines"" w:linePitch=""120"" />
+</w:sectPr>";
+
+        return path;
+    }
+
+    static string CreateLongWideTableDocx()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "test-long-wide-table-" + Guid.NewGuid().ToString("N")[..8] + ".docx");
+        using var doc = WordprocessingDocument.Create(path, WordprocessingDocumentType.Document);
+        doc.AddMainDocumentPart();
+
+        var table = new Table(
+            new TableRow(
+                new TableCell(new Paragraph(new Run(new Text("样品")))),
+                new TableCell(new Paragraph(new Run(new Text("C1")))),
+                new TableCell(new Paragraph(new Run(new Text("C2")))),
+                new TableCell(new Paragraph(new Run(new Text("C3")))),
+                new TableCell(new Paragraph(new Run(new Text("C4")))),
+                new TableCell(new Paragraph(new Run(new Text("C5"))))));
+        for (var i = 1; i <= 5; i++)
+        {
+            table.Append(new TableRow(
+                new TableCell(new Paragraph(new Run(new Text($"S{i}")))),
+                new TableCell(new Paragraph(new Run(new Text($"{i}-1")))),
+                new TableCell(new Paragraph(new Run(new Text($"{i}-2")))),
+                new TableCell(new Paragraph(new Run(new Text($"{i}-3")))),
+                new TableCell(new Paragraph(new Run(new Text($"{i}-4")))),
+                new TableCell(new Paragraph(new Run(new Text($"{i}-5"))))));
+        }
+
+        doc.MainDocumentPart!.Document = new Document(new Body(
+            new Paragraph(new Run(new Text("表1 过长过宽试验表"))),
+            table));
         return path;
     }
 
@@ -1496,7 +1601,7 @@ date: 2026-06-07
             var (formatJson, formatExit) = Run("word", "academic-format", docx, "-o", outPath, "--json");
             Assert.True(formatExit == 0, formatJson);
 
-            var (auditJson, auditExit) = Run("word", "format-audit", outPath, "--json");
+            var (auditJson, auditExit) = Run("word", "format-audit", outPath, "--fail-on-warning", "--min-score", "95", "--json");
             Assert.True(auditExit == 0, auditJson);
 
             using var auditDoc = Parse(auditJson);
@@ -1578,6 +1683,37 @@ date: 2026-06-07
     }
 
     [Fact]
+    public void WordFormatAudit_GateOptions_ReturnE006WithFullAuditData()
+    {
+        RequireCli();
+        var docx = CreateMinimalDocx();
+        try
+        {
+            var (json, exit) = Run("word", "format-audit", docx, "--fail-on-warning", "--min-score", "100", "--json");
+
+            Assert.NotEqual(0, exit);
+            using var doc = Parse(json);
+            var root = doc.RootElement;
+            Assert.Equal("error", root.GetProperty("status").GetString());
+            Assert.Equal("word format-audit", root.GetProperty("command").GetString());
+            Assert.Equal("E006", root.GetProperty("errors")[0].GetProperty("code").GetString());
+            Assert.True(root.GetProperty("data").TryGetProperty("statusLevel", out _));
+            Assert.True(root.GetProperty("data").TryGetProperty("headings", out _));
+            Assert.True(root.GetProperty("data").TryGetProperty("body", out _));
+            Assert.True(root.GetProperty("data").TryGetProperty("tables", out _));
+            Assert.True(root.GetProperty("data").TryGetProperty("chemistry", out _));
+            Assert.True(root.GetProperty("metrics").GetProperty("gateFailed").GetBoolean());
+            Assert.Contains(root.GetProperty("issues").EnumerateArray(),
+                issue => issue.GetProperty("id").GetString() == "format_audit_gate"
+                    && issue.GetProperty("severity").GetString() == "error");
+        }
+        finally
+        {
+            try { File.Delete(docx); } catch { }
+        }
+    }
+
+    [Fact]
     public void WordDissect_AcademicFormattedDoc_IncludesFormatAuditVisualEvidence()
     {
         RequireCli();
@@ -1618,6 +1754,69 @@ date: 2026-06-07
             Assert.Equal(
                 visual.GetProperty("audit").GetProperty("chemistryCandidates").GetString(),
                 visual.GetProperty("audit").GetProperty("chemistrySubscripted").GetString());
+        }
+        finally
+        {
+            try { File.Delete(docx); } catch { }
+            try { Directory.Delete(dir, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public void WordAcademicFormat_ControlledDirtyOoxmlMatrix_RepairsVisualAndSchemaEvidence()
+    {
+        RequireCli();
+        var docx = CreateControlledDirtyAcademicDocx();
+        var dir = Path.Combine(Path.GetTempPath(), "nong-controlled-dirty-" + Guid.NewGuid().ToString("N")[..8]);
+        var outPath = Path.Combine(dir, "controlled.academic.docx");
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var (formatJson, formatExit) = Run("word", "academic-format", docx, "-o", outPath, "--json");
+            Assert.True(formatExit == 0, formatJson);
+
+            var (validateJson, validateExit) = Run("word", "validate", outPath, "--json");
+            Assert.True(validateExit == 0, validateJson);
+
+            var (auditJson, auditExit) = Run("word", "format-audit", outPath, "--fail-on-warning", "--min-score", "95", "--json");
+            Assert.True(auditExit == 0, auditJson);
+            using var audit = Parse(auditJson);
+            var data = audit.RootElement.GetProperty("data");
+            Assert.Equal("pass", data.GetProperty("statusLevel").GetString());
+            Assert.True(data.GetProperty("score").GetInt32() >= 95);
+            Assert.True(data.GetProperty("lineSpacing").GetProperty("paragraphLines").TryGetProperty("480", out _));
+            Assert.False(data.GetProperty("lineSpacing").GetProperty("documentGridDetected").GetBoolean());
+
+            var tables = data.GetProperty("tables");
+            Assert.Equal(1, tables.GetProperty("total").GetInt32());
+            Assert.Equal(1, tables.GetProperty("threeLineLike").GetInt32());
+            Assert.Equal(0, tables.GetProperty("withShading").GetInt32());
+            Assert.Equal(1, tables.GetProperty("headerRowsRepeated").GetInt32());
+
+            var chemistry = data.GetProperty("chemistry");
+            Assert.True(chemistry.GetProperty("candidates").GetInt32() >= 3);
+            Assert.Equal(chemistry.GetProperty("candidates").GetInt32(), chemistry.GetProperty("subscripted").GetInt32());
+            Assert.Contains(chemistry.GetProperty("samples").EnumerateArray(),
+                s => s.GetProperty("formula").GetString() == "N2O"
+                    && s.GetProperty("subscriptedDigits").GetBoolean());
+
+            var documentXml = ReadZipEntry(outPath, "word/document.xml");
+            var stylesXml = ReadZipEntry(outPath, "word/styles.xml");
+            Assert.DoesNotContain("<w:docGrid", documentXml);
+            Assert.Empty(Regex.Matches(documentXml, @"w:(firstRow|lastRow|firstColumn|lastColumn|noHBand|noVBand)="));
+            Assert.Equal(0, CountMisplacedTableCellProperties(documentXml));
+            Assert.Equal(0, CountDirectStyleTableCellProperties(stylesXml));
+            Assert.DoesNotContain(XDocument.Parse(documentXml).Descendants(WordprocessingNs + "tbl").Descendants(WordprocessingNs + "shd"),
+                _ => true);
+
+            var document = XDocument.Parse(documentXml);
+            AssertFormulaDigitsSubscript(document, "N2O");
+            AssertFormulaDigitsSubscript(document, "H2O2");
+            AssertFormulaDigitsSubscript(document, "O2-");
+            AssertThreeLineTableBorders(document.Descendants(WordprocessingNs + "tbl").Single());
+
+            var settingsXml = ReadZipEntry(outPath, "word/settings.xml");
+            AssertMathSettingsOrder(settingsXml);
         }
         finally
         {
@@ -1930,6 +2129,60 @@ date: 2026-06-07
             Assert.Equal(new[] { "样品", "C3", "C4" }, secondHeader);
             foreach (var table in tables)
                 AssertThreeLineTableBorders(table);
+        }
+        finally
+        {
+            try { File.Delete(docx); } catch { }
+            try { File.Delete(outPath); } catch { }
+        }
+    }
+
+    [Fact]
+    public void WordTableReflow_LongWideTable_SplitsRowsAndColumnsWithContinuationEvidence()
+    {
+        RequireCli();
+        var docx = CreateLongWideTableDocx();
+        var outPath = Path.Combine(Path.GetTempPath(), "nong-table-reflow-long-wide-" + Guid.NewGuid().ToString("N")[..8] + ".docx");
+        try
+        {
+            var (json, exit) = Run("word", "table-reflow", docx, "-o", outPath,
+                "--max-rows", "2", "--max-cols", "3", "--repeat-left-cols", "1", "--json");
+            Assert.True(exit == 0, json);
+
+            using var reflowDoc = Parse(json);
+            var data = reflowDoc.RootElement.GetProperty("data");
+            Assert.Equal(1, data.GetProperty("longTablesSplit").GetInt32());
+            Assert.Equal(1, data.GetProperty("wideTablesSplit").GetInt32());
+            Assert.Equal(9, data.GetProperty("outputTables").GetInt32());
+            Assert.Equal(8, data.GetProperty("continuationLabelsInserted").GetInt32());
+
+            var (validateJson, validateExit) = Run("word", "validate", outPath, "--json");
+            Assert.True(validateExit == 0, validateJson);
+
+            var documentXml = ReadZipEntry(outPath, "word/document.xml");
+            var document = XDocument.Parse(documentXml);
+            var tables = document.Descendants(WordprocessingNs + "tbl").ToList();
+            Assert.Equal(9, tables.Count);
+            Assert.Equal(8, document.Descendants(WordprocessingNs + "p").Count(p => ParagraphText(p).Contains("续表", StringComparison.Ordinal)));
+
+            var headers = tables
+                .Select(table => table.Elements(WordprocessingNs + "tr").First().Elements(WordprocessingNs + "tc").Select(CellText).ToArray())
+                .ToArray();
+            Assert.Equal(new[] { "样品", "C1", "C2" }, headers[0]);
+            Assert.Equal(new[] { "样品", "C3", "C4" }, headers[3]);
+            Assert.Equal(new[] { "样品", "C5" }, headers[6]);
+
+            for (var i = 0; i < tables.Count; i++)
+            {
+                var table = tables[i];
+                Assert.NotNull(table.Element(WordprocessingNs + "tr")?.Element(WordprocessingNs + "trPr")?.Element(WordprocessingNs + "tblHeader"));
+                AssertThreeLineTableBorders(table);
+
+                var bottomSize = TableBorder(table.Element(WordprocessingNs + "tblPr")?.Element(WordprocessingNs + "tblBorders"), "bottom")
+                    ?.Attribute(WordprocessingNs + "sz")
+                    ?.Value;
+                Assert.Equal(i % 3 == 2 ? "12" : "6", bottomSize);
+            }
         }
         finally
         {

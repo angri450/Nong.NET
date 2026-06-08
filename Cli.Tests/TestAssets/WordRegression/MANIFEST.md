@@ -2,6 +2,8 @@
 
 Every real Word bug file should become a test asset or a generated fixture.
 Use stable ASCII filenames and record the original issue in this manifest.
+Generated fixtures are also first-class regression samples when they encode a
+specific dirty OOXML or visual-format failure more precisely than a real file.
 
 ## Categories
 
@@ -21,14 +23,22 @@ Use stable ASCII filenames and record the original issue in this manifest.
 | `academic-format/zeolite-workstation-original.docx` | `13C3C924BAC235BECD8732D9277ED408B840F8C812375A9E9FB655DEBDE425C9` | dirty-ooxml, mixed-fonts, line-spacing, table-anomalies | `academic-format -> validate -> format-audit -> dissect` | weak visible typography, table border cleanup, Latin-name italics, chemistry subscript evidence |
 | `academic-format/zeolite-workstation-beautified.docx` | `8A43052E8DD49F83AB9F0F6B9065705DCBD66D752444F34CA3BBED14736FEA8F` | dirty-ooxml, mixed-fonts, line-spacing, table-anomalies, ai-failures | `academic-format -> validate -> format-audit -> dissect` | visually compressed document, legacy table/style artifacts, table shading/indent cleanup, chemistry subscript evidence |
 
+## Generated Fixtures
+
+| Test | Category | Expected Route | Bug Types |
+|---|---|---|---|
+| `WordAcademicFormat_ControlledDirtyOoxmlMatrix_RepairsVisualAndSchemaEvidence` | dirty-ooxml, table-anomalies, line-spacing, mixed-fonts | generated docx -> `academic-format -> validate -> format-audit --fail-on-warning --min-score 95` | legacy `tblLook`, misplaced `tcPr`, direct `style/tcPr`, `m:mathPr` settings order, `docGrid` conflict, table shading, table cell indent, compressed line spacing, bad fonts, chemistry subscripts |
+| `WordTableReflow_LongWideTable_SplitsRowsAndColumnsWithContinuationEvidence` | table-anomalies | generated docx -> `table-reflow -> validate` | long table row chunks, wide table column groups, repeated key columns, continuation labels, repeated header rows, previous-part thin bottom line, final thick bottom line |
+
 ## Required Checks
 
 For each deliverable generated from a regression asset:
 
 ```powershell
 nong word validate <out.docx> --json
-nong word format-audit <out.docx> --json
+nong word format-audit <out.docx> --fail-on-warning --min-score 95 --json
 nong word dissect <out.docx> --output <slice-dir> --json
+nong slice inspect <slice-dir> --strict --json
 ```
 
 Then inspect:

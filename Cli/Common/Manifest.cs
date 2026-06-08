@@ -40,7 +40,7 @@ public static class Manifest
         list.Add(new("word infer-format", "Infer OpenXML format from Chinese description", "word", []));
         list.Add(new("word fix-order", "Internal OOXML/structure repair only; not a visible formatting repair", "word", []));
         list.Add(new("word academic-format", "Visible academic Word formatting repair for headings, body text, tables, fonts, and spacing", "word", []));
-        list.Add(new("word format-audit", "Read-only visible Word formatting evidence audit for headings, body text, tables, fonts, and spacing", "word", []));
+        list.Add(new("word format-audit", "Read-only visible Word formatting evidence audit for headings, body text, tables, fonts, spacing, and CI gates", "word", []));
         list.Add(new("word repair-plan", "Explain which Word repair command to use and how to verify visible formatting repairs", "word", []));
         list.Add(new("word protect", "Apply document protection", "word", []));
         list.Add(new("word embed-font", "Embed font into document", "word", []));
