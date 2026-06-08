@@ -32,7 +32,7 @@ Use this first in any session to know what's available.
 | `word infer-format` | Chinese format text |
 | `word fix-order` | .docx + output .docx (-o); internal OOXML/structure repair only, not visible formatting completion |
 | `word academic-format` | .docx + output .docx (-o); visible academic formatting repair for headings/body/tables/fonts/spacing |
-| `word format-audit` | .docx; read-only visible formatting evidence for headings/body/tables/fonts/spacing |
+| `word format-audit` | .docx; read-only visible formatting evidence for headings/body/tables/fonts/spacing; add `--fail-on-warning` and/or `--min-score <0-100>` for CI gates |
 | `word repair-plan` | N/A; machine-readable routing rules for choosing Word repair commands |
 | `word protect` | .docx + output .docx (-o) + optional --mode (readonly/comments/tracked/forms) + optional -p |
 | `word embed-font` | .docx + .ttf/.otf font + output .docx (-o) + optional --name |
@@ -299,11 +299,12 @@ nong word repair-plan --json
 nong word fix-order input.docx -o input.ooxml-fixed.docx --json
 nong word academic-format input.docx -o input.academic-fixed.docx --json
 nong word format-audit input.academic-fixed.docx --json
+nong word format-audit input.academic-fixed.docx --fail-on-warning --min-score 95 --json
 ```
 
 Do not treat `word fix-order`, `word validate`, `word preview`, `word outline`, or `word dissect` as proof that a Word document is visibly repaired. `fix-order` is for internal OOXML/structure cleanup. For a user request like "make this Word document look better", use `word academic-format`, then verify with `word format-audit`, `word validate`, `word dissect`, `slice inspect --strict`, and `format.json.visualEvidence`. Output names should say what changed: use `.ooxml-fixed.docx` for internal repair and `.academic-fixed.docx` for visible academic formatting.
 
-`word format-audit` is read-only. Read `data.statusLevel`, `data.score`, `data.headings`, `data.body`, `data.tables`, `data.fonts`, `data.lineSpacing`, `data.latinNames`, and top-level `issues` before claiming visible formatting quality. Warnings mean the command ran successfully but found visible-format risks.
+`word format-audit` is read-only. Read `data.statusLevel`, `data.score`, `data.headings`, `data.body`, `data.tables`, `data.fonts`, `data.lineSpacing`, `data.latinNames`, and top-level `issues` before claiming visible formatting quality. Warnings mean the command ran successfully but found visible-format risks. Use `--fail-on-warning` and `--min-score` in regression/CI so typography, spacing, table, Latin-name, and chemistry evidence can fail the run with E006 while still returning full audit data.
 
 Inspect any slice before handing it to an AI:
 

@@ -12,6 +12,7 @@ Every Word deliverable must have evidence for:
 - `word dissect`: `content.nongmark`, `preview/content.txt`, `content.jsonl`, `structure.json`, and `format.json` exist.
 - Formatting claims: verified from `format.json.visualEvidence`, `word format-audit`, `content.jsonl`, `fonts`, `styles`, or direct OOXML inspection.
 - Existing-document formatting: schema-valid plus visual intent checks for fonts, spacing, paragraph layout, table borders, table shading, table-cell indentation, Latin-name italics, and chemistry subscripts.
+- CI visual-quality gates: `word format-audit --fail-on-warning --min-score <n> --json` must return success for protected regression samples.
 
 ## Paragraph Scenarios
 
@@ -56,6 +57,7 @@ Notes:
 
 - `word academic-format` removes document grid conflicts from formatted deliverables and normalizes body/table spacing to `atLeast`.
 - `word format-audit` reports document-grid presence when a source document still carries `w:docGrid`.
+- Controlled dirty fixtures cover exact-line compression plus `w:docGrid` conflicts and assert that formatted outputs pass `format-audit --fail-on-warning --min-score 95`.
 
 ## Table Scenarios
 
@@ -69,6 +71,10 @@ Notes:
 | Repeating header rows | yes | yes | yes | yes |
 | Dirty OOXML order | n/a | diagnostic | yes | yes |
 
+Notes:
+
+- Controlled generated fixtures now cover legacy `tblLook` attributes, misplaced `tcPr`, direct `style/tcPr`, table shading, table-cell first-line indent, `m:mathPr` settings order, mixed fonts, compressed line spacing, and chemistry subscripts.
+
 ## Table Reflow Rules
 
 `word academic-format` repairs visible academic table styling, but it does not change table structure. Structural table layout changes are explicit and must use `word table-reflow`.
@@ -80,6 +86,8 @@ Notes:
 | Cross-page table | Use explicit row chunks as continuation tables; repeat table number/title/header; continuation top line is 1.5 pt; previous-page/previous-part bottom line is 0.75 pt; final bottom line is 1.5 pt. | `word table-reflow --max-rows <n> --continuation-label 续表` | yes |
 
 Current boundary: Nong does not yet run a pagination/rendering engine, so cross-page behavior is deterministic continuation-table reflow by explicit row thresholds, not automatic page-overflow detection.
+
+Regression now includes combined long+wide reflow: row chunks, column groups, repeated left key columns, continuation labels, repeated header rows, 0.75 pt previous-part bottom lines, and 1.5 pt final bottom lines.
 
 ## Image Scenarios
 
