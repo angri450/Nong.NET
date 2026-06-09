@@ -1,12 +1,12 @@
-# CLAUDE.md — Nong.NET
+# CLAUDE.md — Nong.Cli.Net
 
 Pure .NET scientific document generation toolkit. Zero JavaScript. One merged foundation DLL.
 
 ## 仓库
 
-- GitHub: `https://github.com/angri450/Nong.NET`
-- Gitee: `https://gitee.com/angri450/Nong.NET`
-- GitCode: `git@gitcode.com:angri450/Nong.NET.git`
+- GitHub: `https://github.com/angri450/Nong.Cli.Net`
+- Gitee: `https://gitee.com/angri450/Nong.NET`（待改名）
+- GitCode: `git@gitcode.com:angri450/Nong.NET.git`（待改名）
 - 主分支: `master`
 - 协议: Apache-2.0
 
