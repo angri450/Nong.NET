@@ -1021,7 +1021,7 @@ public static class OcrCommands
         {
             "win-x64" => new NativeRuntimePlan(
                 runtimeId,
-                new NativeRuntimePackage("Angri450.Nong.OcrRuntime.WinX64", CliVersion.Current, "runtimes/win-x64/native/"),
+                new NativeRuntimePackage("Angri450.Nong.OcrRuntime.WinX64", OcrRuntimeVersion.Current, "runtimes/win-x64/native/"),
                 new[]
                 {
                     new NativeRuntimePackage("Sdcb.PaddleInference.runtime.win64.mkl", "3.3.1.70", "runtimes/win-x64/native/"),
@@ -1029,7 +1029,7 @@ public static class OcrCommands
                 }),
             "linux-x64" => new NativeRuntimePlan(
                 runtimeId,
-                new NativeRuntimePackage("Angri450.Nong.OcrRuntime.LinuxX64", CliVersion.Current, "runtimes/linux-x64/native/"),
+                new NativeRuntimePackage("Angri450.Nong.OcrRuntime.LinuxX64", OcrRuntimeVersion.Current, "runtimes/linux-x64/native/"),
                 new[]
                 {
                     new NativeRuntimePackage("Sdcb.PaddleInference.runtime.linux-x64.openblas", "3.3.1.70", "runtimes/linux-x64/native/"),
@@ -1037,7 +1037,7 @@ public static class OcrCommands
                 }),
             "linux-arm64" => new NativeRuntimePlan(
                 runtimeId,
-                new NativeRuntimePackage("Angri450.Nong.OcrRuntime.LinuxArm64", CliVersion.Current, "runtimes/linux-arm64/native/"),
+                new NativeRuntimePackage("Angri450.Nong.OcrRuntime.LinuxArm64", OcrRuntimeVersion.Current, "runtimes/linux-arm64/native/"),
                 new[]
                 {
                     new NativeRuntimePackage("Sdcb.PaddleInference.runtime.linux-arm64", "3.3.1.70", "runtimes/linux-arm64/native/"),
@@ -1045,7 +1045,7 @@ public static class OcrCommands
                 }),
             "osx-x64" => new NativeRuntimePlan(
                 runtimeId,
-                new NativeRuntimePackage("Angri450.Nong.OcrRuntime.OsxX64", CliVersion.Current, "runtimes/osx-x64/native/"),
+                new NativeRuntimePackage("Angri450.Nong.OcrRuntime.OsxX64", OcrRuntimeVersion.Current, "runtimes/osx-x64/native/"),
                 new[]
                 {
                     new NativeRuntimePackage("Sdcb.PaddleInference.runtime.osx-x64", "3.3.1.70", "runtimes/osx-x64/native/"),
@@ -1053,7 +1053,7 @@ public static class OcrCommands
                 }),
             "osx-arm64" => new NativeRuntimePlan(
                 runtimeId,
-                new NativeRuntimePackage("Angri450.Nong.OcrRuntime.OsxArm64", CliVersion.Current, "runtimes/osx-arm64/native/"),
+                new NativeRuntimePackage("Angri450.Nong.OcrRuntime.OsxArm64", OcrRuntimeVersion.Current, "runtimes/osx-arm64/native/"),
                 new[]
                 {
                     new NativeRuntimePackage("Sdcb.PaddleInference.runtime.osx-arm64", "3.3.1.70", "runtimes/osx-arm64/native/"),

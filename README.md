@@ -29,6 +29,7 @@ nong commands --json</code></pre>
 
 <p>That's it for the core Office, chart, diagram, skill, and local OCR workflows. No Node.js, no Docker, no Python.</p>
 <p>For local OCR, run <code>nong ocr install-model pp-ocrv5-mobile --source https://mirrors.huaweicloud.com/repository/nuget/v3/index.json --json</code> once. It installs the current-platform first-party <code>Angri450.Nong.OcrRuntime.*</code> native runtime bundle into the Nong cache and removes temporary downloads after installation.</p>
+<p>The OCR runtime bundle is maintained in a separate <code>Angri450.Nong.OcrRuntime</code> repository with its own pinned version and is not republished for ordinary CLI, Word, or PDF patch releases unless the native runtime contents change.</p>
 
 <p>The CLI targets <code>net8.0</code> and the packaged tool opts into major-version roll-forward, so current .NET 9/10 runtimes can run it. If an older installed build fails on a newer runtime, update the tool or set <code>DOTNET_ROLL_FORWARD=LatestMajor</code>.</p>
 

@@ -22,6 +22,7 @@ nong commands --json</code></pre>
 
 <p>核心 Office、图表、流程图、skill 和本地 OCR 工作流仅此而已。不需要 Node.js、不需要 Docker、不需要 Python。</p>
 <p>本地 OCR 首次使用前运行 <code>nong ocr install-model pp-ocrv5-mobile --source https://mirrors.huaweicloud.com/repository/nuget/v3/index.json --json</code>。它会把当前平台的第一方 <code>Angri450.Nong.OcrRuntime.*</code> native runtime bundle 安装到 Nong 缓存，安装后自动清理临时下载目录。</p>
+<p>OCR runtime bundle 在独立 <code>Angri450.Nong.OcrRuntime</code> 仓库维护并使用独立锁定版本；普通 CLI、Word、PDF 小版本发布不会重新推送 OCR 大包，除非 native runtime 内容发生变化。</p>
 
 <p>CLI 目标框架是 <code>net8.0</code>，打包工具已启用主版本 roll-forward，因此当前 .NET 9/10 运行时也能运行。旧安装包如果在新运行时失败，请更新工具，或设置 <code>DOTNET_ROLL_FORWARD=LatestMajor</code>。</p>
 

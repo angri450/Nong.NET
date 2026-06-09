@@ -128,7 +128,7 @@ nong word read file.docx   # 第一核心命令
 | `nong ocr install-model <id>` | 从华为 NuGet/cache 安装或检查当前平台第一方 `Angri450.Nong.OcrRuntime.*` PP-OCRv5 native runtime bundle；`--dry-run` 输出部署方案 | model-id | `nong ocr install-model pp-ocrv5-mobile --dry-run --json` |
 | `nong ocr to-word <file> -o <docx> [--pages]` | 云端 OCR 转 Word 文档 | image/pdf | `nong ocr to-word scan.png -o out.docx --json` |
 
-`ocr local` 是纯 .NET 本地 PP-OCRv5 入口，使用 `Sdcb.PaddleOCR`、ChineseV5 managed 模型元数据和按平台拆分的 `Angri450.Nong.OcrRuntime.*` native runtime bundle；客户机不安装 Python、不编译模型。`ocr install-model pp-ocrv5-mobile --dry-run` 输出华为 NuGet 部署方案，非 dry-run 默认只从 Nong 第一方 runtime bundle 部署；上游 Sdcb/OpenCvSharp fallback 必须显式加 `--allow-upstream-fallback`。
+`ocr local` 是纯 .NET 本地 PP-OCRv5 入口，使用 `Sdcb.PaddleOCR`、ChineseV5 managed 模型元数据和独立 `Angri450.Nong.OcrRuntime` 仓库维护的 `Angri450.Nong.OcrRuntime.*` native runtime bundle；客户机不安装 Python、不编译模型。`ocr install-model pp-ocrv5-mobile --dry-run` 输出华为 NuGet 部署方案，非 dry-run 默认只从 Nong 第一方 runtime bundle 部署，runtime bundle 版本由 `OcrRuntimeVersion.Current` 独立锁定，不随 CLI/Word/PDF 小版本自动变化；上游 Sdcb/OpenCvSharp fallback 必须显式加 `--allow-upstream-fallback`。
 
 ### pdf —— 本地 PDF 一刀三流（4 个）
 
