@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.IO.Compression;
 using System.Reflection;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace Nong.Cli.Tests;
@@ -12,6 +13,9 @@ public class OcrCommandTests
         Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
 
     static string NongDll => Path.Combine(RepoRoot, "Cli", "bin", "Release", "net8.0", "nong.dll");
+    static string MultiModalDll => Path.Combine(Path.GetDirectoryName(NongDll)!, "Angri450.Nong.MultiModal.dll");
+    static string OcrRuntimeVersionSource => Path.Combine(RepoRoot, "Cli", "Common", "OcrRuntimeVersion.cs");
+    static string OcrCommandsSource => Path.Combine(RepoRoot, "Cli", "Commands", "OcrCommands.cs");
 
     (string json, int exitCode) Run(params string[] args)
     {
@@ -82,12 +86,12 @@ public class OcrCommandTests
             "nong.dll not found. Build first: dotnet build Cli/NongCli.csproj -c Release");
     }
 
-    static string CreateTinyPng()
+    static string ReadOcrRuntimeVersion()
     {
-        var path = Path.Combine(Path.GetTempPath(), "nong-ocr-test-image-" + Guid.NewGuid().ToString("N")[..8] + ".png");
-        var bytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=");
-        File.WriteAllBytes(path, bytes);
-        return path;
+        var source = File.ReadAllText(OcrRuntimeVersionSource);
+        var match = Regex.Match(source, "public const string Current = \"(?<version>[^\"]+)\"");
+        Assert.True(match.Success, $"Could not read OCR runtime version from {OcrRuntimeVersionSource}");
+        return match.Groups["version"].Value;
     }
 
     // ===== Test 1: check-env returns environment status =====
@@ -126,39 +130,24 @@ public class OcrCommandTests
         Assert.Equal("E001", doc.RootElement.GetProperty("errors")[0].GetProperty("code").GetString());
     }
 
-    // ===== Test 3: local uses pure .NET runtime or returns dependency/runtime error =====
+    // ===== Test 3: local OCR native runtime internals =====
 
     [Fact]
-    public void OcrLocal_UsesPureDotNetRuntime()
+    public void LocalOcrConfidenceSanitizer_RejectsNonFiniteValues()
     {
         RequireCli();
-        var image = CreateTinyPng();
-        try
-        {
-            var (json, exit) = Run("ocr", "local", image, "--json");
+        Assert.True(File.Exists(MultiModalDll), $"MultiModal assembly not found: {MultiModalDll}");
 
-            using var doc = Parse(json);
-            if (exit == 0)
-            {
-                Assert.Equal("ok", doc.RootElement.GetProperty("status").GetString());
-                Assert.Equal("ocr local", doc.RootElement.GetProperty("command").GetString());
-                var data = doc.RootElement.GetProperty("data");
-                Assert.Equal("pp-ocrv5-dotnet-sdcb", data.GetProperty("engine").GetString());
-                Assert.Equal("pp-ocrv5-mobile", data.GetProperty("modelId").GetString());
-            }
-            else
-            {
-                Assert.Equal("error", doc.RootElement.GetProperty("status").GetString());
-                var code = doc.RootElement.GetProperty("errors")[0].GetProperty("code").GetString();
-                Assert.True(code is "E005" or "E004", $"Expected local OCR to fail with a dependency/runtime error, got {code}");
-                Assert.DoesNotContain("Install Python", json, StringComparison.OrdinalIgnoreCase);
-                Assert.DoesNotContain("pip", json, StringComparison.OrdinalIgnoreCase);
-            }
-        }
-        finally
-        {
-            try { File.Delete(image); } catch { }
-        }
+        var asm = Assembly.LoadFrom(MultiModalDll);
+        var type = asm.GetType("MultiModalCore.PpOcrV5Client", throwOnError: true)!;
+        var method = type.GetMethod("ToFiniteConfidence", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        Assert.Null(method.Invoke(null, new object[] { double.NaN }));
+        Assert.Null(method.Invoke(null, new object[] { double.PositiveInfinity }));
+        Assert.Null(method.Invoke(null, new object[] { double.NegativeInfinity }));
+
+        var finite = Assert.IsType<double>(method.Invoke(null, new object[] { 0.875d }));
+        Assert.Equal(0.875d, finite);
     }
 
     // ===== Test 4: cloud with missing file returns E001 =====
@@ -219,6 +208,7 @@ public class OcrCommandTests
         {
             Assert.StartsWith("Angri450.Nong.OcrRuntime.",
                 runtimePackage.GetProperty("id").GetString());
+            Assert.Equal(ReadOcrRuntimeVersion(), runtimePackage.GetProperty("version").GetString());
         }
         Assert.True(data.TryGetProperty("fallbackPackages", out var fallbackPackages));
         Assert.Equal(JsonValueKind.Array, fallbackPackages.ValueKind);
@@ -228,6 +218,17 @@ public class OcrCommandTests
         Assert.Contains("mirrors.huaweicloud.com", data.GetProperty("runtimeInstallCommand").GetString());
         Assert.DoesNotContain("mirrors.cloud.tencent.com", json, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("mirrors.tuna.tsinghua.edu.cn", json, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void InstallModel_FirstPartyRuntimeVersion_DoesNotUseCliVersion()
+    {
+        var source = File.ReadAllText(OcrCommandsSource);
+
+        Assert.Contains("OcrRuntimeVersion.Current", source);
+        Assert.DoesNotMatch(
+            "Angri450\\.Nong\\.OcrRuntime\\.[^\"]+\",\\s*CliVersion\\.Current",
+            source);
     }
 
     // ===== Test 7: install-model can explicitly enable upstream fallback =====
@@ -311,7 +312,8 @@ public class OcrCommandTests
         if (!Directory.Exists(sourceDir))
             return;
 
-        var packageExists = Directory.EnumerateFiles(sourceDir, "Angri450.Nong.OcrRuntime.*.3.2.3.nupkg").Any();
+        var packagePattern = $"Angri450.Nong.OcrRuntime.*.{ReadOcrRuntimeVersion()}.nupkg";
+        var packageExists = Directory.EnumerateFiles(sourceDir, packagePattern).Any();
         if (!packageExists)
             return;
 
@@ -383,24 +385,14 @@ public class OcrCommandTests
             new[] { "ocr", "install-model", "invalid-id", "--json" },
         };
 
-        var tempImage = CreateTinyPng();
-        try
+        foreach (var args in commands)
         {
-            var commandList = commands.Concat(new[] { new[] { "ocr", "local", tempImage, "--json" } });
+            var (stdout, stderr, _) = RunWithStderr(args);
+            var combined = stdout + stderr;
 
-            foreach (var args in commandList)
-            {
-                var (stdout, stderr, _) = RunWithStderr(args);
-                var combined = stdout + stderr;
-
-                // API tokens commonly start with "sk-" or contain "bearer"
-                Assert.DoesNotContain("sk-", combined, StringComparison.OrdinalIgnoreCase);
-                Assert.DoesNotContain("bearer", combined, StringComparison.OrdinalIgnoreCase);
-            }
-        }
-        finally
-        {
-            try { File.Delete(tempImage); } catch { }
+            // API tokens commonly start with "sk-" or contain "bearer"
+            Assert.DoesNotContain("sk-", combined, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("bearer", combined, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

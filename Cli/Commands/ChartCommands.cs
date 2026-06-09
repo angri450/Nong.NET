@@ -2,7 +2,6 @@ using System.Globalization;
 using System.CommandLine;
 using System.Text.Json;
 using ChartCore;
-using ScottPlot;
 using Nong.Cli.Common;
 
 namespace Nong.Cli.Commands;
@@ -275,46 +274,12 @@ public static class ChartCommands
                 var verr4 = StatsValidation.Validate(groups, "chart bar");
                 if (verr4 != null) { CliHelpers.WriteError("chart bar", verr4, json); return; }
 
-                CliHelpers.EnsureParentDir(output);
-                var (result, elapsed) = CliHelpers.Time(() =>
-                {
-
-                    // Run Duncan for significance letters if enabled
-                    Dictionary<string, string>? sigLabels = null;
-                    if (!noSig)
-                    {
-                        var anova = StatsEngine.OneWayAnova(groups);
-                        if (anova.P < 0.05)
-                        {
-                            var duncan = StatsEngine.DuncanMRT(groups, anova.MSW, anova.dfW, 0.05);
-                            sigLabels = duncan.Groups.ToDictionary(g => g.Label, g => g.Significance);
-                        }
-                    }
-
-                    if (sigLabels != null)
-                        ChartBuilder.BarChartWithSignificance(groups, sigLabels, title, ylabel, output, colors: null, width: 800, height: 600);
-                    else
-                        ChartBuilder.BarChart(groups, title, ylabel, output, colors: null, width: 800, height: 600, showErrorBar: showError, showGrid: true);
-
-                    return (groups.Count, sigLabels);
-                });
-
-                if (json)
-                {
-                    var aerr = CliHelpers.CheckArtifact(output, "PNG");
-                    if (aerr != null) { CliHelpers.WriteError("chart bar", aerr, json); return; }
-
-                    var outputJson = JsonOutput.Ok("chart bar",
-                        $"Bar chart saved: {output}",
-                        new { groups = result.Count, hasSignificance = result.sigLabels != null });
-                    outputJson.Artifacts["png"] = Path.GetFullPath(output);
-                    outputJson.Meta.DurationMs = elapsed;
-                    Console.WriteLine(JsonSerializer.Serialize(outputJson, CliHelpers.JsonOpts));
-                }
-                else
-                {
-                    Console.WriteLine($"Bar chart saved: {Path.GetFullPath(output)}");
-                }
+                var workerArgs = new List<string> { "chart", "bar", "--file", file, "--output", output, "--error", error };
+                NativeRenderWorkerHost.AddOption(workerArgs, "--title", title);
+                NativeRenderWorkerHost.AddOption(workerArgs, "--ylabel", ylabel);
+                if (noSig)
+                    workerArgs.Add("--no-significance");
+                NativeRenderWorkerHost.Run("chart bar", json, workerArgs);
             }
             catch (Exception ex)
             {
@@ -382,48 +347,8 @@ public static class ChartCommands
                     }
                 }
 
-                int seriesCount = spec.Series.Count;
-                int totalPoints = spec.Series.Sum(s => s.X!.Length);
-
-                CliHelpers.EnsureParentDir(output);
-                var elapsed = CliHelpers.Time(() =>
-                {
-                    var plt = new Plot();
-                    plt.Font.Set(ChartBuilder.GetCjkFontFamily());
-                    plt.Title(spec.Title ?? "");
-                    plt.XLabel(spec.XLabel ?? "");
-                    plt.YLabel(spec.YLabel ?? "");
-
-                    var colors = BarChartConfig.DefaultColors;
-                    for (int i = 0; i < spec.Series.Count; i++)
-                    {
-                        var s = spec.Series[i];
-                        var scatter = plt.Add.Scatter(s.X!, s.Y!, colors[i % colors.Length]);
-                        scatter.LegendText = s.Name;
-                        scatter.MarkerSize = 6;
-                        scatter.LineWidth = 2;
-                    }
-
-                    if (spec.Series.Count > 1) plt.ShowLegend();
-                    plt.SavePng(output, 800, 600);
-                });
-
-                var aerr = CliHelpers.CheckArtifact(output, "PNG");
-                if (aerr != null) { CliHelpers.WriteError("chart line", aerr, json); return; }
-
-                if (json)
-                {
-                    var outputJson = JsonOutput.Ok("chart line",
-                        $"Line chart saved: {output}",
-                        new { series = seriesCount, points = totalPoints });
-                    outputJson.Artifacts["png"] = Path.GetFullPath(output);
-                    outputJson.Meta.DurationMs = elapsed;
-                    Console.WriteLine(JsonSerializer.Serialize(outputJson, CliHelpers.JsonOpts));
-                }
-                else
-                {
-                    Console.WriteLine($"Line chart saved: {Path.GetFullPath(output)}");
-                }
+                NativeRenderWorkerHost.Run("chart line", json,
+                    new[] { "chart", "line", "--file", file, "--output", output });
             }
             catch (JsonException jex)
             {
@@ -475,86 +400,8 @@ public static class ChartCommands
                     }
                 }
 
-                // Group points by group name
-                var groups = new Dictionary<string, (List<double> Xs, List<double> Ys)>();
-                foreach (var p in spec.Points)
-                {
-                    var key = string.IsNullOrWhiteSpace(p.Group) ? "default" : p.Group!;
-                    if (!groups.ContainsKey(key))
-                        groups[key] = (new List<double>(), new List<double>());
-                    groups[key].Xs.Add(p.X);
-                    groups[key].Ys.Add(p.Y);
-                }
-
-                int pointCount = spec.Points.Count;
-                bool hasTrendline = spec.Trendline && spec.Points.Count >= 2;
-
-                CliHelpers.EnsureParentDir(output);
-                var elapsed = CliHelpers.Time(() =>
-                {
-                    var plt = new Plot();
-                    plt.Font.Set(ChartBuilder.GetCjkFontFamily());
-                    plt.Title(spec.Title ?? "");
-                    plt.XLabel(spec.XLabel ?? "");
-                    plt.YLabel(spec.YLabel ?? "");
-
-                    var colors = BarChartConfig.DefaultColors;
-                    int gi = 0;
-                    bool showLegend = groups.Count > 1 || (groups.Count == 1 && !groups.ContainsKey("default"));
-
-                    foreach (var kv in groups)
-                    {
-                        var xs = kv.Value.Xs.ToArray();
-                        var ys = kv.Value.Ys.ToArray();
-                        var scatter = plt.Add.ScatterPoints(xs, ys, colors[gi % colors.Length]);
-                        scatter.MarkerSize = 8;
-                        if (showLegend)
-                            scatter.LegendText = kv.Key;
-                        gi++;
-                    }
-
-                    // Trendline: overall linear regression across all points
-                    if (hasTrendline)
-                    {
-                        var allX = spec.Points.Select(p => p.X).ToArray();
-                        var allY = spec.Points.Select(p => p.Y).ToArray();
-                        double sumX = allX.Sum(), sumY = allY.Sum();
-                        double sumXY = allX.Zip(allY, (a, b) => a * b).Sum();
-                        double sumX2 = allX.Select(a => a * a).Sum();
-                        int n = allX.Length;
-                        double slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
-                        double intercept = (sumY - slope * sumX) / n;
-
-                        double xMin = allX.Min(), xMax = allX.Max();
-                        var regLine = plt.Add.Scatter(
-                            new double[] { xMin, xMax },
-                            new double[] { slope * xMin + intercept, slope * xMax + intercept });
-                        regLine.MarkerSize = 0;
-                        regLine.LineWidth = 2;
-                        regLine.LineColor = new Color(200, 50, 50);
-                        regLine.LegendText = $"y={slope:F3}x+{intercept:F3}";
-                    }
-
-                    if (showLegend || hasTrendline) plt.ShowLegend();
-                    plt.SavePng(output, 800, 600);
-                });
-
-                var aerr = CliHelpers.CheckArtifact(output, "PNG");
-                if (aerr != null) { CliHelpers.WriteError("chart scatter", aerr, json); return; }
-
-                if (json)
-                {
-                    var outputJson = JsonOutput.Ok("chart scatter",
-                        $"Scatter plot saved: {output}",
-                        new { points = pointCount, groups = groups.Count, trendline = spec.Trendline });
-                    outputJson.Artifacts["png"] = Path.GetFullPath(output);
-                    outputJson.Meta.DurationMs = elapsed;
-                    Console.WriteLine(JsonSerializer.Serialize(outputJson, CliHelpers.JsonOpts));
-                }
-                else
-                {
-                    Console.WriteLine($"Scatter plot saved: {Path.GetFullPath(output)}");
-                }
+                NativeRenderWorkerHost.Run("chart scatter", json,
+                    new[] { "chart", "scatter", "--file", file, "--output", output });
             }
             catch (JsonException jex)
             {
@@ -611,37 +458,8 @@ public static class ChartCommands
                     }
                 }
 
-                var slices = new Dictionary<string, double>();
-                foreach (var v in spec.Values)
-                    slices[v.Label!] = v.Value;
-
-                int sliceCount = spec.Values.Count;
-                double total = spec.Values.Sum(v => v.Value);
-
-                CliHelpers.EnsureParentDir(output);
-                var elapsed = CliHelpers.Time(() =>
-                {
-                    ChartTypes.PieChart(slices, spec.Title ?? "", output,
-                        colors: BarChartConfig.DefaultColors, width: 800, height: 600,
-                        showLabels: true, showValues: true, showPercent: true);
-                });
-
-                var aerr = CliHelpers.CheckArtifact(output, "PNG");
-                if (aerr != null) { CliHelpers.WriteError("chart pie", aerr, json); return; }
-
-                if (json)
-                {
-                    var outputJson = JsonOutput.Ok("chart pie",
-                        $"Pie chart saved: {output}",
-                        new { slices = sliceCount, total = Math.Round(total, 2) });
-                    outputJson.Artifacts["png"] = Path.GetFullPath(output);
-                    outputJson.Meta.DurationMs = elapsed;
-                    Console.WriteLine(JsonSerializer.Serialize(outputJson, CliHelpers.JsonOpts));
-                }
-                else
-                {
-                    Console.WriteLine($"Pie chart saved: {Path.GetFullPath(output)}");
-                }
+                NativeRenderWorkerHost.Run("chart pie", json,
+                    new[] { "chart", "pie", "--file", file, "--output", output });
             }
             catch (JsonException jex)
             {

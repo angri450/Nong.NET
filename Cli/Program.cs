@@ -60,6 +60,10 @@ class Program
         root.AddCommand(IconsCommands.Create(jsonOpt));
         root.AddCommand(SkillCommands.Create(jsonOpt));
         root.AddCommand(OcrCommands.Create(jsonOpt));
+        root.AddCommand(PdfCommands.Create(jsonOpt));
+        root.AddCommand(LitCommands.Create(jsonOpt));
+        root.AddCommand(SliceCommands.Create(jsonOpt));
+        root.AddCommand(RenderWorkerCommands.Create(jsonOpt));
 
         var builder = new CommandLineBuilder(root)
             .UseDefaults()

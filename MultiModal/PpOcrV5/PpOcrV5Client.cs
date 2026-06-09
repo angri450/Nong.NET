@@ -17,7 +17,8 @@ public sealed class PpOcrV5Client : IDisposable
     private static bool _nativeRuntimeLoaded;
     private static string? _nativeRuntimeDir;
 
-    private readonly Lazy<PaddleOcrAll> _engine;
+    private readonly Lazy<PaddleOcrAll> _fastEngine;
+    private readonly Lazy<PaddleOcrAll> _safeEngine;
     private bool _disposed;
 
     /// <summary>已解析的模型目录路径（兼容旧 manifest/cache 查询，打包模型时可能为 null）。</summary>
@@ -30,7 +31,8 @@ public sealed class PpOcrV5Client : IDisposable
     public PpOcrV5Client(string? modelDir = null)
     {
         ModelDir = PpOcrV5ModelResolver.Resolve(modelDir);
-        _engine = new Lazy<PaddleOcrAll>(CreateEngine);
+        _fastEngine = new Lazy<PaddleOcrAll>(() => CreateEngine(PpOcrV5InferenceMode.Fast));
+        _safeEngine = new Lazy<PaddleOcrAll>(() => CreateEngine(PpOcrV5InferenceMode.Safe));
     }
 
     /// <summary>
@@ -51,7 +53,48 @@ public sealed class PpOcrV5Client : IDisposable
         if (mat.Empty())
             throw new PaddleOcrException($"Cannot decode image: {imagePath}");
 
-        var result = _engine.Value.Run(mat);
+        var result = RecognizeWithEngine(_fastEngine.Value, mat, PpOcrV5InferenceMode.Fast);
+        if (!result.HasNumericIssues)
+            return Task.FromResult(result);
+
+        PpOcrV5Result fallback;
+        try
+        {
+            fallback = RecognizeWithEngine(_safeEngine.Value, mat, PpOcrV5InferenceMode.Safe);
+        }
+        catch
+        {
+            result.NumericFallbackAttempted = true;
+            result.NumericFallbackReason = "safe_cpu_fallback_failed";
+            return Task.FromResult(result);
+        }
+
+        fallback.NumericFallbackAttempted = true;
+        fallback.NumericFallbackApplied = true;
+        fallback.NumericFallbackReason = "fast_cpu_inference_produced_invalid_numeric_values";
+
+        if (ShouldUseFallback(result, fallback))
+            return Task.FromResult(fallback);
+
+        result.NumericFallbackAttempted = true;
+        result.NumericFallbackReason = fallback.NumericIssueCount > result.NumericIssueCount
+            ? "safe_cpu_fallback_produced_more_invalid_numeric_values"
+            : "safe_cpu_fallback_did_not_preserve_text";
+        return Task.FromResult(result);
+    }
+
+    private static bool ShouldUseFallback(PpOcrV5Result fast, PpOcrV5Result fallback)
+    {
+        if (fast.BlockCount > 0 && fallback.BlockCount == 0)
+            return false;
+        if (fast.TextLength > 0 && fallback.TextLength < fast.TextLength * 0.8)
+            return false;
+        return fallback.NumericIssueCount < fast.NumericIssueCount;
+    }
+
+    private static PpOcrV5Result RecognizeWithEngine(PaddleOcrAll engine, Mat mat, PpOcrV5InferenceMode mode)
+    {
+        var result = engine.Run(mat);
         var page = new PpOcrV5Page
         {
             Page = 1,
@@ -64,22 +107,33 @@ public sealed class PpOcrV5Client : IDisposable
         {
             index++;
             var points = region.Rect.Points();
+            var finitePoints = points.Where(IsFinitePoint).ToArray();
+            var confidence = ToFiniteConfidence(region.Score);
+            var numericIssues = new List<string>();
+            if (confidence == null)
+                numericIssues.Add("invalid_confidence");
+            if (finitePoints.Length != points.Length || finitePoints.Length == 0)
+                numericIssues.Add("invalid_geometry");
+
             page.Blocks.Add(new PpOcrV5Block
             {
                 Id = $"ocr{index:D4}",
-                Text = region.Text,
-                Confidence = region.Score,
-                Bbox = ToAxisAlignedBbox(points),
-                Polygon = points.Select(p => new[] { p.X, p.Y }).ToArray()
+                Text = region.Text ?? "",
+                Confidence = confidence,
+                Bbox = ToAxisAlignedBbox(finitePoints),
+                Polygon = finitePoints.Select(p => new[] { p.X, p.Y }).ToArray(),
+                GeometryValid = numericIssues.All(i => i != "invalid_geometry"),
+                NumericIssue = numericIssues.Count == 0 ? null : string.Join(",", numericIssues)
             });
         }
 
-        return Task.FromResult(new PpOcrV5Result
+        return new PpOcrV5Result
         {
             Engine = "pp-ocrv5-dotnet-sdcb",
             ModelId = "pp-ocrv5-mobile",
+            InferenceMode = mode == PpOcrV5InferenceMode.Fast ? "fast-cpu" : "safe-cpu-blas",
             Pages = new List<PpOcrV5Page> { page }
-        });
+        };
     }
 
     public static PpOcrV5EnvironmentStatus CheckEnvironment()
@@ -114,17 +168,23 @@ public sealed class PpOcrV5Client : IDisposable
     public void Dispose()
     {
         if (_disposed) return;
-        if (_engine.IsValueCreated)
-            _engine.Value.Dispose();
+        if (_fastEngine.IsValueCreated)
+            _fastEngine.Value.Dispose();
+        if (_safeEngine.IsValueCreated)
+            _safeEngine.Value.Dispose();
         _disposed = true;
     }
 
-    private static PaddleOcrAll CreateEngine()
+    private static PaddleOcrAll CreateEngine(PpOcrV5InferenceMode mode)
     {
         EnsureNativeRuntimeLoaded();
         ConfigureNativeLogEnvironment();
 
-        return new PaddleOcrAll(LocalFullModels.ChineseV5, ConfigureFastCpuDevice)
+        Action<PaddleConfig> configure = mode == PpOcrV5InferenceMode.Fast
+            ? ConfigureFastCpuDevice
+            : ConfigureSafeCpuDevice;
+
+        return new PaddleOcrAll(LocalFullModels.ChineseV5, configure)
         {
             AllowRotateDetection = true,
             Enable180Classification = false,
@@ -190,6 +250,13 @@ public sealed class PpOcrV5Client : IDisposable
         PaddleConfig.GLogMinLevel = 3;
     }
 
+    private static void ConfigureSafeCpuDevice(PaddleConfig config)
+    {
+        PaddleDevice.Blas(cpuMathThreadCount: 1, memoryOptimized: false, glogEnabled: false)(config);
+        config.GLogEnabled = false;
+        PaddleConfig.GLogMinLevel = 3;
+    }
+
     private static void AddNativeDirectoryToPath(string nativeDir)
     {
         var current = Environment.GetEnvironmentVariable("PATH") ?? "";
@@ -227,6 +294,12 @@ public sealed class PpOcrV5Client : IDisposable
         var maxY = points.Max(p => p.Y);
         return new[] { minX, minY, maxX, maxY };
     }
+
+    private static double? ToFiniteConfidence(double score) =>
+        double.IsFinite(score) ? score : null;
+
+    private static bool IsFinitePoint(Point2f point) =>
+        float.IsFinite(point.X) && float.IsFinite(point.Y);
 }
 
 public sealed record PpOcrV5EnvironmentStatus(
@@ -236,12 +309,28 @@ public sealed record PpOcrV5EnvironmentStatus(
     string Runtime,
     string Message);
 
+public enum PpOcrV5InferenceMode
+{
+    Fast,
+    Safe
+}
+
 /// <summary>PP-OCRv5 识别结果。</summary>
 public sealed record PpOcrV5Result
 {
     public string Engine { get; set; } = "PP-OCRv5";
     public string ModelId { get; set; } = "pp-ocrv5-mobile";
+    public string InferenceMode { get; set; } = "fast-cpu";
+    public bool NumericFallbackAttempted { get; set; }
+    public bool NumericFallbackApplied { get; set; }
+    public string? NumericFallbackReason { get; set; }
     public List<PpOcrV5Page> Pages { get; set; } = new();
+    public int InvalidConfidenceBlocks => Pages.Sum(p => p.Blocks.Count(b => !b.ConfidenceValid));
+    public int InvalidGeometryBlocks => Pages.Sum(p => p.Blocks.Count(b => !b.GeometryValid));
+    public int NumericIssueCount => InvalidConfidenceBlocks + InvalidGeometryBlocks;
+    public bool HasNumericIssues => NumericIssueCount > 0;
+    public int BlockCount => Pages.Sum(p => p.Blocks.Count);
+    public int TextLength => Pages.Sum(p => p.Blocks.Sum(b => b.Text.Length));
 }
 
 /// <summary>单页识别结果。</summary>
@@ -258,7 +347,10 @@ public sealed record PpOcrV5Block
 {
     public string Id { get; set; } = "";
     public string Text { get; set; } = "";
-    public double Confidence { get; set; }
+    public double? Confidence { get; set; }
+    public bool ConfidenceValid => Confidence.HasValue;
+    public bool GeometryValid { get; set; } = true;
+    public string? NumericIssue { get; set; }
     public float[] Bbox { get; set; } = Array.Empty<float>();
     public float[][]? Polygon { get; set; }
 }

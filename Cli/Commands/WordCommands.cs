@@ -22,6 +22,7 @@ public static class WordCommands
         // === Phase 2: read + preview ===
         cmd.AddCommand(CreateCheck(jsonOpt));
         cmd.AddCommand(CreateConvert(jsonOpt));
+        cmd.AddCommand(CreateCreate(jsonOpt));
         cmd.AddCommand(CreateRead(jsonOpt));
         cmd.AddCommand(CreatePreview(jsonOpt));
 
@@ -47,6 +48,10 @@ public static class WordCommands
 
         // === Stage 15: modify commands ===
         cmd.AddCommand(CreateFixOrder(jsonOpt));
+        cmd.AddCommand(CreateAcademicFormat(jsonOpt));
+        cmd.AddCommand(CreateFormatAudit(jsonOpt));
+        cmd.AddCommand(CreateRepairPlan(jsonOpt));
+        cmd.AddCommand(CreateTableReflow(jsonOpt));
         cmd.AddCommand(CreateProtect(jsonOpt));
         cmd.AddCommand(CreateEmbedFont(jsonOpt));
 
@@ -482,6 +487,108 @@ public static class WordCommands
         string Engine,
         List<string> Details
     );
+
+    // ===== word create =====
+
+    static Command CreateCreate(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to authored .nongmark or .nmk source");
+        var outOpt = new Option<string>("-o", "Output .docx path") { IsRequired = true };
+        var cmd = new Command("create", "Create a DOCX directly from NongMark") { fileArg, outOpt };
+
+        cmd.SetHandler((string file, string output, bool json) =>
+        {
+            const string command = "word create";
+            var err = ValidateNongMarkFile(file);
+            if (err != null) { CliHelpers.WriteError(command, err, json); return; }
+
+            if (!string.Equals(Path.GetExtension(output), ".docx", StringComparison.OrdinalIgnoreCase))
+            {
+                CliHelpers.WriteError(command,
+                    ErrorCodes.ValidationFailed with { Message = "Output path must end with .docx." }, json);
+                return;
+            }
+
+            if (string.Equals(Path.GetFullPath(file), Path.GetFullPath(output), StringComparison.OrdinalIgnoreCase))
+            {
+                CliHelpers.WriteError(command,
+                    ErrorCodes.ValidationFailed with { Message = "Input and output paths must be different." }, json);
+                return;
+            }
+
+            try
+            {
+                CliHelpers.EnsureParentDir(output);
+                var (result, elapsed) = CliHelpers.Time(() =>
+                {
+                    var built = NongMarkDocumentBuilder.Build(file, output);
+                    FixOrderInPlace(output);
+                    return built;
+                });
+                var aerr = CliHelpers.CheckArtifact(output, "DOCX");
+                if (aerr != null) { CliHelpers.WriteError(command, aerr, json); return; }
+
+                var o = JsonOutput.Ok(command,
+                    $"Created DOCX from NongMark: {result.Blocks} blocks",
+                    result);
+                o.Artifacts["docx"] = Path.GetFullPath(output);
+                o.Metrics["blocks"] = result.Blocks;
+                o.Metrics["paragraphs"] = result.Paragraphs;
+                o.Metrics["headings"] = result.Headings;
+                o.Metrics["tables"] = result.Tables;
+                o.Metrics["images"] = result.Images;
+                o.Metrics["references"] = result.References;
+                o.Meta.DurationMs = elapsed;
+                Console.WriteLine(JsonSerializer.Serialize(o, CliHelpers.JsonOpts));
+            }
+            catch (FileNotFoundException ex)
+            {
+                CliHelpers.WriteError(command, ErrorCodes.FileNotFound with { Message = ex.Message }, json);
+            }
+            catch (InvalidDataException ex)
+            {
+                CliHelpers.WriteError(command, ErrorCodes.ValidationFailed with { Message = ex.Message }, json);
+            }
+            catch (ArgumentException ex)
+            {
+                CliHelpers.WriteError(command, ErrorCodes.ValidationFailed with { Message = ex.Message }, json);
+            }
+            catch (Exception ex)
+            {
+                CliHelpers.WriteError(command, ErrorCodes.InternalError with { Message = ex.Message }, json);
+            }
+        }, fileArg, outOpt, jsonOpt);
+
+        return cmd;
+    }
+
+    static ErrorEntry? ValidateNongMarkFile(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return ErrorCodes.MissingArgument with { Message = "File path is required." };
+        if (!File.Exists(path))
+            return ErrorCodes.FileNotFound with { Message = $"File not found: {path}" };
+        var ext = Path.GetExtension(path).ToLowerInvariant();
+        if (ext is not ".nongmark" and not ".nmk")
+            return ErrorCodes.UnsupportedFormat with { Message = $"Expected .nongmark or .nmk file, got: {ext}" };
+        return null;
+    }
+
+    static void FixOrderInPlace(string output)
+    {
+        var fixedTmp = Path.Combine(
+            Path.GetDirectoryName(Path.GetFullPath(output)) ?? Directory.GetCurrentDirectory(),
+            Path.GetFileNameWithoutExtension(output) + ".fixed-" + Guid.NewGuid().ToString("N")[..8] + ".docx");
+        try
+        {
+            WordEditOperations.FixOrder(output, fixedTmp);
+            File.Copy(fixedTmp, output, true);
+        }
+        finally
+        {
+            try { File.Delete(fixedTmp); } catch { }
+        }
+    }
 
     // ===== word read =====
 
@@ -1455,7 +1562,7 @@ public static class WordCommands
     {
         var fileArg = new Argument<string>("file", "Path to .docx file");
         var outOpt = new Option<string>("-o", "Output .docx path") { IsRequired = true };
-        var cmd = new Command("fix-order", "Fix OOXML element ordering") { fileArg, outOpt };
+        var cmd = new Command("fix-order", "Internal OOXML/structure repair only; does not promise visible Word formatting improvements") { fileArg, outOpt };
         cmd.SetHandler((string file, string output, bool json) =>
         {
             var err = CliHelpers.ValidateDocxFile(file);
@@ -1464,10 +1571,341 @@ public static class WordCommands
             { CliHelpers.WriteError("word fix-order", ErrorCodes.ValidationFailed with { Message = "Input and output paths must be different." }, json); return; }
             try { CliHelpers.EnsureParentDir(output); var (r, e) = CliHelpers.Time(() => WordEditOperations.FixOrder(file, output));
                 var a = CliHelpers.CheckArtifact(output, "DOCX"); if (a != null) { CliHelpers.WriteError("word fix-order", a, json); return; }
-                var o = JsonOutput.Ok("word fix-order", $"Fixed {r.FixedElements} elements", r); o.Artifacts["docx"] = Path.GetFullPath(output); o.Meta.DurationMs = e;
+                var data = new
+                {
+                    Input = Path.GetFullPath(file),
+                    Output = Path.GetFullPath(output),
+                    r.FixedElements,
+                    repairKind = "internal-ooxml-structure",
+                    visibleFormattingChanged = false,
+                    nextForVisibleFormatting = "word academic-format",
+                };
+                var o = JsonOutput.Ok("word fix-order", $"Fixed {r.FixedElements} internal OOXML element(s); visible formatting was not the goal", data); o.Artifacts["docx"] = Path.GetFullPath(output); o.Meta.DurationMs = e;
                 Console.WriteLine(JsonSerializer.Serialize(o, CliHelpers.JsonOpts)); }
             catch (Exception ex) { CliHelpers.WriteError("word fix-order", ErrorCodes.InternalError with { Message = ex.Message }, json); }
         }, fileArg, outOpt, jsonOpt);
+        return cmd;
+    }
+
+    static Command CreateAcademicFormat(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to .docx file");
+        var outOpt = new Option<string>("-o", "Output .docx path") { IsRequired = true };
+        var cmd = new Command("academic-format", "Visible academic Word formatting repair for headings, body text, tables, fonts, and spacing") { fileArg, outOpt };
+        cmd.SetHandler((string file, string output, bool json) =>
+        {
+            const string command = "word academic-format";
+            var err = CliHelpers.ValidateDocxFile(file);
+            if (err != null) { CliHelpers.WriteError(command, err, json); return; }
+            if (!string.Equals(Path.GetExtension(output), ".docx", StringComparison.OrdinalIgnoreCase))
+            {
+                CliHelpers.WriteError(command,
+                    ErrorCodes.ValidationFailed with { Message = "Output path must end with .docx." }, json);
+                return;
+            }
+            if (string.Equals(Path.GetFullPath(file), Path.GetFullPath(output), StringComparison.OrdinalIgnoreCase))
+            {
+                CliHelpers.WriteError(command,
+                    ErrorCodes.ValidationFailed with { Message = "Input and output paths must be different." }, json);
+                return;
+            }
+
+            try
+            {
+                CliHelpers.EnsureParentDir(output);
+                var (r, e) = CliHelpers.Time(() =>
+                {
+                    var formatted = WordAcademicFormatter.Apply(file, output);
+                    FixOrderInPlace(output);
+                    return formatted;
+                });
+                var a = CliHelpers.CheckArtifact(output, "DOCX");
+                if (a != null) { CliHelpers.WriteError(command, a, json); return; }
+                var o = JsonOutput.Ok(command,
+                    $"Applied academic formatting: {r.ParagraphsFormatted} paragraphs, {r.TablesFormatted} tables",
+                    r);
+                o.Artifacts["docx"] = Path.GetFullPath(output);
+                o.Metrics["paragraphs"] = r.ParagraphsFormatted;
+                o.Metrics["runs"] = r.RunsFormatted;
+                o.Metrics["tables"] = r.TablesFormatted;
+                o.Metrics["latinParenthesesItalicized"] = r.LatinParentheticalRunsItalicized;
+                o.Meta.DurationMs = e;
+                Console.WriteLine(JsonSerializer.Serialize(o, CliHelpers.JsonOpts));
+            }
+            catch (ArgumentException ex)
+            {
+                CliHelpers.WriteError(command, ErrorCodes.ValidationFailed with { Message = ex.Message }, json);
+            }
+            catch (Exception ex)
+            {
+                CliHelpers.WriteError(command, ErrorCodes.InternalError with { Message = ex.Message }, json);
+            }
+        }, fileArg, outOpt, jsonOpt);
+        return cmd;
+    }
+
+    static Command CreateFormatAudit(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to .docx file");
+        var profileOpt = new Option<string>("--profile", () => "academic", "Audit profile: academic");
+        var failOnWarningOpt = new Option<bool>("--fail-on-warning", () => false, "Return E006 when the audit reports warning or fail status.");
+        var minScoreOpt = new Option<int?>("--min-score", "Return E006 when the audit score is lower than this threshold.");
+        var cmd = new Command("format-audit", "Audit visible Word formatting evidence for headings, body text, tables, fonts, and spacing")
+        {
+            fileArg,
+            profileOpt,
+            failOnWarningOpt,
+            minScoreOpt,
+        };
+        cmd.SetHandler((string file, string profile, bool failOnWarning, int? minScore, bool json) =>
+        {
+            const string command = "word format-audit";
+            var err = CliHelpers.ValidateDocxFile(file);
+            if (err != null) { CliHelpers.WriteError(command, err, json); return; }
+            if (!string.Equals(profile, "academic", StringComparison.OrdinalIgnoreCase))
+            {
+                CliHelpers.WriteError(command,
+                    ErrorCodes.ValidationFailed with { Message = "Unsupported --profile. Supported: academic." }, json);
+                return;
+            }
+            if (minScore is < 0 or > 100)
+            {
+                CliHelpers.WriteError(command,
+                    ErrorCodes.ValidationFailed with { Message = "--min-score must be between 0 and 100." }, json);
+                return;
+            }
+
+            try
+            {
+                var (result, elapsed) = CliHelpers.Time(() => WordFormatAuditor.Audit(file, profile));
+                var gateFailures = GetFormatAuditGateFailures(result, failOnWarning, minScore);
+                var gateFailed = gateFailures.Count > 0;
+                if (json)
+                {
+                    var output = gateFailed
+                        ? new JsonOutput
+                        {
+                            Status = "error",
+                            Command = command,
+                            Summary = $"Format audit gate failed: {string.Join("; ", gateFailures)}",
+                            Data = result,
+                            Errors = new List<ErrorEntry>
+                            {
+                                ErrorCodes.ValidationFailed with
+                                {
+                                    Message = $"Format audit gate failed: {string.Join("; ", gateFailures)}",
+                                },
+                            },
+                            Meta = new MetaInfo { Version = CliVersion.Current },
+                        }
+                        : JsonOutput.Ok(command,
+                            $"Format audit {result.StatusLevel}: {result.Summary.Issues} issue(s), score {result.Score}",
+                            result);
+                    output.Metrics["score"] = result.Score;
+                    output.Metrics["issues"] = result.Summary.Issues;
+                    output.Metrics["headings"] = result.Summary.Headings;
+                    output.Metrics["bodyParagraphs"] = result.Summary.BodyParagraphs;
+                    output.Metrics["tables"] = result.Summary.Tables;
+                    output.Metrics["threeLineTables"] = result.Tables.ThreeLineLike;
+                    output.Metrics["gateFailed"] = gateFailed;
+                    output.Meta.DurationMs = elapsed;
+                    foreach (var issue in result.Issues)
+                    {
+                        output.Issues.Add(new Issue
+                        {
+                            Id = issue.Id,
+                            Severity = issue.Severity,
+                            Message = issue.BlockId == null
+                                ? issue.Message
+                                : $"{issue.BlockId}: {issue.Message}",
+                        });
+                    }
+                    foreach (var failure in gateFailures)
+                    {
+                        output.Issues.Add(new Issue
+                        {
+                            Id = "format_audit_gate",
+                            Severity = "error",
+                            Message = failure,
+                        });
+                    }
+                    Console.WriteLine(JsonSerializer.Serialize(output, CliHelpers.JsonOpts));
+                }
+                else
+                {
+                    Console.WriteLine($"Status: {result.StatusLevel}");
+                    Console.WriteLine($"Score: {result.Score}");
+                    Console.WriteLine($"Headings: {result.Summary.Headings}");
+                    Console.WriteLine($"Body paragraphs: {result.Summary.BodyParagraphs}");
+                    Console.WriteLine($"Tables: {result.Tables.ThreeLineLike}/{result.Tables.Total} three-line-like");
+                    foreach (var issue in result.Issues.Take(20))
+                        Console.WriteLine($"[{issue.Severity}] {issue.BlockId ?? "-"} {issue.Id}: {issue.Message}");
+                    foreach (var failure in gateFailures)
+                        Console.Error.WriteLine($"[error] format_audit_gate: {failure}");
+                }
+
+                if (gateFailed)
+                    Environment.ExitCode = 1;
+            }
+            catch (Exception ex)
+            {
+                CliHelpers.WriteError(command, ErrorCodes.InternalError with { Message = ex.Message }, json);
+            }
+        }, fileArg, profileOpt, failOnWarningOpt, minScoreOpt, jsonOpt);
+        return cmd;
+    }
+
+    static List<string> GetFormatAuditGateFailures(WordFormatAuditResult result, bool failOnWarning, int? minScore)
+    {
+        var failures = new List<string>();
+        if (result.StatusLevel.Equals("fail", StringComparison.OrdinalIgnoreCase))
+            failures.Add("statusLevel is fail");
+        if (failOnWarning && result.StatusLevel.Equals("warn", StringComparison.OrdinalIgnoreCase))
+            failures.Add("statusLevel is warn and --fail-on-warning was set");
+        if (minScore.HasValue && result.Score < minScore.Value)
+            failures.Add($"score {result.Score} is lower than --min-score {minScore.Value}");
+        return failures;
+    }
+
+    static Command CreateRepairPlan(Option<bool> jsonOpt)
+    {
+        var cmd = new Command("repair-plan", "Explain which Word repair command to use; prevents confusing internal OOXML repair with visible formatting repair");
+        cmd.SetHandler((bool json) =>
+        {
+            var plan = new
+            {
+                schemaVersion = "nong-word/repair-plan/v1",
+                rules = new[]
+                {
+                    new
+                    {
+                        userGoal = "Open Word and make the document visibly better.",
+                        command = "word academic-format",
+                        outputNameHint = "*.academic-fixed.docx",
+                        completionEvidence = new[] { "word validate", "word format-audit", "word dissect", "slice inspect --strict", "format.json.visualEvidence" },
+                        note = "This is the current visible formatting path for academic-style documents."
+                    },
+                    new
+                    {
+                        userGoal = "Prove whether a Word document is visibly formatted well enough.",
+                        command = "word format-audit",
+                        outputNameHint = "*.format-audit.json",
+                        completionEvidence = new[] { "data.statusLevel", "data.headings", "data.body", "data.tables", "issues" },
+                        note = "This is a read-only visible-format evidence audit. It does not modify the document."
+                    },
+                    new
+                    {
+                        userGoal = "Fix invalid OOXML element order or table compatibility warnings.",
+                        command = "word fix-order",
+                        outputNameHint = "*.ooxml-fixed.docx",
+                        completionEvidence = new[] { "word validate", "word preview" },
+                        note = "This is an internal structure repair. Do not call the user-facing document visually fixed just because this passes."
+                    },
+                    new
+                    {
+                        userGoal = "Split long or wide tables into continuation tables.",
+                        command = "word table-reflow",
+                        outputNameHint = "*.table-reflowed.docx",
+                        completionEvidence = new[] { "word validate", "word dissect", "format.json.visualEvidence.tables" },
+                        note = "Use after academic-format when table layout still needs explicit reflow."
+                    },
+                },
+                plannedCommands = new[]
+                {
+                    "word repair",
+                    "word compare-format"
+                },
+                forbiddenCompletionClaim = "Do not claim visible Word repair is complete from word validate, word preview, word outline, word dissect, or word fix-order alone. Use word format-audit for visible formatting evidence.",
+            };
+
+            if (json)
+            {
+                var output = JsonOutput.Ok("word repair-plan", "Word repair command routing", plan);
+                Console.WriteLine(JsonSerializer.Serialize(output, CliHelpers.JsonOpts));
+            }
+            else
+            {
+                Console.WriteLine(JsonSerializer.Serialize(plan, CliHelpers.JsonOpts));
+            }
+        }, jsonOpt);
+        return cmd;
+    }
+
+    static Command CreateTableReflow(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to .docx file");
+        var outOpt = new Option<string>("-o", "Output .docx path") { IsRequired = true };
+        var maxRowsOpt = new Option<int>("--max-rows", () => 0, "Split table body rows into continuation tables after this many rows. 0 disables row splitting.");
+        var maxColsOpt = new Option<int>("--max-cols", () => 0, "Split wide tables into column groups after this many columns. 0 disables column splitting.");
+        var repeatLeftColsOpt = new Option<int>("--repeat-left-cols", () => 0, "Repeat this many left-most columns in later wide-table parts.");
+        var continuationLabelOpt = new Option<string>("--continuation-label", () => "续表", "Continuation table label prefix.");
+        var cmd = new Command("table-reflow", "Explicitly split long or wide tables into continuation tables") { fileArg, outOpt, maxRowsOpt, maxColsOpt, repeatLeftColsOpt, continuationLabelOpt };
+        cmd.SetHandler((string file, string output, int maxRows, int maxCols, int repeatLeftCols, string continuationLabel, bool json) =>
+        {
+            const string command = "word table-reflow";
+            var err = CliHelpers.ValidateDocxFile(file);
+            if (err != null) { CliHelpers.WriteError(command, err, json); return; }
+            if (!string.Equals(Path.GetExtension(output), ".docx", StringComparison.OrdinalIgnoreCase))
+            {
+                CliHelpers.WriteError(command,
+                    ErrorCodes.ValidationFailed with { Message = "Output path must end with .docx." }, json);
+                return;
+            }
+            if (maxRows < 0 || maxCols < 0 || repeatLeftCols < 0)
+            {
+                CliHelpers.WriteError(command,
+                    ErrorCodes.ValidationFailed with { Message = "--max-rows, --max-cols, and --repeat-left-cols must be non-negative." }, json);
+                return;
+            }
+            if (string.Equals(Path.GetFullPath(file), Path.GetFullPath(output), StringComparison.OrdinalIgnoreCase))
+            {
+                CliHelpers.WriteError(command,
+                    ErrorCodes.ValidationFailed with { Message = "Input and output paths must be different." }, json);
+                return;
+            }
+
+            try
+            {
+                CliHelpers.EnsureParentDir(output);
+                var options = new WordTableReflow.TableReflowOptions(maxRows, maxCols, repeatLeftCols, continuationLabel);
+                var (r, e) = CliHelpers.Time(() =>
+                {
+                    var reflowed = WordTableReflow.Apply(file, output, options);
+                    FixOrderInPlace(output);
+                    return reflowed;
+                });
+                var a = CliHelpers.CheckArtifact(output, "DOCX");
+                if (a != null) { CliHelpers.WriteError(command, a, json); return; }
+                var o = JsonOutput.Ok(command,
+                    $"Reflowed {r.TablesReflowed} table(s), produced {r.OutputTables} table part(s)",
+                    r);
+                o.Artifacts["docx"] = Path.GetFullPath(output);
+                o.Metrics["tablesVisited"] = r.TablesVisited;
+                o.Metrics["tablesReflowed"] = r.TablesReflowed;
+                o.Metrics["longTablesSplit"] = r.LongTablesSplit;
+                o.Metrics["wideTablesSplit"] = r.WideTablesSplit;
+                o.Metrics["outputTables"] = r.OutputTables;
+                o.Meta.DurationMs = e;
+                foreach (var warning in r.Warnings)
+                {
+                    o.Issues.Add(new Issue
+                    {
+                        Id = "table_reflow",
+                        Severity = "warning",
+                        Message = warning,
+                    });
+                }
+                Console.WriteLine(JsonSerializer.Serialize(o, CliHelpers.JsonOpts));
+            }
+            catch (ArgumentException ex)
+            {
+                CliHelpers.WriteError(command, ErrorCodes.ValidationFailed with { Message = ex.Message }, json);
+            }
+            catch (Exception ex)
+            {
+                CliHelpers.WriteError(command, ErrorCodes.InternalError with { Message = ex.Message }, json);
+            }
+        }, fileArg, outOpt, maxRowsOpt, maxColsOpt, repeatLeftColsOpt, continuationLabelOpt, jsonOpt);
         return cmd;
     }
 

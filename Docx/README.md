@@ -57,6 +57,26 @@ main.Document.Save();
 
 ## Core Capabilities
 
+## Word Core Contract
+
+Word work is split into three deterministic layers:
+
+| Layer | Main Command | Purpose |
+|-------|--------------|---------|
+| NongMark -> DOCX | `nong word create document.nongmark -o document.docx --json` | New long documents and paper-like deliverables |
+| DOCX -> NongPandoc package | `nong word dissect input.docx -o input.slice --json` | Reading, slicing, analysis, and formatting evidence |
+| DOCX Repair/Format | `nong word fix-order`, `nong word academic-format` | Existing document repair and academic formatting |
+
+Detailed tracking lives in:
+
+- `WORD_CORE_LAYERS.md`
+- `WORD_CAPABILITY_MATRIX.md`
+
+Important: `word validate` passing means schema validity only. Formatted deliverables still require evidence for fonts, line spacing, paragraph layout, table borders, and visible content from `format.json`, `content.jsonl`, `fonts`, `styles`, preview output, or direct OOXML checks. `preview/content.txt` is a lossy view; `content.nongmark` and the package evidence streams are the AI-facing contract.
+
+The slice `manifest.json` uses `schemaVersion: "nong-pandoc/package/v1"` so
+Word/PDF/PPT/Excel packages expose the same top-level stream contract.
+
 ### DocumentWriter — 链式构建器
 
 angri450 设计的链式 API，覆盖论文写作全流程：

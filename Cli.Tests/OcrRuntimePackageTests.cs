@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace Nong.Cli.Tests;
@@ -9,6 +10,23 @@ public class OcrRuntimePackageTests
         Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
 
     static string NupkgDir => Path.Combine(RepoRoot, "nupkg");
+    static string OcrRuntimeVersionSource => Path.Combine(RepoRoot, "Cli", "Common", "OcrRuntimeVersion.cs");
+
+    static string ReadOcrRuntimeVersion()
+    {
+        var source = File.ReadAllText(OcrRuntimeVersionSource);
+        var match = Regex.Match(source, "public const string Current = \"(?<version>[^\"]+)\"");
+        Assert.True(match.Success, $"Could not read OCR runtime version from {OcrRuntimeVersionSource}");
+        return match.Groups["version"].Value;
+    }
+
+    [Fact]
+    public void OcrRuntimeVersionConstant_IsIndependentPinnedRuntimeVersion()
+    {
+        var version = ReadOcrRuntimeVersion();
+
+        Assert.Matches(@"^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$", version);
+    }
 
     [Fact]
     public void OcrRuntimePackages_AreSingleRidNativeBundles()
@@ -16,7 +34,7 @@ public class OcrRuntimePackageTests
         if (!Directory.Exists(NupkgDir))
             return;
 
-        var packages = Directory.EnumerateFiles(NupkgDir, "Angri450.Nong.OcrRuntime.*.3.2.3.nupkg")
+        var packages = Directory.EnumerateFiles(NupkgDir, $"Angri450.Nong.OcrRuntime.*.{ReadOcrRuntimeVersion()}.nupkg")
             .OrderBy(p => p)
             .ToList();
         if (packages.Count == 0)
