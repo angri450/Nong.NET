@@ -4,7 +4,7 @@
 
 - Added `Cli/Common/OcrRuntimeVersion.cs` as the single pinned version for first-party `Angri450.Nong.OcrRuntime.*` native bundles.
 - Changed `nong ocr install-model` runtime plans to use `OcrRuntimeVersion.Current` instead of `CliVersion.Current`.
-- Split OCR runtime package maintenance into sibling repository `Angri450.Nong.OcrRuntime`; Nong.NET now consumes runtime packages instead of owning their pack project.
+- Split OCR runtime package maintenance into sibling repository `Nong.OcrRuntime`; Nong.NET now consumes runtime packages instead of owning their pack project.
 - Added regression tests that verify:
   - dry-run JSON reports the pinned OCR runtime bundle version;
   - first-party runtime package plans no longer use `CliVersion.Current`;
@@ -26,10 +26,10 @@ The OCR runtime package is a large native Paddle/OpenCV bundle. It should only m
 - `README.zh-CN.md`
 - `Cli/README.md`
 - `Cli/AGENT.md`
-- `CAPABILITY.md`
+- `docs/CAPABILITY.md`
 - `CLAUDE.md`
-- `release-checklist.md`
-- sibling repo `../Angri450.Nong.OcrRuntime/`
+- `docs/release-checklist.md`
+- sibling repo `../Nong.OcrRuntime/`
 
 ## Verification
 
@@ -40,4 +40,4 @@ The OCR runtime package is a large native Paddle/OpenCV bundle. It should only m
 
 ## Remaining Risk
 
-When native OCR runtime contents actually change, maintainers must explicitly bump `VERSION` and `OcrRuntime.csproj` in sibling repo `Angri450.Nong.OcrRuntime`, publish the validated runtime packages, then update `Cli/Common/OcrRuntimeVersion.cs` in Nong.NET and validate install from the target NuGet source.
+When native OCR runtime contents actually change, maintainers must explicitly bump `VERSION` and `OcrRuntime.csproj` in sibling repo `Nong.OcrRuntime`, publish the validated runtime packages, then update `Cli/Common/OcrRuntimeVersion.cs` in Nong.NET and validate install from the target NuGet source.

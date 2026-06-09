@@ -181,7 +181,7 @@ Returns `data.models` as an array. Local OCR uses managed PP-OCRv5 model metadat
 
 ### ocr install-model
 
-Installs/checks the pure .NET PP-OCRv5 first-party native runtime bundle for `pp-ocrv5-mobile` on the current platform. Use `--dry-run` to report the Huawei NuGet/cache deployment plan without changing the machine. Invalid model IDs return E006. The first-party runtime bundle version is maintained in the separate `Angri450.Nong.OcrRuntime` repository and pinned here by `Cli/Common/OcrRuntimeVersion.cs`; it does not follow routine CLI/Word/PDF patch versions.
+Installs/checks the pure .NET PP-OCRv5 first-party native runtime bundle for `pp-ocrv5-mobile` on the current platform. Use `--dry-run` to report the Huawei NuGet/cache deployment plan without changing the machine. Invalid model IDs return E006. The first-party runtime bundle version is maintained in the separate `Nong.OcrRuntime` repository and pinned here by `Cli/Common/OcrRuntimeVersion.cs`; it does not follow routine CLI/Word/PDF patch versions.
 
 ```bash
 nong ocr install-model pp-ocrv5-mobile --source https://mirrors.huaweicloud.com/repository/nuget/v3/index.json --json

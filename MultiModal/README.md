@@ -7,7 +7,7 @@
 
 ## Supported Platforms
 
-.NET 8.0 and above (net8.0, net9.0, net10.0, net11.0). Cloud OCR and image analysis are cross-platform. Local PP-OCRv5 uses the current-platform first-party `Angri450.Nong.OcrRuntime.*` native runtime bundle installed by `nong ocr install-model`. The runtime packages are maintained in the separate `Angri450.Nong.OcrRuntime` repository for Windows x64, Linux x64, Linux arm64, macOS x64, and macOS arm64; each platform still needs target-machine smoke coverage before stable release claims.
+.NET 8.0 and above (net8.0, net9.0, net10.0, net11.0). Cloud OCR and image analysis are cross-platform. Local PP-OCRv5 uses the current-platform first-party `Angri450.Nong.OcrRuntime.*` native runtime bundle installed by `nong ocr install-model`. The runtime packages are maintained in the separate `Nong.OcrRuntime` repository for Windows x64, Linux x64, Linux arm64, macOS x64, and macOS arm64; each platform still needs target-machine smoke coverage before stable release claims.
 
 ## Install
 
@@ -17,7 +17,7 @@ dotnet add package Angri450.Nong.MultiModal
 
 ### 本地 OCR 部署
 
-本地 OCR 使用 .NET/NuGet 部署，客户机不安装 Python、pip 或外部 OCR 可执行文件，也不在本机编译模型。managed ChineseV5 模型元数据随 CLI 引用，heavy native runtime 在独立 `Angri450.Nong.OcrRuntime` 仓库按平台拆成 `Angri450.Nong.OcrRuntime.WinX64`、`LinuxX64`、`LinuxArm64`、`OsxX64`、`OsxArm64` 五个第一方包，并由 `nong ocr install-model` 从 NuGet 镜像/cache 部署。国内环境默认使用华为 NuGet v3 源：
+本地 OCR 使用 .NET/NuGet 部署，客户机不安装 Python、pip 或外部 OCR 可执行文件，也不在本机编译模型。managed ChineseV5 模型元数据随 CLI 引用，heavy native runtime 在独立 `Nong.OcrRuntime` 仓库按平台拆成 `Angri450.Nong.OcrRuntime.WinX64`、`LinuxX64`、`LinuxArm64`、`OsxX64`、`OsxArm64` 五个第一方包，并由 `nong ocr install-model` 从 NuGet 镜像/cache 部署。国内环境默认使用华为 NuGet v3 源：
 
 `nong ocr install-model pp-ocrv5-mobile --json` 安装或检查成功后会自动清理 runtime cache 下的临时 `downloads` 目录，只长期保留推理所需 native runtime 文件。默认只安装 Nong 第一方 runtime 包；如确需临时回退上游 Sdcb/OpenCvSharp 包，显式添加 `--allow-upstream-fallback`。
 
