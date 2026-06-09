@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.IO.Compression;
 using System.Reflection;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace Nong.Cli.Tests;
@@ -13,6 +14,8 @@ public class OcrCommandTests
 
     static string NongDll => Path.Combine(RepoRoot, "Cli", "bin", "Release", "net8.0", "nong.dll");
     static string MultiModalDll => Path.Combine(Path.GetDirectoryName(NongDll)!, "Angri450.Nong.MultiModal.dll");
+    static string OcrRuntimeVersionSource => Path.Combine(RepoRoot, "Cli", "Common", "OcrRuntimeVersion.cs");
+    static string OcrCommandsSource => Path.Combine(RepoRoot, "Cli", "Commands", "OcrCommands.cs");
 
     (string json, int exitCode) Run(params string[] args)
     {
@@ -81,6 +84,14 @@ public class OcrCommandTests
     {
         Assert.True(File.Exists(NongDll),
             "nong.dll not found. Build first: dotnet build Cli/NongCli.csproj -c Release");
+    }
+
+    static string ReadOcrRuntimeVersion()
+    {
+        var source = File.ReadAllText(OcrRuntimeVersionSource);
+        var match = Regex.Match(source, "public const string Current = \"(?<version>[^\"]+)\"");
+        Assert.True(match.Success, $"Could not read OCR runtime version from {OcrRuntimeVersionSource}");
+        return match.Groups["version"].Value;
     }
 
     // ===== Test 1: check-env returns environment status =====
@@ -197,6 +208,7 @@ public class OcrCommandTests
         {
             Assert.StartsWith("Angri450.Nong.OcrRuntime.",
                 runtimePackage.GetProperty("id").GetString());
+            Assert.Equal(ReadOcrRuntimeVersion(), runtimePackage.GetProperty("version").GetString());
         }
         Assert.True(data.TryGetProperty("fallbackPackages", out var fallbackPackages));
         Assert.Equal(JsonValueKind.Array, fallbackPackages.ValueKind);
@@ -206,6 +218,17 @@ public class OcrCommandTests
         Assert.Contains("mirrors.huaweicloud.com", data.GetProperty("runtimeInstallCommand").GetString());
         Assert.DoesNotContain("mirrors.cloud.tencent.com", json, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("mirrors.tuna.tsinghua.edu.cn", json, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void InstallModel_FirstPartyRuntimeVersion_DoesNotUseCliVersion()
+    {
+        var source = File.ReadAllText(OcrCommandsSource);
+
+        Assert.Contains("OcrRuntimeVersion.Current", source);
+        Assert.DoesNotMatch(
+            "Angri450\\.Nong\\.OcrRuntime\\.[^\"]+\",\\s*CliVersion\\.Current",
+            source);
     }
 
     // ===== Test 7: install-model can explicitly enable upstream fallback =====
@@ -289,7 +312,8 @@ public class OcrCommandTests
         if (!Directory.Exists(sourceDir))
             return;
 
-        var packageExists = Directory.EnumerateFiles(sourceDir, "Angri450.Nong.OcrRuntime.*.4.0.0.nupkg").Any();
+        var packagePattern = $"Angri450.Nong.OcrRuntime.*.{ReadOcrRuntimeVersion()}.nupkg";
+        var packageExists = Directory.EnumerateFiles(sourceDir, packagePattern).Any();
         if (!packageExists)
             return;
 

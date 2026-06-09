@@ -37,13 +37,14 @@ Publish these `4.0.0` packages:
 - `Angri450.Nong.Literature`
 - `Angri450.Nong.MultiModal`
 - `Angri450.Nong.Inspect`
-- `Angri450.Nong.OcrRuntime.WinX64`
 - `Angri450.Nong.Cli`
 
 ## OCR Runtime Boundary
 
-- [ ] Push only `Angri450.Nong.OcrRuntime.WinX64.4.0.0.nupkg` as the mainline OCR runtime package.
-- [ ] Do not publish Linux/macOS runtime packages in this release unless the maintainer explicitly overrides the current runtime policy.
+- [ ] For routine CLI/Word/PDF/Excel/PPT patch releases, do not pack or push OCR runtime packages.
+- [ ] OCR runtime packages are maintained in sibling repo `Angri450.Nong.OcrRuntime`, not in this repository.
+- [ ] Only update `Cli/Common/OcrRuntimeVersion.cs` when the sibling runtime repo has published a new validated runtime version.
+- [ ] The sibling runtime repo maintains WinX64, LinuxX64, LinuxArm64, OsxX64, and OsxArm64 package definitions.
 - [ ] After NuGet and mirror sync, verify:
   `nong ocr install-model pp-ocrv5-mobile --source https://mirrors.huaweicloud.com/repository/nuget/v3/index.json --json`
 
@@ -53,8 +54,8 @@ Publish these `4.0.0` packages:
 - [ ] Push `master` to GitHub `origin`.
 - [ ] Push `master` to Gitee.
 - [ ] Push `master` to GitCode.
-- [ ] Pack all mainline packages into `nupkg/`.
-- [ ] Push all `4.0.0` mainline packages to NuGet with `--skip-duplicate`.
+- [ ] Pack only changed mainline packages into `nupkg/`.
+- [ ] Push only changed packages to NuGet with `--skip-duplicate`; OCR runtime is excluded unless its independent runtime version changed.
 
 ## Known Limits
 

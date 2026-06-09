@@ -30,7 +30,7 @@ Pure .NET scientific document generation toolkit. Zero JavaScript. One merged fo
   - `Angri450.Nong.Inspect 4.0.0`
   - `Angri450.Nong.Cli 4.0.0`
   - `Angri450.Nong.OcrRuntime.WinX64 4.0.0`
-- OCR runtime 主线策略仍是只发布 Windows x64 runtime 包；非 Windows runtime 包不作为主线稳定目标。
+- OCR runtime 已拆到独立 `Angri450.Nong.OcrRuntime` 仓库维护；该仓库维护 WinX64、LinuxX64、LinuxArm64、OsxX64、OsxArm64 五个平台包，Nong.NET 主仓库只消费已发布 runtime 版本。
 - 4.0.0 发布验证见 `log/changelog/2026-06-08-nong-4.0.0-release.md`。
 - 重要架构变化:
   - `chart` / `diagram` PNG 渲染已隔离到隐藏 worker: `nong __render-worker ...`
@@ -52,13 +52,19 @@ Pure .NET scientific document generation toolkit. Zero JavaScript. One merged fo
 | `Angri450.Nong.Bioicons` | `Bioicons/` | 40 个 SVG 科学图标 |
 | `Angri450.Nong.Skill.Manager` | `SkillManager/` | Skill CLI 工具 |
 
-OCR 本地推理另有部署包，不供应用代码直接引用，只给 `nong ocr install-model` 下载/解包。
+OCR 本地推理另有独立 runtime 仓库和部署包，不供应用代码直接引用，只给 `nong ocr install-model` 下载/解包。
 
-当前主线策略：**只发布 Windows x64 runtime 包**。
+独立仓库：`C:\Users\Administrator\Documents\Github\Angri450.Nong.OcrRuntime`（计划远程仓库 `angri450/Angri450.Nong.OcrRuntime`）。
+
+runtime 仓库维护全部 5 个平台包：
 
 - `Angri450.Nong.OcrRuntime.WinX64`
+- `Angri450.Nong.OcrRuntime.LinuxX64`
+- `Angri450.Nong.OcrRuntime.LinuxArm64`
+- `Angri450.Nong.OcrRuntime.OsxX64`
+- `Angri450.Nong.OcrRuntime.OsxArm64`
 
-非 Windows runtime 包先放本地 `_archive/` 存档，不纳入主线打包/发布。跨平台发布等 Windows 主线稳定后再单独规划。
+Nong.NET 主仓库只消费已发布 runtime 包，不再维护 runtime 打包工程。
 
 ## 依赖链
 
@@ -82,6 +88,7 @@ SkillManager → YamlDotNet (NuGet, 独立, CLI 工具)
 - 改一个包 → 只 bump 那个包的次版本号（如 4.0.0 → 4.0.1）→ 只推送那个包
 - 大版本升级（4.x → 5.0.0）时才全部统一更新
 - 不要为了小改动 bump 全部包
+- OCR native runtime 版本独立于 CLI/Word/PDF 等小版本。`Cli/Common/OcrRuntimeVersion.cs` 必须锁定到独立 `Angri450.Nong.OcrRuntime` 仓库实际发布的 native bundle 版本；只有 Paddle/OpenCV native 内容或 runtime 安装合同变化时才在 runtime 仓库 bump 并重新发布 OCR runtime 大包。
 
 ### NuGet 发布流程（单包更新）
 改一个包的代码后，按顺序：
@@ -93,21 +100,21 @@ SkillManager → YamlDotNet (NuGet, 独立, CLI 工具)
 6. `git add -A && git commit -m "release: <包名> v<新版> — <改动摘要>" && git push`
 
 ### OCR runtime 发布流程
-本地 OCR 禁止 Python/pip/外部 OCR 执行文件。heavy Paddle/OpenCV native runtime 通过第一方 `Angri450.Nong.OcrRuntime.*` 包分平台部署。
+本地 OCR 禁止 Python/pip/外部 OCR 执行文件。heavy Paddle/OpenCV native runtime 通过独立 `Angri450.Nong.OcrRuntime` 仓库维护的第一方 `Angri450.Nong.OcrRuntime.*` 包分平台部署。
 
-当前发布边界：
+Nong.NET 主仓库发布边界：
 
-- 只发布 `Angri450.Nong.OcrRuntime.WinX64`
-- `LinuxX64`、`LinuxArm64`、`OsxX64`、`OsxArm64` 只允许生成到本地 `_archive/`，不推 NuGet
-- 下一次整理时，把本地 `nupkg/Angri450.Nong.OcrRuntime.{LinuxX64,LinuxArm64,OsxX64,OsxArm64}.*.nupkg` 挪到 `_archive/`，并确保 `.gitignore` 覆盖归档目录
+- 常规 CLI/Word/PDF/Excel/PPT 小版本发布不重新打包或推送 OCR runtime。
+- `nong ocr install-model` 会继续按 `OcrRuntimeVersion.Current` 安装已发布的第一方 native bundle。
+- 如果确实修改了 native bundle 内容，必须在 `Angri450.Nong.OcrRuntime` 仓库更新 `VERSION` 和 `OcrRuntime.csproj` `<Version>`、打包并发布 runtime 包，再同步更新本仓库 `Cli/Common/OcrRuntimeVersion.cs`。
+- Windows/Linux/macOS 五个平台包都在 runtime 仓库维护；某个平台是否发布取决于 runtime 仓库的目标机器 smoke test 和发布策略。
 
-发布步骤：
+验证步骤：
 
-1. 只打 Windows runtime 包，或打完整包后立即把非 Windows 包移到 `_archive/`
-2. 先推 `Angri450.Nong.OcrRuntime.WinX64` 到 NuGet.org
-3. 再推 `Angri450.Nong.Cli`
-4. 等华为 NuGet 镜像同步
-5. 用华为源验证：`nong ocr install-model pp-ocrv5-mobile --source https://mirrors.huaweicloud.com/repository/nuget/v3/index.json --json`
+1. 在 `Angri450.Nong.OcrRuntime` 仓库打包并验证需要发布的平台包。
+2. 推送已验证的 `Angri450.Nong.OcrRuntime.*` 包到 NuGet.org。
+3. 等华为 NuGet 镜像同步。
+4. 在本仓库用华为源验证：`nong ocr install-model pp-ocrv5-mobile --source https://mirrors.huaweicloud.com/repository/nuget/v3/index.json --json`。
 
 默认安装路径只接受 Nong 第一方 runtime 包。上游 Sdcb/OpenCvSharp fallback 必须由用户或维护者显式加 `--allow-upstream-fallback`，不要让 agent 静默回退到旧大包链路。
 
