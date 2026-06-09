@@ -5,9 +5,9 @@ Pure .NET scientific document generation toolkit. Zero JavaScript. One merged fo
 ## 仓库
 
 - GitHub: `https://github.com/angri450/Nong.Cli.Net`
-- Gitee: `https://gitee.com/angri450/Nong.NET`（待改名）
-- GitCode: `git@gitcode.com:angri450/Nong.NET.git`（待改名）
-- 主分支: `master`
+- Gitee: `https://gitee.com/angri450/Nong.Cli.Net`
+- GitCode: `git@gitcode.com:angri450/Nong.Cli.Net.git`
+- 主分支: `main`
 - 协议: Apache-2.0
 
 ## 当前进度（2026-06-08）
