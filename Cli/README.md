@@ -16,7 +16,7 @@ For local OCR, install/check the current-platform first-party native runtime bun
 nong ocr install-model pp-ocrv5-mobile --source https://mirrors.huaweicloud.com/repository/nuget/v3/index.json --json
 ```
 
-The OCR runtime bundle is maintained in the separate `Angri450.Nong.OcrRuntime` repository and pinned independently from the CLI version, so routine CLI/Word/PDF patch releases do not republish the large runtime package.
+The OCR runtime bundle is maintained in the separate `Nong.OcrRuntime` repository and pinned independently from the CLI version, so routine CLI/Word/PDF patch releases do not republish the large runtime package.
 
 ## Usage
 

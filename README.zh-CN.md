@@ -22,7 +22,7 @@ nong commands --json</code></pre>
 
 <p>核心 Office、图表、流程图、skill 和本地 OCR 工作流仅此而已。不需要 Node.js、不需要 Docker、不需要 Python。</p>
 <p>本地 OCR 首次使用前运行 <code>nong ocr install-model pp-ocrv5-mobile --source https://mirrors.huaweicloud.com/repository/nuget/v3/index.json --json</code>。它会把当前平台的第一方 <code>Angri450.Nong.OcrRuntime.*</code> native runtime bundle 安装到 Nong 缓存，安装后自动清理临时下载目录。</p>
-<p>OCR runtime bundle 在独立 <code>Angri450.Nong.OcrRuntime</code> 仓库维护并使用独立锁定版本；普通 CLI、Word、PDF 小版本发布不会重新推送 OCR 大包，除非 native runtime 内容发生变化。</p>
+<p>OCR runtime bundle 在独立 <code>Nong.OcrRuntime</code> 仓库维护并使用独立锁定版本；普通 CLI、Word、PDF 小版本发布不会重新推送 OCR 大包，除非 native runtime 内容发生变化。</p>
 
 <p>CLI 目标框架是 <code>net8.0</code>，打包工具已启用主版本 roll-forward，因此当前 .NET 9/10 运行时也能运行。旧安装包如果在新运行时失败，请更新工具，或设置 <code>DOTNET_ROLL_FORWARD=LatestMajor</code>。</p>
 
@@ -59,6 +59,8 @@ nong commands --json</code></pre>
 <hr>
 
 <h2>能力概览 — 全部 93 个命令</h2>
+
+<p>仓库级维护文档统一放在 <code>docs/</code>，包括完整命令表 <code>docs/CAPABILITY.md</code> 和发布检查表 <code>docs/release-checklist.md</code>。</p>
 
 <h3>word — Word 文档引擎（37 个命令）</h3>
 
@@ -361,6 +363,8 @@ nong lit export --input refs.json --format bibtex --out refs.bib --json</code></
 <hr>
 
 <h2>合并的第三方库</h2>
+
+<p>第三方源码按“fork 固定版本源码快照”管理，不作为嵌套 Git 仓库提交。每个上游先 fork 到 <code>angri450</code>，锁定 commit，再复制源码到本仓库；复制前必须删除上游 <code>.git/</code>，只保留源码、必要资源、许可证和 NOTICE。完整清单记录在 <code>docs/DEPENDENCY_CONTROL.md</code>。</p>
 
 <table>
   <tr><th>库</th><th>协议</th><th>用途</th></tr>
