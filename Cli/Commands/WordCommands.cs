@@ -46,6 +46,9 @@ public static class WordCommands
         cmd.AddCommand(CreateImages(jsonOpt));
         cmd.AddCommand(CreateCrop(jsonOpt));
         cmd.AddCommand(CreateFitImages(jsonOpt));
+        cmd.AddCommand(CreateCompactTables(jsonOpt));
+        cmd.AddCommand(CreateRegroupImages(jsonOpt));
+        cmd.AddCommand(CreateEstimate(jsonOpt));
         cmd.AddCommand(CreateComments(jsonOpt));
         cmd.AddCommand(CreateRevisions(jsonOpt));
         cmd.AddCommand(CreateInferFormat(jsonOpt));
@@ -1642,6 +1645,166 @@ public static class WordCommands
             }
             catch (Exception ex) { CliHelpers.WriteError("word fit-images", ErrorCodes.InternalError with { Message = ex.Message }, json); }
         }, fileArg, outOpt, gapOpt, jsonOpt);
+        return cmd;
+    }
+
+    // ===== word compact-tables (remove fixed row heights, equalize columns, center) =====
+
+    static Command CreateCompactTables(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to .docx file");
+        var outOpt = new Option<string>("-o", "Output DOCX path (default: <input>.compact.docx)");
+        var cmd = new Command("compact-tables", "Compact tables: remove fixed row heights, equalize column widths, center on page") { fileArg, outOpt };
+        cmd.AddAlias("tables");
+        cmd.SetHandler((string file, string? output, bool json) =>
+        {
+            var err = CliHelpers.ValidateDocxFile(file);
+            if (err != null) { CliHelpers.WriteError("word compact-tables", err, json); return; }
+            try
+            {
+                string outPath = output ?? Path.Combine(
+                    Path.GetDirectoryName(Path.GetFullPath(file)) ?? ".",
+                    Path.GetFileNameWithoutExtension(file) + ".compact.docx");
+
+                var result = DocxTableCompactor.Compact(file, outPath);
+                string summary = $"{result.TablesModified} tables compacted (fixed rows freed: {result.FixedRowsTotal})";
+
+                if (json)
+                {
+                    var outputJson = JsonOutput.Ok("word compact-tables", summary, new
+                    {
+                        output = Path.GetFullPath(outPath),
+                        tablesModified = result.TablesModified,
+                        fixedRowsTotal = result.FixedRowsTotal,
+                        tables = result.Tables.Select(t => new
+                        {
+                            index = t.TableIndex,
+                            rows = t.RowsBefore,
+                            changes = t.Changes
+                        })
+                    });
+                    outputJson.Artifacts["docx"] = Path.GetFullPath(outPath);
+                    Console.WriteLine(JsonSerializer.Serialize(outputJson, CliHelpers.JsonOpts));
+                }
+                else
+                {
+                    Console.WriteLine($"{summary} → {outPath}");
+                    foreach (var t in result.Tables.Where(t => t.Changes.Count > 0))
+                        Console.WriteLine($"  table[{t.TableIndex}]: {string.Join(", ", t.Changes)}");
+                }
+            }
+            catch (Exception ex) { CliHelpers.WriteError("word compact-tables", ErrorCodes.InternalError with { Message = ex.Message }, json); }
+        }, fileArg, outOpt, jsonOpt);
+        return cmd;
+    }
+
+    // ===== word regroup-images (cross-paragraph image pairing) =====
+
+    static Command CreateRegroupImages(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to .docx file");
+        var outOpt = new Option<string>("-o", "Output DOCX path (default: <input>.regroup.docx)");
+        var cmd = new Command("regroup-images", "Merge orphan images across paragraphs for side-by-side layout, then scale to fit") { fileArg, outOpt };
+        cmd.AddAlias("pair-images");
+        cmd.SetHandler((string file, string? output, bool json) =>
+        {
+            var err = CliHelpers.ValidateDocxFile(file);
+            if (err != null) { CliHelpers.WriteError("word regroup-images", err, json); return; }
+            try
+            {
+                string outPath = output ?? Path.Combine(
+                    Path.GetDirectoryName(Path.GetFullPath(file)) ?? ".",
+                    Path.GetFileNameWithoutExtension(file) + ".regroup.docx");
+
+                // Use FitImages with a wider scan window (10 paragraphs instead of 3)
+                var result = DocxImageFitter.FitImagesWide(file, outPath, 2.0, maxGap: 10);
+
+                string summary = result.ParagraphsModified switch
+                {
+                    0 => "No orphan images found for regrouping",
+                    var p => $"Regrouped {result.ImagesScaled} images across {p} paragraphs → {outPath}"
+                };
+
+                if (json)
+                {
+                    var outputJson = JsonOutput.Ok("word regroup-images", summary, new
+                    {
+                        output = Path.GetFullPath(outPath),
+                        paragraphsModified = result.ParagraphsModified,
+                        imagesScaled = result.ImagesScaled
+                    });
+                    outputJson.Artifacts["docx"] = Path.GetFullPath(outPath);
+                    Console.WriteLine(JsonSerializer.Serialize(outputJson, CliHelpers.JsonOpts));
+                }
+                else
+                {
+                    Console.WriteLine(summary);
+                }
+            }
+            catch (Exception ex) { CliHelpers.WriteError("word regroup-images", ErrorCodes.InternalError with { Message = ex.Message }, json); }
+        }, fileArg, outOpt, jsonOpt);
+        return cmd;
+    }
+
+    // ===== word estimate (page-break estimation + blank-space detection) =====
+
+    static Command CreateEstimate(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to .docx file");
+        var cmd = new Command("estimate", "Estimate page breaks and measure blank space on each page") { fileArg };
+        cmd.AddAlias("pages");
+        cmd.SetHandler((string file, bool json) =>
+        {
+            var err = CliHelpers.ValidateDocxFile(file);
+            if (err != null) { CliHelpers.WriteError("word estimate", err, json); return; }
+            try
+            {
+                var result = DocxPageEstimator.Estimate(file);
+                string summary = $"{result.PageCount} pages, {result.ProblemPages} with >30% blank (waste total {result.WasteTotalMm}mm)";
+
+                if (json)
+                {
+                    var outputJson = JsonOutput.Ok("word estimate", summary, new
+                    {
+                        pageCount = result.PageCount,
+                        textAreaMm = result.TextAreaMm,
+                        problemPages = result.ProblemPages,
+                        wasteTotalMm = result.WasteTotalMm,
+                        pages = result.Pages.Select(p => new
+                        {
+                            page = p.PageNumber,
+                            items = p.ItemCount,
+                            contentMm = p.ContentMm,
+                            wasteMm = p.WasteMm,
+                            wastePct = p.WastePercent,
+                            hasImage = p.HasImage,
+                            hasTable = p.HasTable,
+                            isProblem = p.IsProblem
+                        })
+                    });
+                    Console.WriteLine(JsonSerializer.Serialize(outputJson, CliHelpers.JsonOpts));
+                }
+                else
+                {
+                    Console.WriteLine(summary);
+                    Console.WriteLine($"  Text area: {result.TextAreaMm}mm, estimated {result.PageCount} pages");
+                    Console.WriteLine();
+                    foreach (var p in result.Pages)
+                    {
+                        var flag = p.IsProblem ? " ** WASTE **" : "";
+                        var kind = (p.HasImage, p.HasTable) switch
+                        {
+                            (true, true) => "[img+tbl]",
+                            (true, false) => "[img]",
+                            (false, true) => "[tbl]",
+                            _ => ""
+                        };
+                        Console.WriteLine($"  p{p.PageNumber:D2} {kind}: content={p.ContentMm}mm, waste={p.WasteMm}mm ({p.WastePercent}%){flag}");
+                    }
+                }
+            }
+            catch (Exception ex) { CliHelpers.WriteError("word estimate", ErrorCodes.InternalError with { Message = ex.Message }, json); }
+        }, fileArg, jsonOpt);
         return cmd;
     }
 

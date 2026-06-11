@@ -4,6 +4,7 @@
 
 ## 2026-06-12
 - 2026-06-12 | 2026-06-12-word-fit-images.md | nong word fit-images：inline 多图段落合并+缩放并排
+- 2026-06-12 | 2026-06-12-compaction-pipeline.md | 文档紧缩管线：compact-tables + regroup-images + estimate（25页→8页）
 
 ## 2026-06-11
 - 2026-06-11 | skill-governance-refactor.md | skill 治理重构：农业五角色体系（breeder/tester/grader/pruner/patrol），15→17 skills

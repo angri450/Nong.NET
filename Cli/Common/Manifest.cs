@@ -37,6 +37,9 @@ public static class Manifest
         list.Add(new("word images", "List, extract, analyze, and auto-crop images with content-aware border detection", "word", []));
         list.Add(new("word crop", "Auto-crop blank margins from all images using content-aware border detection", "word", []));
         list.Add(new("word fit-images", "Scale inline multi-image paragraphs so images fit side-by-side within page width", "word", ["word compact-images"]));
+        list.Add(new("word compact-tables", "Compact tables: remove fixed row heights, equalize column widths, center on page", "word", ["word tables"]));
+        list.Add(new("word regroup-images", "Merge orphan images across paragraphs for side-by-side layout, then scale to fit", "word", ["word pair-images"]));
+        list.Add(new("word estimate", "Estimate page breaks and measure blank space on each page", "word", ["word pages"]));
         list.Add(new("word comments", "Read document comments", "word", []));
         list.Add(new("word revisions", "List tracked changes", "word", []));
         list.Add(new("word infer-format", "Infer OpenXML format from Chinese description", "word", []));
