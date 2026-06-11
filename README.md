@@ -1,5 +1,5 @@
 <h1 align="center">
-  <a href="https://github.com/angri450/Nong.NET">
+  <a href="https://github.com/angri450/Nong.Cli.Net">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgNjAwIDEwMCI+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJzZXJpZiIgZm9udC1zaXplPSI1MiIgZmlsbD0iI0ZGRiI+Tm9uZy5ORVQ8L3RleHQ+PC9zdmc+">
       <img alt="Nong.NET" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgNjAwIDEwMCI+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJzZXJpZiIgZm9udC1zaXplPSI1MiIgZmlsbD0iIzIyMiI+Tm9uZy5ORVQ8L3RleHQ+PC9zdmc+" height="80">
@@ -14,7 +14,7 @@
 
 <p align="center">
   <a href="https://www.nuget.org/packages/Angri450.Nong.Cli/"><img src="https://img.shields.io/nuget/v/Angri450.Nong.Cli.svg?label=NuGet" alt="NuGet"></a>
-  <a href="https://github.com/angri450/Nong.NET/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License"></a>
+  <a href="https://github.com/angri450/Nong.Cli.Net/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License"></a>
   <a href="https://dotnet.microsoft.com/en-us/download"><img src="https://img.shields.io/badge/.NET-8.0-8A2BE2" alt=".NET 8.0"></a>
   <img src="https://img.shields.io/badge/commands-93-green" alt="93 commands">
   <a href="#中文文档"><img src="https://img.shields.io/badge/中文-README.zh--CN.md-orange" alt="中文"></a>

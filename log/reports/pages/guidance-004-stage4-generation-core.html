@@ -1,10 +1,10 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+﻿<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>2026-06-03 阶段 4 指导：生成核心 — Nong.NET</title>
+<title>2026-06-03 阶段 4 指导：生成核心 - Nong.NET</title>
 <link rel="stylesheet" href="../style.css">
 </head><body><div class="container">
-<header><a href="../index.html" class="back-link">← 返回总览</a> |
-<a href="../guidance.html" class="back-link">← 开发指导</a>
+<header><a href="../index.html" class="back-link">&larr; 返回总览</a> | 
+<a href="../guidance.html" class="back-link">&larr; 开发指导</a>
 <h1>2026-06-03 阶段 4 指导：生成核心</h1>
 <p class="subtitle">2026-06-03 | <span style="color: #7c3aed">开发指导</span></p></header>
 <article class="content">
@@ -27,7 +27,7 @@
 <br>
 <h2>阶段 4 优先级</h2>
 <br>
-<h3>P0：<code>nong chart analyze <data></code></h3>
+<h3>P0：<code>nong chart analyze &lt;data&gt;</code></h3>
 <br>
 <p>用途：一次输出 ANOVA + Duncan + 分组描述统计。</p>
 <br>
@@ -49,7 +49,7 @@ nong chart analyze data.json --json
 <br>
 <p>非 JSON 输出应是可直接贴进日志或论文草稿的统计报告。</p>
 <br>
-<h3>P0：<code>nong chart bar <data> -o <png></code></h3>
+<h3>P0：<code>nong chart bar &lt;data&gt; -o &lt;png&gt;</code></h3>
 <br>
 <p>用途：生成带误差棒和显著性字母的柱状图。</p>
 <br>
@@ -76,7 +76,7 @@ nong chart bar data.json -o fig1.png --title &quot;发酵产量&quot; --ylabel &
 }
 </code></pre>
 <br>
-<h3>P1：<code>nong excel sheets <file></code> + <code>nong excel read <file></code></h3>
+<h3>P1：<code>nong excel sheets &lt;file&gt;</code> + <code>nong excel read &lt;file&gt;</code></h3>
 <br>
 <p>用途：减少模型写 PowerShell 读 Excel。</p>
 <br>
@@ -104,7 +104,7 @@ nong excel read data.xlsx --sheet Sheet1 --range A1:D20 --json
 <h2>建议 ClaudeCode 任务</h2>
 <br>
 <pre><code class="language-text">
-你在 C:\Users\Administrator\Documents\Github\Angri450.Nong 工作。
+你在 C:\Users\Administrator\Documents\Github\Nong.Cli.Net 工作。
 
 目标：实现阶段 4 的生成核心，只做 chart analyze 和 chart bar。
 
@@ -141,5 +141,5 @@ dotnet .\Cli\bin\Release\net8.0\nong.dll chart bar missing.json -o fig1.png --js
 <br>
 
 </article>
-<footer><p>由 progress-report 自动生成</p></footer>
+<footer><p>由 nong progress report 自动生成</p></footer>
 </div></body></html>

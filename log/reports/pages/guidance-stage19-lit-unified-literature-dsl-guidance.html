@@ -1,10 +1,10 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+﻿<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>2026-06-07 Stage19 Guidance: Unified Literature Retrieval DSL — Nong.NET</title>
+<title>2026-06-07 Stage19 Guidance: Unified Literature Retrieval DSL - Nong.NET</title>
 <link rel="stylesheet" href="../style.css">
 </head><body><div class="container">
-<header><a href="../index.html" class="back-link">← 返回总览</a> |
-<a href="../guidance.html" class="back-link">← 开发指导</a>
+<header><a href="../index.html" class="back-link">&larr; 返回总览</a> | 
+<a href="../guidance.html" class="back-link">&larr; 开发指导</a>
 <h1>2026-06-07 Stage19 Guidance: Unified Literature Retrieval DSL</h1>
 <p class="subtitle">2026-06-07 | <span style="color: #7c3aed">开发指导</span></p></header>
 <article class="content">
@@ -307,7 +307,7 @@ DOI DOI
 <br>
 <pre><code class="language-text">
 FIELD=...
-'phrase'
+&#39;phrase&#39;
 unquoted terms
 +
 *
@@ -316,7 +316,7 @@ AND
 OR
 NOT
 ()
-YE BETWEEN ('2000','2013')
+YE BETWEEN (&#39;2000&#39;,&#39;2013&#39;)
 </code></pre>
 <br>
 <p>Operator meaning:</p>
@@ -347,11 +347,11 @@ $N
 <p>Required examples:</p>
 <br>
 <pre><code class="language-text">
-SU=('腐植酸'+'腐殖酸')*('稀土'+'微肥')
-SU=('腐植酸'+'腐殖酸')*('稀土'+'微肥')*('络合'+'配合'+'螯合'+'复合物')
+SU=(&#39;腐植酸&#39;+&#39;腐殖酸&#39;)*(&#39;稀土&#39;+&#39;微肥&#39;)
+SU=(&#39;腐植酸&#39;+&#39;腐殖酸&#39;)*(&#39;稀土&#39;+&#39;微肥&#39;)*(&#39;络合&#39;+&#39;配合&#39;+&#39;螯合&#39;+&#39;复合物&#39;)
 AU=钱伟长 AND (AF=清华大学 OR AF=上海大学)
-YE BETWEEN ('2000','2013')
-DOI='10.1016/j.chemgeo.2007.05.018'
+YE BETWEEN (&#39;2000&#39;,&#39;2013&#39;)
+DOI=&#39;10.1016/j.chemgeo.2007.05.018&#39;
 </code></pre>
 <br>
 <p>Do not silently perform model-based Chinese-English translation in Stage19. If English synonyms are needed, they must be present in the user query or in an explicit deterministic synonym dictionary added later.</p>
@@ -543,8 +543,8 @@ recall
 <br>
 <p>Rules:</p>
 <br>
-<p>1. DOI normalized equal -> same record.</p>
-<p>2. If DOI missing -> normalized title + year + first author approximate match.</p>
+<p>1. DOI normalized equal -&gt; same record.</p>
+<p>2. If DOI missing -&gt; normalized title + year + first author approximate match.</p>
 <p>3. Do not merge Chinese title and English title unless DOI matches.</p>
 <p>4. Preserve <code>RetrievedFrom</code> and <code>SourceIds</code>.</p>
 <p>5. Prefer richer values when merging:</p>
@@ -872,9 +872,9 @@ dotnet test .\Cli.Tests\Cli.Tests.csproj -c Release --nologo
 <p>Use the built CLI:</p>
 <br>
 <pre><code class="language-powershell">
-.\Cli\bin\Release\net8.0\nong.exe lit parse --query &quot;SU=('腐植酸'+'腐殖酸')*('稀土'+'微肥')&quot; --json
+.\Cli\bin\Release\net8.0\nong.exe lit parse --query &quot;SU=(&#39;腐植酸&#39;+&#39;腐殖酸&#39;)*(&#39;稀土&#39;+&#39;微肥&#39;)&quot; --json
 .\Cli\bin\Release\net8.0\nong.exe lit validate --query &quot;AU=钱伟长 AND (AF=清华大学 OR AF=上海大学)&quot; --json
-.\Cli\bin\Release\net8.0\nong.exe lit plan --query &quot;SU=('腐植酸'+'腐殖酸')*('稀土'+'微肥')&quot; --sources openalex,crossref,unpaywall --json
+.\Cli\bin\Release\net8.0\nong.exe lit plan --query &quot;SU=(&#39;腐植酸&#39;+&#39;腐殖酸&#39;)*(&#39;稀土&#39;+&#39;微肥&#39;)&quot; --sources openalex,crossref,unpaywall --json
 .\Cli\bin\Release\net8.0\nong.exe commands --json
 </code></pre>
 <br>
@@ -967,7 +967,7 @@ DOI verification pipeline
 <p>Stage22:</p>
 <br>
 <pre><code class="language-text">
-GroundPA-Toolkit lit skill sync
+Nong.Toolkit.Net lit skill sync
 skill scan
 plugin validate
 </code></pre>
@@ -1067,5 +1067,5 @@ Next steps
 <br>
 
 </article>
-<footer><p>由 progress-report 自动生成</p></footer>
+<footer><p>由 nong progress report 自动生成</p></footer>
 </div></body></html>

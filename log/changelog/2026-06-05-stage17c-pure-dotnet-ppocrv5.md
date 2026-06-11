@@ -47,15 +47,15 @@
 
 ## 验证
 
-- `dotnet build .\Angri450.Nong\Cli\NongCli.csproj -c Release --nologo`：PASS。
-- `dotnet test .\Angri450.Nong\Cli.Tests\Cli.Tests.csproj -c Release --nologo`：72/72 PASS。
+- `dotnet build .\Nong.Cli.Net\Cli\NongCli.csproj -c Release --nologo`：PASS。
+- `dotnet test .\Nong.Cli.Net\Cli.Tests\Cli.Tests.csproj -c Release --nologo`：72/72 PASS。
 - `nong commands --json`：`status=ok; version=3.2.3; commandCount=73`。
 - `nong ocr check-env --json`：`local=ok; noPython=True`。
 - `nong ocr install-model pp-ocrv5-mobile --dry-run --json`：`engine=pp-ocrv5-dotnet-sdcb; noPython=True; upstreamFallbackDefault=disabled; mirrors=1`。
-- `powershell -File .\Angri450.Nong\OcrRuntime\pack-runtimes.ps1`：生成并校验 WinX64 / LinuxX64 / LinuxArm64 / OsxX64 / OsxArm64 五个 runtime bundle 包。
-- `NONG_OCR_RUNTIME_DIR=<temp> nong ocr install-model pp-ocrv5-mobile --source .\Angri450.Nong\nupkg --json`：`installed[0].origin=nong-bundle`，从 `Angri450.Nong.OcrRuntime.WinX64` 成功解包。
+- `powershell -File .\Nong.Cli.Net\OcrRuntime\pack-runtimes.ps1`：生成并校验 WinX64 / LinuxX64 / LinuxArm64 / OsxX64 / OsxArm64 五个 runtime bundle 包。
+- `NONG_OCR_RUNTIME_DIR=<temp> nong ocr install-model pp-ocrv5-mobile --source .\Nong.Cli.Net\nupkg --json`：`installed[0].origin=nong-bundle`，从 `Angri450.Nong.OcrRuntime.WinX64` 成功解包。
 - 创建临时 `runtimeCache\downloads\dummy.nupkg` 后运行 `nong ocr install-model pp-ocrv5-mobile --json`：`downloadCleanup.cleaned=True`，命令结束后 `downloads` 目录不存在。
-- `dotnet pack .\Angri450.Nong\Cli\NongCli.csproj -c Release -o .\Angri450.Nong\nupkg --nologo`：`Angri450.Nong.Cli.3.2.3.nupkg`，约 `114.55 MB`；包内不包含 Paddle/OpenCV native 大 DLL。
+- `dotnet pack .\Nong.Cli.Net\Cli\NongCli.csproj -c Release -o .\Nong.Cli.Net\nupkg --nologo`：`Angri450.Nong.Cli.3.2.3.nupkg`，约 `114.55 MB`；包内不包含 Paddle/OpenCV native 大 DLL。
 - 生成中文测试图 `测试123` 后运行 `nong ocr local <image> --json`：识别文本为 `测试123`，confidence 约 `0.99994`，stdout 为纯 JSON，stderr 为空。
 
 ## 注意

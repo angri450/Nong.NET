@@ -1,6 +1,6 @@
 # Angri450.Nong.Cli (nong)
 
-nong 命令行工具 —— angri450 为 Nong.NET 构建的统一入口。Word / Excel / PPT / Chart / Diagram / OCR / Skill 全部操作在一个二进制文件里完成。
+nong 命令行工具 —— angri450 为 Nong.Cli.Net 构建的统一入口。Word / Excel / PPT / Chart / Diagram / OCR / Skill 全部操作在一个二进制文件里完成。
 
 ## Install
 
@@ -32,11 +32,11 @@ nong inspect diagnose file.txt # 论文质量诊断
 
 `nong lit` 提供类 CNKI 文献检索 DSL、OpenAlex/Crossref/Unpaywall 元数据/OA provider、本地过滤合并排序，以及 JSON/Markdown/BibTeX 导出。Stage19 不做爬虫、付费墙绕过或自动中英同义词翻译。
 
-angri450 将全部 Nong.NET 库能力暴露为一致的 CLI 接口，方便 AI Agent 和脚本直接调用。
+angri450 将全部 Nong.Cli.Net 库能力暴露为一致的 CLI 接口，方便 AI Agent 和脚本直接调用。
 
 ## Author
 
-Built by [angri450](https://github.com/angri450). Source: [Nong.NET](https://github.com/angri450/Nong.NET).
+Built by [angri450](https://github.com/angri450). Source: [Nong.Cli.Net](https://github.com/angri450/Nong.Cli.Net).
 
 ## License
 

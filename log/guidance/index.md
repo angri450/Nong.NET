@@ -2,6 +2,12 @@
 
 > Agent 添加开发指导后同步更新此文件。格式：`- YYYY-MM-DD | 文件名 | 一句话摘要 | 状态（plan/executing/done）`
 
+## 2026-06-10
+
+- 2026-06-10 | 2026-06-10-phase1-p1-alias-full-plan.md | 阶段一：5 个 P1 alias 施工详细方案（word diagnose/clean-styles、inspect references/variables/data-requirements） | done
+- 2026-06-10 | 2026-06-10-phase2-cli-feature-gaps-roadmap.md | 阶段四+：CLI 功能缺口路线图（PPTX 写入、Excel 高级编辑、Chart 新图种、PDF 编辑、Inspect 扩展、Word 高级审阅） | plan
+- 2026-06-10 | 2026-06-10-package-dependency-map.md | Nong.Cli.Net 4.0.0 包依赖全景图（14 个 NuGet 包、22 个第三方源码目录、ProjectReference 矩阵、命令到库映射） | reference
+
 ## 2026-06-07
 - 2026-06-07 | stage19-lit-unified-literature-dsl-guidance.md | Stage 19 文献统一 DSL 开发指导 | done
 
@@ -40,6 +46,6 @@
 - 2026-06-03 | 018-stage15-word-yidao-sanliu-blueprint.md | Stage 15 Word 一刀三流蓝图 | done
 
 ## 模板与参考
-- claudecode-task-template.md | ClaudeCode 任务模板 | reference
-- review-checklist.md | 审查检查表 | reference
-- README.md | guidance 目录说明 | reference
+- reference | claudecode-task-template.md | ClaudeCode 任务模板 | reference
+- reference | review-checklist.md | 审查检查表 | reference
+- reference | README.md | guidance 目录说明 | reference

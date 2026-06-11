@@ -22,6 +22,10 @@ public static class ChartCommands
         cmd.AddCommand(CreateLineChart(jsonOpt));
         cmd.AddCommand(CreateScatterChart(jsonOpt));
         cmd.AddCommand(CreatePieChart(jsonOpt));
+        cmd.AddCommand(CreateBoxplotChart(jsonOpt));
+        cmd.AddCommand(CreateHistogramChart(jsonOpt));
+        cmd.AddCommand(CreateHeatmapChart(jsonOpt));
+        cmd.AddCommand(CreateRadarChart(jsonOpt));
 
         return cmd;
     }
@@ -475,6 +479,138 @@ public static class ChartCommands
 
         return cmd;
     }
+
+    // ===== chart boxplot =====
+
+    static Command CreateBoxplotChart(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to data file (.json) with groups");
+        var outOpt = new Option<string>("-o", "Output PNG path") { IsRequired = true };
+        var titleOpt = new Option<string>("--title", () => "", "Chart title");
+        var ylabelOpt = new Option<string>("--ylabel", () => "", "Y-axis label");
+        var cmd = new Command("boxplot", "Box plot for treatment group distribution") { fileArg, outOpt, titleOpt, ylabelOpt };
+
+        cmd.SetHandler((string file, string output, string title, string ylabel, bool json) =>
+        {
+            var err = CliHelpers.ValidateTextFile(file);
+            if (err != null) { CliHelpers.WriteError("chart boxplot", err, json); return; }
+
+            try
+            {
+                var groups = DataLoader.FromJson(file);
+                var verr = StatsValidation.Validate(groups, "chart boxplot");
+                if (verr != null) { CliHelpers.WriteError("chart boxplot", verr, json); return; }
+
+                var workerArgs = new List<string> { "chart", "boxplot", "--file", file, "--output", output };
+                NativeRenderWorkerHost.AddOption(workerArgs, "--title", title);
+                NativeRenderWorkerHost.AddOption(workerArgs, "--ylabel", ylabel);
+                NativeRenderWorkerHost.Run("chart boxplot", json, workerArgs);
+            }
+            catch (Exception ex)
+            {
+                CliHelpers.WriteError("chart boxplot",
+                    ErrorCodes.InternalError with { Message = ex.Message }, json);
+            }
+        }, fileArg, outOpt, titleOpt, ylabelOpt, jsonOpt);
+
+        return cmd;
+    }
+
+    // ===== chart histogram =====
+
+    static Command CreateHistogramChart(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to data file (.json) with groups");
+        var outOpt = new Option<string>("-o", "Output PNG path") { IsRequired = true };
+        var titleOpt = new Option<string>("--title", () => "", "Chart title");
+        var xlabelOpt = new Option<string>("--xlabel", () => "", "X-axis label");
+        var ylabelOpt = new Option<string>("--ylabel", () => "Frequency", "Y-axis label");
+        var binCountOpt = new Option<int>("--bin-count", () => 20, "Number of bins");
+        var cmd = new Command("histogram", "Histogram for data distribution") { fileArg, outOpt, titleOpt, xlabelOpt, ylabelOpt, binCountOpt };
+
+        cmd.SetHandler((string file, string output, string title, string xlabel, string ylabel, int binCount, bool json) =>
+        {
+            var err = CliHelpers.ValidateTextFile(file);
+            if (err != null) { CliHelpers.WriteError("chart histogram", err, json); return; }
+
+            try
+            {
+                var groups = DataLoader.FromJson(file);
+                // Histogram merges all values; single group is valid
+                if (groups.Count == 0 || groups.Values.All(v => v.Count == 0))
+                {
+                    CliHelpers.WriteError("chart histogram",
+                        ErrorCodes.ValidationFailed with { Message = "Data file must contain at least one non-empty group." }, json);
+                    return;
+                }
+
+                var workerArgs = new List<string> { "chart", "histogram", "--file", file, "--output", output, "--bin-count", binCount.ToString() };
+                NativeRenderWorkerHost.AddOption(workerArgs, "--title", title);
+                NativeRenderWorkerHost.AddOption(workerArgs, "--xlabel", xlabel);
+                NativeRenderWorkerHost.AddOption(workerArgs, "--ylabel", ylabel);
+                NativeRenderWorkerHost.Run("chart histogram", json, workerArgs);
+            }
+            catch (Exception ex)
+            {
+                CliHelpers.WriteError("chart histogram",
+                    ErrorCodes.InternalError with { Message = ex.Message }, json);
+            }
+        }, fileArg, outOpt, titleOpt, xlabelOpt, ylabelOpt, binCountOpt, jsonOpt);
+
+        return cmd;
+    }
+
+    // ===== chart heatmap =====
+
+    static Command CreateHeatmapChart(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to data file (.json) with 2D array");
+        var outOpt = new Option<string>("-o", "Output PNG path") { IsRequired = true };
+        var titleOpt = new Option<string>("--title", () => "", "Chart title");
+        var colormapOpt = new Option<string>("--colormap", () => "", "Colormap name (e.g. Viridis, Plasma, Inferno)");
+        var cmd = new Command("heatmap", "Heatmap chart from 2D data") { fileArg, outOpt, titleOpt, colormapOpt };
+
+        cmd.SetHandler((string file, string output, string title, string colormap, bool json) =>
+        {
+            var err = CliHelpers.ValidateTextFile(file);
+            if (err != null) { CliHelpers.WriteError("chart heatmap", err, json); return; }
+
+            try
+            {
+                var workerArgs = new List<string> { "chart", "heatmap", "--file", file, "--output", output };
+                NativeRenderWorkerHost.AddOption(workerArgs, "--title", title);
+                NativeRenderWorkerHost.AddOption(workerArgs, "--colormap", colormap);
+                NativeRenderWorkerHost.Run("chart heatmap", json, workerArgs);
+            }
+            catch (Exception ex) { CliHelpers.WriteError("chart heatmap", ErrorCodes.InternalError with { Message = ex.Message }, json); }
+        }, fileArg, outOpt, titleOpt, colormapOpt, jsonOpt);
+        return cmd;
+    }
+
+    // ===== chart radar =====
+
+    static Command CreateRadarChart(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to spec JSON with categories and series");
+        var outOpt = new Option<string>("-o", "Output PNG path") { IsRequired = true };
+        var titleOpt = new Option<string>("--title", () => "", "Chart title");
+        var cmd = new Command("radar", "Radar/spider chart for multi-index comparison") { fileArg, outOpt, titleOpt };
+
+        cmd.SetHandler((string file, string output, string title, bool json) =>
+        {
+            var err = CliHelpers.ValidateTextFile(file);
+            if (err != null) { CliHelpers.WriteError("chart radar", err, json); return; }
+
+            try
+            {
+                var workerArgs = new List<string> { "chart", "radar", "--file", file, "--output", output };
+                NativeRenderWorkerHost.AddOption(workerArgs, "--title", title);
+                NativeRenderWorkerHost.Run("chart radar", json, workerArgs);
+            }
+            catch (Exception ex) { CliHelpers.WriteError("chart radar", ErrorCodes.InternalError with { Message = ex.Message }, json); }
+        }, fileArg, outOpt, titleOpt, jsonOpt);
+        return cmd;
+    }
 }
 
 // === JSON spec models for chart commands ===
@@ -520,4 +656,24 @@ internal class PieValueEntry
 {
     public string? Label { get; set; }
     public double Value { get; set; }
+}
+
+internal class HeatmapSpec
+{
+    public double[][]? Data { get; set; }
+    public int Rows { get; set; }
+    public int Cols { get; set; }
+    public string? Colormap { get; set; }
+}
+
+internal class RadarSpec
+{
+    public string[]? Categories { get; set; }
+    public List<RadarSeriesEntry> Series { get; set; } = new();
+}
+
+internal class RadarSeriesEntry
+{
+    public string? Name { get; set; }
+    public double[]? Values { get; set; }
 }

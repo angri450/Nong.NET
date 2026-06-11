@@ -27,12 +27,12 @@
 
 ## 验证
 
-- `dotnet test .\Angri450.Nong\Cli.Tests\Cli.Tests.csproj -c Release --nologo`：68/68 PASS。
+- `dotnet test .\Nong.Cli.Net\Cli.Tests\Cli.Tests.csproj -c Release --nologo`：68/68 PASS。
 - `nong commands --json`：`status=ok; version=3.2.2; commandCount=73`。
 - `nong ocr install-model pp-ocrv5-mobile --dry-run --json`：`status=ok`，输出本地 PaddleOCR 安装计划。
 - `nong --version`：`3.2.2+fe3cfc330e623296286649dd145371feed728c97`。
 - 真实合同 `.doc`：`word check` 提示 legacy `.doc` 需转换；`word convert` 通过 `word-com` 输出 `.docx`；转换后 `word check` 报 38 段、3 表、3 个 VML 引用；`word images` 返回 3 个 `source=vml`、`extractable=false` 的 image references。
-- GroundPA Toolkit：9 个 Nong-facing skill validate 均 0 error/0 warning；`nong skill scan` 为 0 findings；`claude plugin validate` 通过。
+- Nong.Toolkit.Net：9 个 Nong-facing skill validate 均 0 error/0 warning；`nong skill scan` 为 0 findings；`claude plugin validate` 通过。
 
 ## 未执行
 

@@ -1,10 +1,10 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+﻿<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>2026-06-07 Stage19 Result: Unified Literature Retrieval DSL — Nong.NET</title>
+<title>2026-06-07 Stage19 Result: Unified Literature Retrieval DSL - Nong.NET</title>
 <link rel="stylesheet" href="../style.css">
 </head><body><div class="container">
-<header><a href="../index.html" class="back-link">← 返回总览</a> |
-<a href="../changelog.html" class="back-link">← 变更记录</a>
+<header><a href="../index.html" class="back-link">&larr; 返回总览</a> | 
+<a href="../changelog.html" class="back-link">&larr; 变更记录</a>
 <h1>2026-06-07 Stage19 Result: Unified Literature Retrieval DSL</h1>
 <p class="subtitle">2026-06-07 | <span style="color: #16a34a">变更记录</span></p></header>
 <article class="content">
@@ -28,11 +28,11 @@
 <h2>Implemented Commands</h2>
 <br>
 <ul>
-<li><code>nong lit parse --query "<expr>" --json</code></li>
-<li><code>nong lit validate --query "<expr>" --json</code></li>
-<li><code>nong lit plan --query "<expr>" --sources openalex,crossref,unpaywall --json</code></li>
-<li><code>nong lit search --query "<expr>" --sources openalex,crossref,unpaywall --limit 50 --profile balanced --out refs.json --json</code></li>
-<li><code>nong lit export --input refs.json --format json|markdown|bibtex --out <path> --json</code></li>
+<li><code>nong lit parse --query &quot;&lt;expr&gt;&quot; --json</code></li>
+<li><code>nong lit validate --query &quot;&lt;expr&gt;&quot; --json</code></li>
+<li><code>nong lit plan --query &quot;&lt;expr&gt;&quot; --sources openalex,crossref,unpaywall --json</code></li>
+<li><code>nong lit search --query &quot;&lt;expr&gt;&quot; --sources openalex,crossref,unpaywall --limit 50 --profile balanced --out refs.json --json</code></li>
+<li><code>nong lit export --input refs.json --format json|markdown|bibtex --out &lt;path&gt; --json</code></li>
 </ul>
 <br>
 <p><code>nong commands --json</code> now reports 82 implemented commands and includes only the five real <code>lit</code> commands.</p>
@@ -108,7 +108,7 @@
 <br>
 <p>Supported fields include <code>SU</code>, <code>TI</code>, <code>KY</code>, <code>AB</code>, <code>FT</code>, <code>AU</code>, <code>FI</code>/<code>F</code>, <code>AF</code>, <code>JN</code>, <code>RF</code>, <code>YE</code>, <code>FU</code>, <code>CLC</code>, <code>SN</code>, <code>CN</code>, <code>IB</code>, <code>CF</code>, <code>DOI</code>.</p>
 <br>
-<p>Supported syntax includes quoted phrases, unquoted terms, <code>+</code>, <code>*</code>, <code>-</code>, <code>AND</code>, <code>OR</code>, <code>NOT</code>, parentheses, and <code>YE BETWEEN ('2000','2013')</code>.</p>
+<p>Supported syntax includes quoted phrases, unquoted terms, <code>+</code>, <code>*</code>, <code>-</code>, <code>AND</code>, <code>OR</code>, <code>NOT</code>, parentheses, and <code>YE BETWEEN (&#39;2000&#39;,&#39;2013&#39;)</code>.</p>
 <br>
 <p>Unsupported <code>%</code>, <code>/SEN</code>, <code>/NEAR</code>, <code>/PREV</code>, <code>/AFT</code>, <code>/PRG</code>, and <code>$N</code> return <code>E006</code> validation diagnostics with position/context.</p>
 <br>
@@ -151,12 +151,12 @@
 <p>CLI smoke:</p>
 <br>
 <ul>
-<li><code>.\Cli\bin\Release\net8.0\nong.exe lit parse --query "SU=('腐植酸'+'腐殖酸')*('稀土'+'微肥')" --json</code> PASS, <code>status=ok</code>, 4 terms.</li>
-<li><code>.\Cli\bin\Release\net8.0\nong.exe lit validate --query "AU=钱伟长 AND (AF=清华大学 OR AF=上海大学)" --json</code> PASS, <code>status=ok</code>.</li>
-<li><code>.\Cli\bin\Release\net8.0\nong.exe lit plan --query "SU=('腐植酸'+'腐殖酸')*('稀土'+'微肥')" --sources openalex,crossref,unpaywall --json</code> PASS, <code>status=ok</code>, 3 providers.</li>
+<li><code>.\Cli\bin\Release\net8.0\nong.exe lit parse --query &quot;SU=(&#39;腐植酸&#39;+&#39;腐殖酸&#39;)*(&#39;稀土&#39;+&#39;微肥&#39;)&quot; --json</code> PASS, <code>status=ok</code>, 4 terms.</li>
+<li><code>.\Cli\bin\Release\net8.0\nong.exe lit validate --query &quot;AU=钱伟长 AND (AF=清华大学 OR AF=上海大学)&quot; --json</code> PASS, <code>status=ok</code>.</li>
+<li><code>.\Cli\bin\Release\net8.0\nong.exe lit plan --query &quot;SU=(&#39;腐植酸&#39;+&#39;腐殖酸&#39;)*(&#39;稀土&#39;+&#39;微肥&#39;)&quot; --sources openalex,crossref,unpaywall --json</code> PASS, <code>status=ok</code>, 3 providers.</li>
 <li><code>.\Cli\bin\Release\net8.0\nong.exe commands --json</code> PASS, <code>status=ok</code>, 82 implemented commands.</li>
-<li><code>.\Cli\bin\Release\net8.0\nong.exe lit plan --query "TI=humic" --sources semantic-scholar --json</code> PASS as honest failure, exit 1, <code>E006 validation_failed</code>.</li>
-<li><code>.\Cli\bin\Release\net8.0\nong.exe lit search --query "DOI='10.1016/j.chemgeo.2007.05.018'" --sources unpaywall --limit 5 --json</code> PASS as honest missing-credential failure, exit 1, <code>E005 dependency_missing</code>.</li>
+<li><code>.\Cli\bin\Release\net8.0\nong.exe lit plan --query &quot;TI=humic&quot; --sources semantic-scholar --json</code> PASS as honest failure, exit 1, <code>E006 validation_failed</code>.</li>
+<li><code>.\Cli\bin\Release\net8.0\nong.exe lit search --query &quot;DOI=&#39;10.1016/j.chemgeo.2007.05.018&#39;&quot; --sources unpaywall --limit 5 --json</code> PASS as honest missing-credential failure, exit 1, <code>E005 dependency_missing</code>.</li>
 </ul>
 <br>
 <p>Artifact verification:</p>
@@ -226,5 +226,5 @@
 <br>
 
 </article>
-<footer><p>由 progress-report 自动生成</p></footer>
+<footer><p>由 nong progress report 自动生成</p></footer>
 </div></body></html>

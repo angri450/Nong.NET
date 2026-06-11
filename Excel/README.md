@@ -111,7 +111,7 @@ only a lossy plain-text preview.
 
 ## Author
 
-Built by [angri450](https://github.com/angri450). Source: [Nong.NET](https://github.com/angri450/Nong.NET).
+Built by [angri450](https://github.com/angri450). Source: [Nong.Cli.Net](https://github.com/angri450/Nong.Cli.Net).
 
 ## License
 

@@ -35,7 +35,7 @@ CLI integration:
 
 GroundPA sync:
 
-- Added `GroundPA-Toolkit/pdf/SKILL.md`.
+- Added `Nong.Toolkit.Net/pdf/SKILL.md`.
 - Added `./pdf` to the plugin manifest and skill grouping.
 - The skill routes `pdf check` first, reads `content.nongmark` as primary evidence, and keeps cloud OCR as an optional stronger path.
 
@@ -218,13 +218,13 @@ PASS: 7/7
 GroundPA:
 
 ```text
-nong skill validate .\GroundPA-Toolkit\pdf --json
+nong skill validate .\Nong.Toolkit.Net\pdf --json
 PASS: 0 errors, 0 warnings
 
-nong skill scan .\GroundPA-Toolkit --json
+nong skill scan .\Nong.Toolkit.Net --json
 PASS: 0 findings, 0 High+
 
-claude plugin validate .\GroundPA-Toolkit
+claude plugin validate .\Nong.Toolkit.Net
 PASS
 ```
 

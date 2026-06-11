@@ -683,7 +683,7 @@ Only after `nong pdf` commands are real:
 Validate:
 
 ```powershell
-.\Angri450.Nong\Cli\bin\Release\net8.0\nong.exe skill validate .\GroundPA-Toolkit\pdf --json
-.\Angri450.Nong\Cli\bin\Release\net8.0\nong.exe skill scan .\GroundPA-Toolkit --json
-claude plugin validate .\GroundPA-Toolkit
+.\Nong.Cli.Net\Cli\bin\Release\net8.0\nong.exe skill validate .\Nong.Toolkit.Net\pdf --json
+.\Nong.Cli.Net\Cli\bin\Release\net8.0\nong.exe skill scan .\Nong.Toolkit.Net --json
+claude plugin validate .\Nong.Toolkit.Net
 ```

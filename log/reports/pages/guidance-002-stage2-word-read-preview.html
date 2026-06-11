@@ -1,10 +1,10 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+﻿<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>2026-06-03 阶段 2 指导：word read / word preview — Nong.NET</title>
+<title>2026-06-03 阶段 2 指导：word read / word preview - Nong.NET</title>
 <link rel="stylesheet" href="../style.css">
 </head><body><div class="container">
-<header><a href="../index.html" class="back-link">← 返回总览</a> |
-<a href="../guidance.html" class="back-link">← 开发指导</a>
+<header><a href="../index.html" class="back-link">&larr; 返回总览</a> | 
+<a href="../guidance.html" class="back-link">&larr; 开发指导</a>
 <h1>2026-06-03 阶段 2 指导：word read / word preview</h1>
 <p class="subtitle">2026-06-03 | <span style="color: #7c3aed">开发指导</span></p></header>
 <article class="content">
@@ -29,15 +29,15 @@
 <p>2. <code>Manifest.All()</code> 是手写清单，真实命令树也是手写注册，二者容易漂移。当前 <code>inspect refs resolve/generate</code> 在命令树里存在，但 manifest 没有列出。</p>
 <p>3. JSON 输出属性目前是 PascalCase，例如 <code>Status</code>、<code>Command</code>、<code>DurationMs</code>。如果目标是给模型省 token，建议统一成 camel/snake case，至少要固定下来，不要阶段 2 后再改。</p>
 <p>4. <code>--version</code> 当前实际输出来自 System.CommandLine 默认版本机制，结果包含提交 hash：<code>3.1.0+...</code>。这不一定是坏事，但和 changelog 中的 <code>nong v3.1.0</code> 不一致。</p>
-<p>5. <code>NongCli.csproj</code> 使用 <code><DebugType>embedded</DebugType></code>，如果后续关心工具包体积，可以改成 <code>none</code> 并关闭符号。</p>
+<p>5. <code>NongCli.csproj</code> 使用 <code>&lt;DebugType&gt;embedded&lt;/DebugType&gt;</code>，如果后续关心工具包体积，可以改成 <code>none</code> 并关闭符号。</p>
 <br>
 <h2>阶段 2 原则</h2>
 <br>
 <p>阶段 2 只做两个真实命令：</p>
 <br>
 <ul>
-<li><code>nong word read <file></code></li>
-<li><code>nong word preview <file></code></li>
+<li><code>nong word read &lt;file&gt;</code></li>
+<li><code>nong word preview &lt;file&gt;</code></li>
 </ul>
 <br>
 <p>不要在阶段 2 同时实现 <code>extract/dissect/rebuild/fill/stats/fonts/styles/validate/merge</code>。现在最重要的是证明 CLI 的输入、错误、JSON、stdout 规则稳定。</p>
@@ -55,7 +55,7 @@ DocxCore.WordPreview.Preview(file)
 <p>CLI 只负责：</p>
 <br>
 <ul>
-<li>接收 <code><file></code> 参数。</li>
+<li>接收 <code>&lt;file&gt;</code> 参数。</li>
 <li>检查文件存在和扩展名。</li>
 <li>把 <code>PreviewResult</code> 映射为 <code>JsonOutput</code>。</li>
 <li>非 JSON 时输出简洁诊断报告。</li>
@@ -145,7 +145,7 @@ nong word read paper.docx &gt; paper.txt
 <p>把下面内容交给 ClaudeCode：</p>
 <br>
 <pre><code class="language-text">
-你在 C:\Users\Administrator\Documents\Github\Angri450.Nong 工作。
+你在 C:\Users\Administrator\Documents\Github\Nong.Cli.Net 工作。
 
 目标：实现阶段 2，只做 nong word read 和 nong word preview。
 
@@ -189,5 +189,5 @@ dotnet .\Cli\bin\Release\net8.0\nong.dll word read missing.docx --json
 <br>
 
 </article>
-<footer><p>由 progress-report 自动生成</p></footer>
+<footer><p>由 nong progress report 自动生成</p></footer>
 </div></body></html>

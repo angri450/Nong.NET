@@ -1,10 +1,10 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+﻿<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Stage 13 Nong Core Hardening — Result Report — Nong.NET</title>
+<title>Stage 13 Nong Core Hardening — Result Report - Nong.NET</title>
 <link rel="stylesheet" href="../style.css">
 </head><body><div class="container">
-<header><a href="../index.html" class="back-link">← 返回总览</a> |
-<a href="../changelog.html" class="back-link">← 变更记录</a>
+<header><a href="../index.html" class="back-link">&larr; 返回总览</a> | 
+<a href="../changelog.html" class="back-link">&larr; 变更记录</a>
 <h1>Stage 13 Nong Core Hardening — Result Report</h1>
 <p class="subtitle">2026-06-03 | <span style="color: #16a34a">变更记录</span></p></header>
 <article class="content">
@@ -43,7 +43,7 @@
 <br>
 <table>
 <tr><th>Area</th><th>Why</th></tr>
-<tr><td>GroundPA-Toolkit</td><td>Explicitly excluded from this stage</td></tr>
+<tr><td>Nong.Toolkit.Net</td><td>Explicitly excluded from this stage</td></tr>
 <tr><td>PPTX/OCR implementation</td><td>Not in scope</td></tr>
 <tr><td>Word/Inspect/Chart expansion</td><td>Not in scope</td></tr>
 <tr><td><code>nong skill eval/scaffold/serve/optimize</code></td><td>P1, not in scope</td></tr>
@@ -58,7 +58,7 @@
 <tr><th>#</th><th>Command</th><th>Scenario</th><th>Expected</th><th>Result</th></tr>
 <tr><td>1</td><td><code>skill validate</code></td><td>valid skill</td><td>status:ok, EXIT:0</td><td>PASS</td></tr>
 <tr><td>2</td><td><code>skill validate</code></td><td>invalid (no frontmatter)</td><td>E006, EXIT:1</td><td>PASS</td></tr>
-<tr><td>3</td><td><code>skill validate</code></td><td>empty path <code>""</code></td><td>E003, EXIT:1</td><td>PASS</td></tr>
+<tr><td>3</td><td><code>skill validate</code></td><td>empty path <code>&quot;&quot;</code></td><td>E003, EXIT:1</td><td>PASS</td></tr>
 <tr><td>4</td><td><code>skill validate</code></td><td>missing dir</td><td>E001, EXIT:1</td><td>PASS</td></tr>
 <tr><td>5</td><td><code>skill scan</code></td><td>no High/Critical</td><td>status:ok, EXIT:0</td><td>PASS</td></tr>
 <tr><td>6</td><td><code>skill scan</code></td><td>HIGH finding (email)</td><td>status:error, E006, EXIT:1</td><td>PASS</td></tr>
@@ -67,11 +67,11 @@
 <tr><td>9</td><td><code>skill inventory</code></td><td>empty directory</td><td>rootType=directory, skillCount=0, EXIT:0</td><td>PASS</td></tr>
 <tr><td>10</td><td><code>skill package</code></td><td>single skill</td><td>packageType=skill, zip contains SKILL.md</td><td>PASS</td></tr>
 <tr><td>11</td><td><code>skill package</code></td><td>plugin root</td><td>packageType=plugin, skillCount=2, zip contains manifests + child SKILL.md</td><td>PASS</td></tr>
-<tr><td>12</td><td><code>skill package</code></td><td>invalid (ordinary dir)</td><td>E006 "neither a skill nor a plugin root", EXIT:1</td><td>PASS</td></tr>
+<tr><td>12</td><td><code>skill package</code></td><td>invalid (ordinary dir)</td><td>E006 &quot;neither a skill nor a plugin root&quot;, EXIT:1</td><td>PASS</td></tr>
 <tr><td>13</td><td><code>commands --json</code></td><td>default</td><td>24 implemented, 0 stubs in output</td><td>PASS</td></tr>
 <tr><td>14</td><td><code>commands --all --json</code></td><td>with --all</td><td>47 total (24 impl + 23 stub)</td><td>PASS</td></tr>
 <tr><td>15</td><td><code>word extract</code></td><td>stub command</td><td>E009, EXIT:1</td><td>PASS</td></tr>
-<tr><td>16</td><td>GroundPA-Toolkit</td><td>full integration</td><td>inventory rootType=plugin, scan 0 High+, package plugin zip with 17 skills</td><td>PASS</td></tr>
+<tr><td>16</td><td>Nong.Toolkit.Net</td><td>full integration</td><td>inventory rootType=plugin, scan 0 High+, package plugin zip with 17 skills</td><td>PASS</td></tr>
 </table>
 <br>
 <h3>Zip content verification</h3>
@@ -105,7 +105,7 @@ dotnet build .\SkillManager\SkillManager.Cli.csproj -c Release  # 0 errors (lega
 <br>
 <h2>Known Remaining Issues</h2>
 <br>
-<p>1. GroundPA-Toolkit <code>nuget</code> skill includes <code>nuget.exe</code> (8.4MB) in its directory — this gets packaged into the plugin zip. This is a data issue in GroundPA, not a code issue in nong.</p>
+<p>1. Nong.Toolkit.Net <code>nuget</code> skill includes <code>nuget.exe</code> (8.4MB) in its directory — this gets packaged into the plugin zip. This is a data issue in GroundPA, not a code issue in nong.</p>
 <p>2. Old <code>SkillManager</code> project retains <code>net10.0</code> build artifacts in <code>bin/</code> — these are <code>.gitignore</code>d and harmless.</p>
 <br>
 <hr>
@@ -114,7 +114,7 @@ dotnet build .\SkillManager\SkillManager.Cli.csproj -c Release  # 0 errors (lega
 <br>
 <ul>
 <li>Did not implement <code>nong skill eval/scaffold/serve/optimize-description/run-loop</code> — P1</li>
-<li>Did not touch GroundPA-Toolkit skill files</li>
+<li>Did not touch Nong.Toolkit.Net skill files</li>
 <li>Did not change any PPTX/OCR/Word/Inspect/Chart commands</li>
 <li>Did not publish NuGet packages</li>
 <li>Did not change git branches</li>
@@ -130,7 +130,7 @@ dotnet build .\SkillManager\SkillManager.Cli.csproj -c Release  # 0 errors (lega
 <br>
 <h2>Reviewer Checklist</h2>
 <br>
-<p>Run from <code>C:\Users\Administrator\Documents\Github\Angri450.Nong</code>:</p>
+<p>Run from <code>C:\Users\Administrator\Documents\Github\Nong.Cli.Net</code>:</p>
 <br>
 <pre><code class="language-powershell">
 # Build
@@ -142,16 +142,16 @@ dotnet .\Cli\bin\Release\net8.0\nong.dll commands --json
 dotnet .\Cli\bin\Release\net8.0\nong.dll commands --all --json
 
 # Validate GroundPA word skill
-dotnet .\Cli\bin\Release\net8.0\nong.dll skill validate C:\Users\Administrator\Documents\Github\GroundPA-Toolkit\word --json
+dotnet .\Cli\bin\Release\net8.0\nong.dll skill validate C:\Users\Administrator\Documents\Github\Nong.Toolkit.Net\word --json
 
-# Inventory GroundPA-Toolkit
-dotnet .\Cli\bin\Release\net8.0\nong.dll skill inventory C:\Users\Administrator\Documents\Github\GroundPA-Toolkit --json
+# Inventory Nong.Toolkit.Net
+dotnet .\Cli\bin\Release\net8.0\nong.dll skill inventory C:\Users\Administrator\Documents\Github\Nong.Toolkit.Net --json
 
-# Scan GroundPA-Toolkit
-dotnet .\Cli\bin\Release\net8.0\nong.dll skill scan C:\Users\Administrator\Documents\Github\GroundPA-Toolkit --json
+# Scan Nong.Toolkit.Net
+dotnet .\Cli\bin\Release\net8.0\nong.dll skill scan C:\Users\Administrator\Documents\Github\Nong.Toolkit.Net --json
 
-# Package GroundPA-Toolkit
-dotnet .\Cli\bin\Release\net8.0\nong.dll skill package C:\Users\Administrator\Documents\Github\GroundPA-Toolkit --json
+# Package Nong.Toolkit.Net
+dotnet .\Cli\bin\Release\net8.0\nong.dll skill package C:\Users\Administrator\Documents\Github\Nong.Toolkit.Net --json
 
 # Error behaviors
 dotnet .\Cli\bin\Release\net8.0\nong.dll skill validate &quot;&quot; --json
@@ -163,5 +163,5 @@ dotnet .\Cli\bin\Release\net8.0\nong.dll word extract --json
 <br>
 
 </article>
-<footer><p>由 progress-report 自动生成</p></footer>
+<footer><p>由 nong progress report 自动生成</p></footer>
 </div></body></html>

@@ -1,10 +1,10 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+﻿<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>阶段 11：CLI 契约修复 + 统计安全修复（完整记录） — Nong.NET</title>
+<title>阶段 11：CLI 契约修复 + 统计安全修复（完整记录） - Nong.NET</title>
 <link rel="stylesheet" href="../style.css">
 </head><body><div class="container">
-<header><a href="../index.html" class="back-link">← 返回总览</a> |
-<a href="../changelog.html" class="back-link">← 变更记录</a>
+<header><a href="../index.html" class="back-link">&larr; 返回总览</a> | 
+<a href="../changelog.html" class="back-link">&larr; 变更记录</a>
 <h1>阶段 11：CLI 契约修复 + 统计安全修复（完整记录）</h1>
 <p class="subtitle">2026-06-03 | <span style="color: #16a34a">变更记录</span></p></header>
 <article class="content">
@@ -19,7 +19,7 @@
 <br>
 <h3>#1 退出码 Bug</h3>
 <ul>
-<li><strong>问题</strong>：错误返回 JSON error 但进程退出码 0。ClaudeCode/PowerShell/skill 层误判"命令成功"</li>
+<li><strong>问题</strong>：错误返回 JSON error 但进程退出码 0。ClaudeCode/PowerShell/skill 层误判&quot;命令成功&quot;</li>
 <li><strong>根因</strong>：catch 块设了 <code>ExitCode = WriteError(...)</code> 后没有 <code>return</code>，末尾 <code>Environment.ExitCode = 0</code> 覆盖</li>
 <li><strong>修复</strong>：WriteError 改为 void，内部设 <code>Environment.ExitCode = 1</code>。删除所有末尾 <code>Environment.ExitCode = 0</code>。catch 块加 <code>return</code></li>
 </ul>
@@ -30,10 +30,10 @@
 <li><strong>修复</strong>：to-groups 新增 <code>--raw</code> 标志，输出裸分组 JSON。AGENT.md 示例更新</li>
 </ul>
 <br>
-<h3>#3 inspect diagnose "充分/不充分" 判断错误</h3>
+<h3>#3 inspect diagnose &quot;充分/不充分&quot; 判断错误</h3>
 <ul>
-<li><strong>问题</strong>：底层 PaperDiagnostics 返回 "是"/"否"，CLI 判断写成 <code>== "充分"</code>，导致统计全错</li>
-<li><strong>修复</strong>：全局替换为 <code>== "是"</code></li>
+<li><strong>问题</strong>：底层 PaperDiagnostics 返回 &quot;是&quot;/&quot;否&quot;，CLI 判断写成 <code>== &quot;充分&quot;</code>，导致统计全错</li>
+<li><strong>修复</strong>：全局替换为 <code>== &quot;是&quot;</code></li>
 </ul>
 <br>
 <h3>#4 Manifest 混列 stub 误导 agent</h3>
@@ -50,8 +50,8 @@
 <br>
 <h3>#6 JSON command 字段不一致</h3>
 <ul>
-<li><strong>问题</strong>：命令统一为 <code>inspect write-paper</code>，但 JSON 里 <code>command</code> 字段仍写 <code>"inspect write paper"</code></li>
-<li><strong>修复</strong>：InspectCommands.cs 三处全部改为 <code>"inspect write-paper"</code></li>
+<li><strong>问题</strong>：命令统一为 <code>inspect write-paper</code>，但 JSON 里 <code>command</code> 字段仍写 <code>&quot;inspect write paper&quot;</code></li>
+<li><strong>修复</strong>：InspectCommands.cs 三处全部改为 <code>&quot;inspect write-paper&quot;</code></li>
 </ul>
 <br>
 <h3>#7 Excel 命令缺 try/catch</h3>
@@ -103,8 +103,8 @@
 <br>
 <h3>#7 DebugType 控制</h3>
 <ul>
-<li><strong>问题</strong>：NongCli.csproj 使用 <code><DebugType>embedded</DebugType></code>，增大工具包</li>
-<li><strong>修复</strong>：改为 <code><DebugType>none</DebugType></code> + <code><DebugSymbols>false</DebugSymbols></code></li>
+<li><strong>问题</strong>：NongCli.csproj 使用 <code>&lt;DebugType&gt;embedded&lt;/DebugType&gt;</code>，增大工具包</li>
+<li><strong>修复</strong>：改为 <code>&lt;DebugType&gt;none&lt;/DebugType&gt;</code> + <code>&lt;DebugSymbols&gt;false&lt;/DebugSymbols&gt;</code></li>
 </ul>
 <br>
 <h3>#8 commands --json 缺少输入/输出契约</h3>
@@ -138,5 +138,5 @@
 <br>
 
 </article>
-<footer><p>由 progress-report 自动生成</p></footer>
+<footer><p>由 nong progress report 自动生成</p></footer>
 </div></body></html>

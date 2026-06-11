@@ -1,10 +1,10 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+﻿<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>nong inspect CLI 命令规范 — Nong.NET</title>
+<title>nong inspect CLI 命令规范 - Nong.NET</title>
 <link rel="stylesheet" href="../style.css">
 </head><body><div class="container">
-<header><a href="../index.html" class="back-link">← 返回总览</a> |
-<a href="../changelog.html" class="back-link">← 变更记录</a>
+<header><a href="../index.html" class="back-link">&larr; 返回总览</a> | 
+<a href="../changelog.html" class="back-link">&larr; 变更记录</a>
 <h1>nong inspect CLI 命令规范</h1>
 <p class="subtitle">2026-06-02 | <span style="color: #16a34a">变更记录</span></p></header>
 <article class="content">
@@ -39,7 +39,7 @@
 <br>
 <p>对应命令：</p>
 <br>
-<h4><code>nong inspect classify <file></code></h4>
+<h4><code>nong inspect classify &lt;file&gt;</code></h4>
 <p>输入：论文文本文件（.txt）</p>
 <p>输出：</p>
 <pre><code>
@@ -50,9 +50,9 @@
 推荐方法: 信度、效度、描述统计...
 </code></pre>
 <br>
-<p>实现：PaperTypeClassifier.Classify(text)，<code>--json</code> 返回 List<PaperTypeInfo></p>
+<p>实现：PaperTypeClassifier.Classify(text)，<code>--json</code> 返回 List&lt;PaperTypeInfo&gt;</p>
 <br>
-<h4><code>nong inspect top-type <file></code></h4>
+<h4><code>nong inspect top-type &lt;file&gt;</code></h4>
 <p>只返回匹配度最高的类型名称（一行文字）。</p>
 <br>
 <p>实现：PaperTypeClassifier.TopType(text)</p>
@@ -65,7 +65,7 @@
 <br>
 <p>对应命令：</p>
 <br>
-<h4><code>nong inspect structure <file></code></h4>
+<h4><code>nong inspect structure &lt;file&gt;</code></h4>
 <p>输入：论文文本文件（.txt）</p>
 <p>输出：</p>
 <pre><code>
@@ -91,7 +91,7 @@
 <br>
 <p>对应命令：</p>
 <br>
-<h4><code>nong inspect diagnose <file></code></h4>
+<h4><code>nong inspect diagnose &lt;file&gt;</code></h4>
 <p>完整诊断管线。输入论文文本，输出综合质量报告。</p>
 <br>
 <p>输出：</p>
@@ -125,22 +125,22 @@ C 级 — 数据不足，需补充采集
 <br>
 <p>实现：依次调用 Classify → DiagnoseEvidenceChain → DiagnoseDataRequirements → DiagnoseGapGrade → DiagnosePaperQuality → DiagnoseResearchDesignSemantics → RecommendChartsAndTables</p>
 <br>
-<h4><code>nong inspect evidence <file></code></h4>
+<h4><code>nong inspect evidence &lt;file&gt;</code></h4>
 <p>仅证据链诊断（10 项检查，每项输出充分/不充分+修改建议）。</p>
 <br>
 <p>实现：PaperDiagnostics.DiagnoseEvidenceChain()</p>
 <br>
-<h4><code>nong inspect data-req <file></code></h4>
+<h4><code>nong inspect data-req &lt;file&gt;</code></h4>
 <p>仅数据需求诊断（9 项检查）。</p>
 <br>
 <p>实现：PaperDiagnostics.DiagnoseDataRequirements()</p>
 <br>
-<h4><code>nong inspect gap <file></code></h4>
+<h4><code>nong inspect gap &lt;file&gt;</code></h4>
 <p>缺口等级评定（A-E），输出等级+判断标准+是否可继续分析。</p>
 <br>
 <p>实现：PaperDiagnostics.DiagnoseGapGrade()</p>
 <br>
-<h4><code>nong inspect semantics <file></code></h4>
+<h4><code>nong inspect semantics &lt;file&gt;</code></h4>
 <p>语义诊断（因果语言/相关因果混淆/机制声称/贡献夸大 等 7 项）。</p>
 <br>
 <p>实现：PaperDiagnostics.DiagnoseResearchDesignSemantics()</p>
@@ -153,7 +153,7 @@ C 级 — 数据不足，需补充采集
 <br>
 <p>对应命令：</p>
 <br>
-<h4><code>nong inspect refs <file></code></h4>
+<h4><code>nong inspect refs &lt;file&gt;</code></h4>
 <p>输入：论文文本文件（.txt）</p>
 <p>输出：</p>
 <pre><code>
@@ -177,7 +177,7 @@ WoS: Bacillus subtilis + fermentation + response surface
 <br>
 <p>实现：ExtractReferences() + CheckReferenceRisks() + ExtractInlineCitations() + BuildLiteratureSearchStrategy()</p>
 <br>
-<h4><code>nong inspect cite-check <file></code></h4>
+<h4><code>nong inspect cite-check &lt;file&gt;</code></h4>
 <p>仅交叉验证：正文引用和参考文献列表是否一一对应。</p>
 <br>
 <hr>
@@ -188,7 +188,7 @@ WoS: Bacillus subtilis + fermentation + response surface
 <br>
 <p>对应命令：</p>
 <br>
-<h4><code>nong inspect varplan <file></code></h4>
+<h4><code>nong inspect varplan &lt;file&gt;</code></h4>
 <p>输入：论文文本文件（.txt）</p>
 <p>输出：</p>
 <pre><code>
@@ -217,7 +217,7 @@ pH       | pH值 | 自变量 | 酸度 | pH计 | ...
 <br>
 <p>对应命令（从 JSON 规格生成 docx）：</p>
 <br>
-<h4><code>nong inspect write paper <spec> [-o <file>]</code></h4>
+<h4><code>nong inspect write paper &lt;spec&gt; [-o &lt;file&gt;]</code></h4>
 <p>从 JSON 规格生成完整论文 docx。</p>
 <br>
 <p>JSON 规格：</p>
@@ -264,10 +264,10 @@ pH       | pH值 | 自变量 | 酸度 | pH计 | ...
 <br>
 <p>对应命令：被 Body() 和 AutoReferences() 内部调用。独立暴露两个辅助命令：</p>
 <br>
-<h4><code>nong inspect refs resolve <text> --db <json></code></h4>
+<h4><code>nong inspect refs resolve &lt;text&gt; --db &lt;json&gt;</code></h4>
 <p>仅做引用键解析，把一段文本中的 [@key] 替换为 [N]，输出替换后的文本。</p>
 <br>
-<h4><code>nong inspect refs generate <keys> --db <json></code></h4>
+<h4><code>nong inspect refs generate &lt;keys&gt; --db &lt;json&gt;</code></h4>
 <p>根据键列表 + 数据库，生成格式化参考文献列表。</p>
 <br>
 <hr>
@@ -284,7 +284,7 @@ pH       | pH值 | 自变量 | 酸度 | pH计 | ...
 <br>
 <p>对应命令：</p>
 <br>
-<h4><code>nong inspect write official <spec> [-o <file>]</code></h4>
+<h4><code>nong inspect write official &lt;spec&gt; [-o &lt;file&gt;]</code></h4>
 <p>从 JSON 规格生成公文 docx。</p>
 <br>
 <p>JSON 规格：</p>
@@ -312,7 +312,7 @@ pH       | pH值 | 自变量 | 酸度 | pH计 | ...
 <br>
 <p>对应命令：</p>
 <br>
-<h4><code>nong inspect write letter <spec> [-o <file>]</code></h4>
+<h4><code>nong inspect write letter &lt;spec&gt; [-o &lt;file&gt;]</code></h4>
 <p>从 JSON 规格生成信函 docx。</p>
 <br>
 <p>JSON 规格：</p>
@@ -370,5 +370,5 @@ pH       | pH值 | 自变量 | 酸度 | pH计 | ...
 <br>
 
 </article>
-<footer><p>由 progress-report 自动生成</p></footer>
+<footer><p>由 nong progress report 自动生成</p></footer>
 </div></body></html>

@@ -1,10 +1,10 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+﻿<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>2026-06-06 Stage17d OCR Guidance: Local Text, Cloud Layout, Word Alignment — Nong.NET</title>
+<title>2026-06-06 Stage17d OCR Guidance: Local Text, Cloud Layout, Word Alignment - Nong.NET</title>
 <link rel="stylesheet" href="../style.css">
 </head><body><div class="container">
-<header><a href="../index.html" class="back-link">← 返回总览</a> |
-<a href="../guidance.html" class="back-link">← 开发指导</a>
+<header><a href="../index.html" class="back-link">&larr; 返回总览</a> | 
+<a href="../guidance.html" class="back-link">&larr; 开发指导</a>
 <h1>2026-06-06 Stage17d OCR Guidance: Local Text, Cloud Layout, Word Alignment</h1>
 <p class="subtitle">2026-06-06 | <span style="color: #7c3aed">开发指导</span></p></header>
 <article class="content">
@@ -54,7 +54,7 @@
 <br>
 <h2>Cloud + Word Alignment Target</h2>
 <br>
-<p>The target system is "shape and spirit aligned":</p>
+<p>The target system is &quot;shape and spirit aligned&quot;:</p>
 <br>
 <p>1. Cloud OCR output is normalized into page-aware structured evidence.</p>
 <p>2. Word output is sliced into <code>nongmark/v1</code>.</p>
@@ -97,7 +97,7 @@ bridge/nongmark-map.json
 <li>Every extracted image has <code>assetId</code>, <code>sourcePage</code>, <code>bbox</code>, <code>width</code>, <code>height</code>, and source relationship/path when available.</li>
 <li>Every stitched image has <code>stitchedAssetId</code>, ordered source segments, source page/bbox list, stitch direction, and confidence/reason.</li>
 <li>Every OCR block has page coordinates and stable ID.</li>
-<li>The bridge map records cloud block ID -> NongMark <code>blockId</code> / asset ID / page evidence.</li>
+<li>The bridge map records cloud block ID -&gt; NongMark <code>blockId</code> / asset ID / page evidence.</li>
 </ul>
 <br>
 <p>Cross-page stitching rules:</p>
@@ -162,12 +162,12 @@ nong word dissect &lt;out.docx&gt; --output &lt;slice-dir&gt; --json
 <ul>
 <li><code>ocr local --json</code> on real image returns standard JSON without <code>NaN</code> or <code>Infinity</code>.</li>
 <li><code>ocr local</code> text mode never prints <code>NaN</code>; invalid confidence prints <code>n/a</code>.</li>
-<li><code>ocr local <file.pdf> --json</code> returns <code>E002</code>.</li>
+<li><code>ocr local &lt;file.pdf&gt; --json</code> returns <code>E002</code>.</li>
 <li>JSON data includes the local capability boundary.</li>
 <li>GroundPA <code>multimodal</code> skill says local OCR is text-only and cloud owns document layout.</li>
 </ul>
 <br>
 
 </article>
-<footer><p>由 progress-report 自动生成</p></footer>
+<footer><p>由 nong progress report 自动生成</p></footer>
 </div></body></html>

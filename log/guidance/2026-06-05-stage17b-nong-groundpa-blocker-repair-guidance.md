@@ -9,7 +9,7 @@
 - Word 当前口径：32 commands，包括 `word check` 和 `word convert`。
 - CLI tests 当前口径：68/68 PASS。
 - CLI 包已写入 `RollForward=LatestMajor`，用于兼容只有 .NET 9/10 运行时的机器。
-- GroundPA Toolkit 当前口径：2.2.0，Nong CLI-first skills。
+- Nong.Toolkit.Net 当前口径：2.2.0，Nong CLI-first skills。
 
 不要再把 2026-06-04 的 71 commands / 58 tests / `meta.version=3.1.0` 当作当前事实。那些文件只能作为历史记录读取。
 
@@ -35,10 +35,10 @@ dotnet test .\Cli.Tests\Cli.Tests.csproj -c Release --nologo
 GroundPA 同步检查：
 
 ```powershell
-.\Angri450.Nong\Cli\bin\Release\net8.0\nong.exe skill validate .\GroundPA-Toolkit\word --json
-.\Angri450.Nong\Cli\bin\Release\net8.0\nong.exe skill validate .\GroundPA-Toolkit\multimodal --json
-.\Angri450.Nong\Cli\bin\Release\net8.0\nong.exe skill scan .\GroundPA-Toolkit --json
-claude plugin validate .\GroundPA-Toolkit
+.\Nong.Cli.Net\Cli\bin\Release\net8.0\nong.exe skill validate .\Nong.Toolkit.Net\word --json
+.\Nong.Cli.Net\Cli\bin\Release\net8.0\nong.exe skill validate .\Nong.Toolkit.Net\multimodal --json
+.\Nong.Cli.Net\Cli\bin\Release\net8.0\nong.exe skill scan .\Nong.Toolkit.Net --json
+claude plugin validate .\Nong.Toolkit.Net
 ```
 
 ## 发布说明
@@ -48,5 +48,5 @@ claude plugin validate .\GroundPA-Toolkit
 1. `dotnet pack` 生成 `Angri450.Nong.Cli.3.2.2.nupkg`。
 2. 推 NuGet.org。
 3. 推 GitHub/Gitee 源码镜像。
-4. 更新 GroundPA Toolkit plugin 版本并重新发布。
+4. 更新 Nong.Toolkit.Net plugin 版本并重新发布。
 5. 在发布记录里同时写清楚 CLI package version、`nong commands --json` 的 `meta.version` 和 git hash。

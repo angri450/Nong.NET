@@ -1,10 +1,10 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+﻿<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>2026-06-03 阶段 15 指导：恢复 Word「一刀三流」招牌设计 — Nong.NET</title>
+<title>2026-06-03 阶段 15 指导：恢复 Word「一刀三流」招牌设计 - Nong.NET</title>
 <link rel="stylesheet" href="../style.css">
 </head><body><div class="container">
-<header><a href="../index.html" class="back-link">← 返回总览</a> |
-<a href="../guidance.html" class="back-link">← 开发指导</a>
+<header><a href="../index.html" class="back-link">&larr; 返回总览</a> | 
+<a href="../guidance.html" class="back-link">&larr; 开发指导</a>
 <h1>2026-06-03 阶段 15 指导：恢复 Word「一刀三流」招牌设计</h1>
 <p class="subtitle">2026-06-03 | <span style="color: #7c3aed">开发指导</span></p></header>
 <article class="content">
@@ -19,7 +19,7 @@
 <p>开工前必须先跑：</p>
 <br>
 <pre><code class="language-powershell">
-cd C:\Users\Administrator\Documents\Github\Angri450.Nong
+cd C:\Users\Administrator\Documents\Github\Nong.Cli.Net
 dotnet build .\Cli\NongCli.csproj -c Release
 dotnet test .\Cli.Tests\Cli.Tests.csproj -c Release
 dotnet .\Cli\bin\Release\net8.0\nong.dll commands --json
@@ -303,7 +303,7 @@ nong word dissect &lt;file.docx&gt; --json
 <br>
 <h3>2.2 三流目录结构</h3>
 <br>
-<p><code>word dissect -o <out-dir></code> 必须生成：</p>
+<p><code>word dissect -o &lt;out-dir&gt;</code> 必须生成：</p>
 <br>
 <pre><code class="language-text">
 &lt;out-dir&gt;/
@@ -580,7 +580,7 @@ MultiModal/ImageAnalyzer.cs
 不要忽略 run-level 格式。
 不要在日志或 JSON 中打印任何 OCR token/API key。
 不要为了通过 build 把命令登记成 implemented 但实际返回 E009。
-不要修改 GroundPA-Toolkit。本阶段只做 Angri450.Nong。
+不要修改 Nong.Toolkit.Net。本阶段只做 Angri450.Nong。
 不要新增 net10/net11 依赖。目标仍是 net8.0。
 不要在没有 artifact 检查的情况下返回 ok。
 </code></pre>
@@ -741,9 +741,9 @@ Pandoc AST 全量互转
 
 </code></pre>
 <p>{</p>
-<p>"artifacts": {"docx": "..."},</p>
-<p>"metrics": {"fixedElements": 0},</p>
-<p>"issues": []</p>
+<p>&quot;artifacts&quot;: {&quot;docx&quot;: &quot;...&quot;},</p>
+<p>&quot;metrics&quot;: {&quot;fixedElements&quot;: 0},</p>
+<p>&quot;issues&quot;: []</p>
 <p>}</p>
 <pre><code>
 
@@ -775,7 +775,7 @@ Pandoc AST 全量互转
 <p>5. 缺文件返回 E001。</p>
 <p>6. 不支持的图片格式返回 E002。</p>
 <p>7. --after 未实现时返回 E006，不能忽略。</p>
-<p>8. JSON command 字段必须等于真实命令，如 "word add table"。</p>
+<p>8. JSON command 字段必须等于真实命令，如 &quot;word add table&quot;。</p>
 <pre><code>
 
 Spec 最小定义：
@@ -784,10 +784,10 @@ Spec 最小定义：
 
 </code></pre>
 <p>{</p>
-<p>"text": "正文",</p>
-<p>"style": "Normal",</p>
-<p>"bold": false,</p>
-<p>"italic": false</p>
+<p>&quot;text&quot;: &quot;正文&quot;,</p>
+<p>&quot;style&quot;: &quot;Normal&quot;,</p>
+<p>&quot;bold&quot;: false,</p>
+<p>&quot;italic&quot;: false</p>
 <p>}</p>
 <pre><code>
 
@@ -795,9 +795,9 @@ Spec 最小定义：
 
 </code></pre>
 <p>{</p>
-<p>"caption": "表1 处理均值",</p>
-<p>"headers": ["处理", "株高"],</p>
-<p>"rows": [["A", "12.3"], ["B", "15.1"]]</p>
+<p>&quot;caption&quot;: &quot;表1 处理均值&quot;,</p>
+<p>&quot;headers&quot;: [&quot;处理&quot;, &quot;株高&quot;],</p>
+<p>&quot;rows&quot;: [[&quot;A&quot;, &quot;12.3&quot;], [&quot;B&quot;, &quot;15.1&quot;]]</p>
 <p>}</p>
 <pre><code>
 
@@ -822,9 +822,9 @@ Spec 最小定义：
 <p>word protect 输出 docx</p>
 <p>word merge 输出 docx 且 validate 通过</p>
 <p>word add paragraph/table/math 输出 docx 且 word read 可读到新增文本</p>
-<p>malformed JSON spec -> E006 + EXIT:1</p>
-<p>missing input -> E001 + EXIT:1</p>
-<p>output == input -> E006 + EXIT:1</p>
+<p>malformed JSON spec -&gt; E006 + EXIT:1</p>
+<p>missing input -&gt; E001 + EXIT:1</p>
+<p>output == input -&gt; E006 + EXIT:1</p>
 <p>JSON command 字段逐项正确</p>
 <pre><code>
 
@@ -843,15 +843,15 @@ Spec 最小定义：
 
 </code></pre>
 <p>{</p>
-<p>"status": "ok",</p>
-<p>"command": "word outline",</p>
-<p>"summary": "...",</p>
-<p>"data": {},</p>
-<p>"issues": [],</p>
-<p>"artifacts": {},</p>
-<p>"metrics": {},</p>
-<p>"errors": [],</p>
-<p>"meta": {"durationMs": 0, "version": "3.1.0"}</p>
+<p>&quot;status&quot;: &quot;ok&quot;,</p>
+<p>&quot;command&quot;: &quot;word outline&quot;,</p>
+<p>&quot;summary&quot;: &quot;...&quot;,</p>
+<p>&quot;data&quot;: {},</p>
+<p>&quot;issues&quot;: [],</p>
+<p>&quot;artifacts&quot;: {},</p>
+<p>&quot;metrics&quot;: {},</p>
+<p>&quot;errors&quot;: [],</p>
+<p>&quot;meta&quot;: {&quot;durationMs&quot;: 0, &quot;version&quot;: &quot;3.1.0&quot;}</p>
 <p>}</p>
 <pre><code>
 
@@ -869,7 +869,7 @@ Spec 最小定义：
 <p>1. EnsureParentDir(output)</p>
 <p>2. input/output 同路径守卫</p>
 <p>3. 执行写入</p>
-<p>4. CheckArtifact(output, "DOCX" 或具体类型)</p>
+<p>4. CheckArtifact(output, &quot;DOCX&quot; 或具体类型)</p>
 <p>5. 再返回 status:ok</p>
 <pre><code>
 
@@ -925,7 +925,7 @@ Spec 最小定义：
 ClaudeCode 完成后必须在结果日志粘贴这些命令的结果摘要。
 
 </code></pre>
-<p>cd C:\Users\Administrator\Documents\Github\Angri450.Nong</p>
+<p>cd C:\Users\Administrator\Documents\Github\Nong.Cli.Net</p>
 <p>dotnet build .\Cli\NongCli.csproj -c Release</p>
 <p>dotnet test .\Cli.Tests\Cli.Tests.csproj -c Release</p>
 <br>
@@ -937,7 +937,7 @@ ClaudeCode 完成后必须在结果日志粘贴这些命令的结果摘要。
 <p>dotnet .\Cli\bin\Release\net8.0\nong.dll word images tests-output\sample.docx -o tests-output\word-images --json</p>
 <p>dotnet .\Cli\bin\Release\net8.0\nong.dll word comments tests-output\sample.docx --json</p>
 <p>dotnet .\Cli\bin\Release\net8.0\nong.dll word revisions tests-output\sample.docx --json</p>
-<p>dotnet .\Cli\bin\Release\net8.0\nong.dll word infer-format "黑体 四号 居中 固定行距28磅" --json</p>
+<p>dotnet .\Cli\bin\Release\net8.0\nong.dll word infer-format &quot;黑体 四号 居中 固定行距28磅&quot; --json</p>
 <br>
 <p>dotnet .\Cli\bin\Release\net8.0\nong.dll word fix-order tests-output\sample.docx -o tests-output\fixed.docx --json</p>
 <p>dotnet .\Cli\bin\Release\net8.0\nong.dll word protect tests-output\sample.docx --mode readonly -o tests-output\protected.docx --json</p>
@@ -945,7 +945,7 @@ ClaudeCode 完成后必须在结果日志粘贴这些命令的结果摘要。
 <br>
 <p>dotnet .\Cli\bin\Release\net8.0\nong.dll word add paragraph tests-output\sample.docx --spec tests-output\paragraph.json -o tests-output\add-paragraph.docx --json</p>
 <p>dotnet .\Cli\bin\Release\net8.0\nong.dll word add table tests-output\sample.docx --spec tests-output\table.json -o tests-output\add-table.docx --json</p>
-<p>dotnet .\Cli\bin\Release\net8.0\nong.dll word add math tests-output\sample.docx --latex "E=mc^2" -o tests-output\add-math.docx --json</p>
+<p>dotnet .\Cli\bin\Release\net8.0\nong.dll word add math tests-output\sample.docx --latex &quot;E=mc^2&quot; -o tests-output\add-math.docx --json</p>
 <pre><code>
 
 必须额外检查：
@@ -1038,5 +1038,5 @@ Known limitations 不许空着。至少评估：
 </code></pre>
 
 </article>
-<footer><p>由 progress-report 自动生成</p></footer>
+<footer><p>由 nong progress report 自动生成</p></footer>
 </div></body></html>

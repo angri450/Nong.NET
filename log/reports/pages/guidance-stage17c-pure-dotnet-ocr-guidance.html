@@ -1,10 +1,10 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+﻿<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>2026-06-05 后续指导：本地 OCR 禁止回退 Python — Nong.NET</title>
+<title>2026-06-05 后续指导：本地 OCR 禁止回退 Python - Nong.NET</title>
 <link rel="stylesheet" href="../style.css">
 </head><body><div class="container">
-<header><a href="../index.html" class="back-link">← 返回总览</a> |
-<a href="../guidance.html" class="back-link">← 开发指导</a>
+<header><a href="../index.html" class="back-link">&larr; 返回总览</a> | 
+<a href="../guidance.html" class="back-link">&larr; 开发指导</a>
 <h1>2026-06-05 后续指导：本地 OCR 禁止回退 Python</h1>
 <p class="subtitle">2026-06-05 | <span style="color: #7c3aed">开发指导</span></p></header>
 <article class="content">
@@ -51,9 +51,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\OcrRuntime\pack-runtimes.p
 <p>GroundPA 同步验证：</p>
 <br>
 <pre><code class="language-powershell">
-.\Angri450.Nong\Cli\bin\Release\net8.0\nong.exe skill validate .\GroundPA-Toolkit\multimodal --json
-.\Angri450.Nong\Cli\bin\Release\net8.0\nong.exe skill scan .\GroundPA-Toolkit --json
-claude plugin validate .\GroundPA-Toolkit
+.\Nong.Cli.Net\Cli\bin\Release\net8.0\nong.exe skill validate .\Nong.Toolkit.Net\multimodal --json
+.\Nong.Cli.Net\Cli\bin\Release\net8.0\nong.exe skill scan .\Nong.Toolkit.Net --json
+claude plugin validate .\Nong.Toolkit.Net
 </code></pre>
 <br>
 <h2>国内镜像说明</h2>
@@ -80,5 +80,5 @@ nong ocr install-model pp-ocrv5-mobile --source https://mirrors.huaweicloud.com/
 <br>
 
 </article>
-<footer><p>由 progress-report 自动生成</p></footer>
+<footer><p>由 nong progress report 自动生成</p></footer>
 </div></body></html>

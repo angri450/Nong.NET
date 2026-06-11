@@ -59,7 +59,7 @@ SkiaSharp 和 HarfBuzzSharp 的本地二进制文件（约 65 MB）由 NuGet 在
 
 ## Author
 
-Built by [angri450](https://github.com/angri450). Source: [Nong.NET](https://github.com/angri450/Nong.NET).
+Built by [angri450](https://github.com/angri450). Source: [Nong.Cli.Net](https://github.com/angri450/Nong.Cli.Net).
 
 ## License
 

@@ -33,7 +33,7 @@
 
 ## GroundPA Sync
 
-同步更新 `GroundPA-Toolkit`：
+同步更新 `Nong.Toolkit.Net`：
 
 - `multimodal/SKILL.md`
 - `multimodal/README.md`
@@ -46,8 +46,8 @@
 
 ## Validation
 
-- `dotnet build .\Angri450.Nong\Cli\NongCli.csproj -c Release --nologo`: PASS, 0 errors. Existing warnings remain in ThirdParty/OpenXML/Skia/PPTX areas.
-- `dotnet test .\Angri450.Nong\Cli.Tests\Cli.Tests.csproj -c Release --nologo`: PASS, 74/74.
+- `dotnet build .\Nong.Cli.Net\Cli\NongCli.csproj -c Release --nologo`: PASS, 0 errors. Existing warnings remain in ThirdParty/OpenXML/Skia/PPTX areas.
+- `dotnet test .\Nong.Cli.Net\Cli.Tests\Cli.Tests.csproj -c Release --nologo`: PASS, 74/74.
 - Real OCR smoke:
   - Generated a Windows PNG containing `测试123`.
   - `nong ocr local <image.png> --json`: PASS, 1 text block, `confidenceValid=true`, no `NaN`/`Infinity`, no issues.

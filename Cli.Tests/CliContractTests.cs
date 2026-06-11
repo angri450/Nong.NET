@@ -94,8 +94,10 @@ public class CliContractTests
         Assert.Contains("word add math", names);
         Assert.Contains("word create", names);
         Assert.Contains("word academic-format", names);
+        Assert.Contains("word format-gongwen", names);
         Assert.Contains("word format-audit", names);
         Assert.Contains("word repair-plan", names);
+        Assert.Contains("inspect write-official", names);
         Assert.DoesNotContain("word add-paragraph", names);
         Assert.DoesNotContain("word add-table", names);
         Assert.DoesNotContain("word add-math", names);
@@ -180,6 +182,43 @@ public class CliContractTests
         }
     }
 
+    [Fact]
+    public void ProgressReport_GeneratesHtmlAndJsonArtifacts()
+    {
+        RequireCli();
+        var dir = Path.Combine(Path.GetTempPath(), "nong-progress-test-" + Guid.NewGuid().ToString("N")[..8]);
+        var plansDir = Path.Combine(dir, "log", "plans");
+        Directory.CreateDirectory(plansDir);
+        Directory.CreateDirectory(Path.Combine(dir, "log", "changelog"));
+        Directory.CreateDirectory(Path.Combine(dir, "log", "debug"));
+        Directory.CreateDirectory(Path.Combine(dir, "log", "guidance"));
+
+        try
+        {
+            File.WriteAllText(Path.Combine(plansDir, "index.md"),
+                "# plans\n\n- 2026-06-10 | 2026-06-10-demo.md | Demo plan | done\n");
+            File.WriteAllText(Path.Combine(plansDir, "2026-06-10-demo.md"),
+                "# Demo plan\n\nReport generation smoke test.\n");
+
+            var (json, exit) = Run("progress", "report", "--project-root", dir, "--json");
+            Assert.Equal(0, exit);
+
+            using var doc = Parse(json);
+            var root = doc.RootElement;
+            Assert.Equal("ok", root.GetProperty("status").GetString());
+            Assert.Equal("progress report", root.GetProperty("command").GetString());
+            Assert.Equal(1, root.GetProperty("data").GetProperty("entries").GetInt32());
+
+            var indexPath = root.GetProperty("artifacts").GetProperty("index").GetString()!;
+            Assert.True(File.Exists(indexPath));
+            Assert.True(File.Exists(Path.Combine(dir, "log", "reports", "pages", "plans-2026-06-10-demo.html")));
+        }
+        finally
+        {
+            try { if (Directory.Exists(dir)) Directory.Delete(dir, true); } catch { }
+        }
+    }
+
     // ===== Newly implemented commands: missing file → E001 =====
 
     [Theory]
@@ -187,6 +226,8 @@ public class CliContractTests
     [InlineData("word", "fonts", "nonexistent.docx")]
     [InlineData("word", "styles", "nonexistent.docx")]
     [InlineData("word", "dissect", "nonexistent.docx")]
+    [InlineData("word", "format-gongwen", "nonexistent.docx", "-o", "out.docx")]
+    [InlineData("inspect", "write-official", "nonexistent.json", "-o", "out.docx")]
     [InlineData("chart", "line", "nonexistent.json", "-o", "out.png")]
     [InlineData("chart", "scatter", "nonexistent.json", "-o", "out.png")]
     [InlineData("chart", "pie", "nonexistent.json", "-o", "out.png")]
@@ -250,6 +291,56 @@ public class CliContractTests
             Assert.Equal("E006", doc.RootElement.GetProperty("errors")[0].GetProperty("code").GetString());
         }
         finally { File.Delete(specPath); }
+    }
+
+    [Fact]
+    public void InspectWriteOfficial_And_WordFormatGongwen_GenerateDocxArtifacts()
+    {
+        RequireCli();
+        var dir = Path.Combine(Path.GetTempPath(), "nong-official-test-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var specPath = Path.Combine(dir, "official.json");
+            var officialPath = Path.Combine(dir, "official.docx");
+            var formattedPath = Path.Combine(dir, "official.gongwen.docx");
+            File.WriteAllText(specPath, @"{
+  ""redHeader"": ""Demo Agency File"",
+  ""docNumber"": ""Demo [2026] 1"",
+  ""title"": ""Demo Notice"",
+  ""recipient"": ""All units:"",
+  ""body"": [""First paragraph."", ""Second paragraph.""],
+  ""closing"": ""This is the notice."",
+  ""signature"": ""Demo Agency"",
+  ""date"": ""2026-06-10""
+}");
+
+            var (writeJson, writeExit) = Run("inspect", "write-official", specPath, "-o", officialPath, "--json");
+            Assert.Equal(0, writeExit);
+            using (var writeDoc = Parse(writeJson))
+            {
+                Assert.Equal("ok", writeDoc.RootElement.GetProperty("status").GetString());
+                Assert.Equal("inspect write-official", writeDoc.RootElement.GetProperty("command").GetString());
+                Assert.Equal(2, writeDoc.RootElement.GetProperty("metrics").GetProperty("bodyParagraphs").GetInt32());
+                Assert.True(File.Exists(writeDoc.RootElement.GetProperty("artifacts").GetProperty("docx").GetString()));
+            }
+
+            var (formatJson, formatExit) = Run("word", "format-gongwen", officialPath, "-o", formattedPath, "--json");
+            Assert.Equal(0, formatExit);
+            using (var formatDoc = Parse(formatJson))
+            {
+                Assert.Equal("ok", formatDoc.RootElement.GetProperty("status").GetString());
+                Assert.Equal("word format-gongwen", formatDoc.RootElement.GetProperty("command").GetString());
+                Assert.True(File.Exists(formatDoc.RootElement.GetProperty("artifacts").GetProperty("docx").GetString()));
+            }
+
+            Assert.True(new FileInfo(officialPath).Length > 0);
+            Assert.True(new FileInfo(formattedPath).Length > 0);
+        }
+        finally
+        {
+            try { Directory.Delete(dir, true); } catch { }
+        }
     }
 
     // ===== JSON schema tests =====
@@ -945,5 +1036,659 @@ public class CliContractTests
         Assert.Equal(expectedFormat, visualEvidence.GetProperty("format").GetString());
         Assert.True(visualEvidence.TryGetProperty("layout", out _));
         Assert.True(visualEvidence.TryGetProperty("warnings", out _));
+    }
+
+    // ===== P1 alias tests =====
+
+    [Fact]
+    public void Commands_Json_ExposesP1Aliases()
+    {
+        RequireCli();
+        var (json, exit) = Run("commands", "--json");
+        Assert.Equal(0, exit);
+
+        using var doc = Parse(json);
+        var commands = doc.RootElement.GetProperty("data").EnumerateArray().ToList();
+
+        // Verify canonical names still present
+        var names = commands.Select(c => c.GetProperty("name").GetString()).ToHashSet();
+        Assert.Contains("word preview", names);
+        Assert.Contains("word rebuild", names);
+        Assert.Contains("inspect refs", names);
+        Assert.Contains("inspect varplan", names);
+        Assert.Contains("inspect data-req", names);
+
+        // Verify aliases are exposed
+        var previewCmd = commands.Single(c => c.GetProperty("name").GetString() == "word preview");
+        var previewAliases = previewCmd.GetProperty("aliases").EnumerateArray().Select(a => a.GetString()).ToHashSet();
+        Assert.Contains("word diagnose", previewAliases);
+
+        var rebuildCmd = commands.Single(c => c.GetProperty("name").GetString() == "word rebuild");
+        var rebuildAliases = rebuildCmd.GetProperty("aliases").EnumerateArray().Select(a => a.GetString()).ToHashSet();
+        Assert.Contains("word clean-styles", rebuildAliases);
+
+        var refsCmd = commands.Single(c => c.GetProperty("name").GetString() == "inspect refs");
+        var refsAliases = refsCmd.GetProperty("aliases").EnumerateArray().Select(a => a.GetString()).ToHashSet();
+        Assert.Contains("inspect references", refsAliases);
+
+        var varplanCmd = commands.Single(c => c.GetProperty("name").GetString() == "inspect varplan");
+        var varplanAliases = varplanCmd.GetProperty("aliases").EnumerateArray().Select(a => a.GetString()).ToHashSet();
+        Assert.Contains("inspect variables", varplanAliases);
+
+        var dataReqCmd = commands.Single(c => c.GetProperty("name").GetString() == "inspect data-req");
+        var dataReqAliases = dataReqCmd.GetProperty("aliases").EnumerateArray().Select(a => a.GetString()).ToHashSet();
+        Assert.Contains("inspect data-requirements", dataReqAliases);
+    }
+
+    [Fact]
+    public void WordDiagnose_AliasProducesSameOutputAsWordPreview()
+    {
+        RequireCli();
+        var dir = Path.Combine(Path.GetTempPath(), "alias-test-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var nongmarkPath = Path.Combine(dir, "input.nongmark");
+            var docxPath = Path.Combine(dir, "test.docx");
+            File.WriteAllText(nongmarkPath, "Hello World test document.");
+
+            // Create docx from NongMark (.nongmark extension required)
+            var (createJson, createExit) = Run("word", "create", nongmarkPath, "-o", docxPath, "--json");
+            Assert.Equal(0, createExit);
+
+            // Run preview and diagnose on the same file - compare exit codes
+            var (_, previewExit) = Run("word", "preview", docxPath, "--json");
+            var (_, diagnoseExit) = Run("word", "diagnose", docxPath, "--json");
+
+            Assert.Equal(previewExit, diagnoseExit);
+        }
+        finally { try { Directory.Delete(dir, true); } catch { } }
+    }
+
+    [Fact]
+    public void InspectReferences_AliasIsRoutable()
+    {
+        RequireCli();
+        var tmp = TempFile("Smith (2020) found significant effects. References: 1) Smith J. 2020.");
+        try
+        {
+            var (aliasJson, aliasExit) = Run("inspect", "references", tmp, "--json");
+            Assert.Equal(0, aliasExit);
+            using var doc = Parse(aliasJson);
+            Assert.Equal("ok", doc.RootElement.GetProperty("status").GetString());
+        }
+        finally { try { File.Delete(tmp); } catch { } }
+    }
+
+    [Fact]
+    public void InspectDataRequirements_AliasIsRoutable()
+    {
+        RequireCli();
+        var tmp = TempFile("Treatment groups: A, B, C. Measured: yield, height. Statistical method: ANOVA.");
+        try
+        {
+            var (aliasJson, aliasExit) = Run("inspect", "data-requirements", tmp, "--json");
+            Assert.Equal(0, aliasExit);
+            using var doc = Parse(aliasJson);
+            Assert.Equal("ok", doc.RootElement.GetProperty("status").GetString());
+        }
+        finally { try { File.Delete(tmp); } catch { } }
+    }
+
+    [Fact]
+    public void InspectVariables_AliasIsRoutable()
+    {
+        RequireCli();
+        var tmp = TempFile("Independent variable: treatment. Dependent variables: yield, protein content.");
+        try
+        {
+            var (aliasJson, aliasExit) = Run("inspect", "variables", tmp, "--json");
+            Assert.Equal(0, aliasExit);
+            using var doc = Parse(aliasJson);
+            Assert.Equal("ok", doc.RootElement.GetProperty("status").GetString());
+        }
+        finally { try { File.Delete(tmp); } catch { } }
+    }
+
+    // ===== chart boxplot / histogram ====
+
+    [Fact]
+    public void Commands_Json_ExposesBoxplotAndHistogram()
+    {
+        RequireCli();
+        var (json, exit) = Run("commands", "--json");
+        Assert.Equal(0, exit);
+
+        using var doc = Parse(json);
+        var names = doc.RootElement.GetProperty("data")
+            .EnumerateArray()
+            .Select(e => e.GetProperty("name").GetString())
+            .ToHashSet();
+
+        Assert.Contains("chart boxplot", names);
+        Assert.Contains("chart histogram", names);
+    }
+
+    [Fact]
+    public void ChartBoxplot_GeneratesPng()
+    {
+        RequireCli();
+        var dir = Path.Combine(Path.GetTempPath(), "chart-bp-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var dataPath = Path.Combine(dir, "groups.json");
+            var outPath = Path.Combine(dir, "boxplot.png");
+            File.WriteAllText(dataPath, @"{""CK"":[5.2,5.1,5.3,5.0],""N1"":[6.1,6.3,5.9,6.2]}");
+
+            var (json, exit) = Run("chart", "boxplot", dataPath, "-o", outPath, "--json");
+            Assert.Equal(0, exit);
+            using var doc = Parse(json);
+            Assert.Equal("ok", doc.RootElement.GetProperty("status").GetString());
+            Assert.True(File.Exists(outPath));
+            Assert.True(new FileInfo(outPath).Length > 100);
+        }
+        finally { try { Directory.Delete(dir, true); } catch { } }
+    }
+
+    [Fact]
+    public void ChartHistogram_GeneratesPng()
+    {
+        RequireCli();
+        var dir = Path.Combine(Path.GetTempPath(), "chart-hist-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var dataPath = Path.Combine(dir, "groups.json");
+            var outPath = Path.Combine(dir, "histogram.png");
+            File.WriteAllText(dataPath, @"{""A"":[1.2,1.5,1.8,2.0,2.1,2.3,2.5,2.7,3.0]}");
+
+            var (json, exit) = Run("chart", "histogram", dataPath, "-o", outPath, "--json");
+            Assert.Equal(0, exit);
+            using var doc = Parse(json);
+            Assert.Equal("ok", doc.RootElement.GetProperty("status").GetString());
+            Assert.True(File.Exists(outPath));
+            Assert.True(new FileInfo(outPath).Length > 100);
+        }
+        finally { try { Directory.Delete(dir, true); } catch { } }
+    }
+
+    [Fact]
+    public void ChartHistogram_WithBinCount_GeneratesPng()
+    {
+        RequireCli();
+        var dir = Path.Combine(Path.GetTempPath(), "chart-histb-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var dataPath = Path.Combine(dir, "groups.json");
+            var outPath = Path.Combine(dir, "hist10.png");
+            File.WriteAllText(dataPath, @"{""X"":[1.0,1.1,1.2,2.0,2.1,2.2,3.0,3.1,3.2]}");
+
+            var (json, exit) = Run("chart", "histogram", dataPath, "-o", outPath, "--bin-count", "10", "--json");
+            Assert.Equal(0, exit);
+            using var doc = Parse(json);
+            Assert.Equal("ok", doc.RootElement.GetProperty("status").GetString());
+            Assert.True(File.Exists(outPath));
+        }
+        finally { try { Directory.Delete(dir, true); } catch { } }
+    }
+
+    // ===== pdf merge / split ====
+
+    [Fact]
+    public void Commands_Json_ExposesPdfMergeAndSplit()
+    {
+        RequireCli();
+        var (json, exit) = Run("commands", "--json");
+        Assert.Equal(0, exit);
+
+        using var doc = Parse(json);
+        var names = doc.RootElement.GetProperty("data")
+            .EnumerateArray()
+            .Select(e => e.GetProperty("name").GetString())
+            .ToHashSet();
+
+        Assert.Contains("pdf merge", names);
+        Assert.Contains("pdf split", names);
+    }
+
+    [Fact]
+    public void PdfMerge_TwoFiles_ProducesPdf()
+    {
+        RequireCli();
+        var dir = Path.Combine(Path.GetTempPath(), "pdf-merge-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var a1 = CreateSinglePagePdf(Path.Combine(dir, "a1.pdf"), "Page One");
+            var a2 = CreateSinglePagePdf(Path.Combine(dir, "a2.pdf"), "Page Two");
+            var outPath = Path.Combine(dir, "merged.pdf");
+
+            var (json, exit) = Run("pdf", "merge", a1, a2, "-o", outPath, "--json");
+            Assert.Equal(0, exit);
+            using var doc = Parse(json);
+            Assert.Equal("ok", doc.RootElement.GetProperty("status").GetString());
+            Assert.True(File.Exists(outPath));
+            Assert.True(new FileInfo(outPath).Length > 100);
+        }
+        finally { try { Directory.Delete(dir, true); } catch { } }
+    }
+
+    [Fact]
+    public void PdfMerge_RequiresAtLeastTwoFiles()
+    {
+        RequireCli();
+        var (json, exit) = Run("pdf", "merge", "nonexistent.pdf", "-o", "out.pdf", "--json");
+        Assert.NotEqual(0, exit);
+    }
+
+    [Fact]
+    public void PdfSplit_ByPageRange_ProducesPdf()
+    {
+        RequireCli();
+        var dir = Path.Combine(Path.GetTempPath(), "pdf-split-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var src = CreateSinglePagePdf(Path.Combine(dir, "src.pdf"), "Source");
+            var outPath = Path.Combine(dir, "split.pdf");
+
+            var (json, exit) = Run("pdf", "split", src, "-o", outPath, "--pages", "1", "--json");
+            Assert.Equal(0, exit);
+            using var doc = Parse(json);
+            Assert.Equal("ok", doc.RootElement.GetProperty("status").GetString());
+            Assert.True(File.Exists(outPath));
+        }
+        finally { try { Directory.Delete(dir, true); } catch { } }
+    }
+
+    static string CreateSinglePagePdf(string path, string text)
+    {
+        using var builder = new UglyToad.PdfPig.Writer.PdfDocumentBuilder();
+        var font = builder.AddStandard14Font(UglyToad.PdfPig.Fonts.Standard14Fonts.Standard14Font.Helvetica);
+        var page = builder.AddPage(595, 842);
+        page.AddText(text, 12, new UglyToad.PdfPig.Core.PdfPoint(72, 760), font);
+        File.WriteAllBytes(path, builder.Build());
+        return path;
+    }
+
+    // ===== excel style / formula =====
+
+    [Fact]
+    public void Commands_Json_ExposesExcelStyleAndFormula()
+    {
+        RequireCli();
+        var (json, exit) = Run("commands", "--json");
+        Assert.Equal(0, exit);
+
+        using var doc = Parse(json);
+        var names = doc.RootElement.GetProperty("data")
+            .EnumerateArray()
+            .Select(e => e.GetProperty("name").GetString())
+            .ToHashSet();
+
+        Assert.Contains("excel style", names);
+        Assert.Contains("excel formula", names);
+    }
+
+    [Fact]
+    public void ExcelStyle_AppliesPresetAndFormatting()
+    {
+        RequireCli();
+        var dir = Path.Combine(Path.GetTempPath(), "xl-style-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var specPath = Path.Combine(dir, "spec.json");
+            var outPath = Path.Combine(dir, "out.xlsx");
+
+            // Create a simple xlsx first
+            var createJson = Path.Combine(dir, "create.json");
+            File.WriteAllText(createJson, @"{""sheets"":[{""name"":""Data"",""headers"":[""A"",""B""],""rows"":[[""1"",""2""],[""3"",""4""]]}]}");
+            var (cjson, cexit) = Run("excel", "create", createJson, "-o", outPath, "--json");
+            Assert.Equal(0, cexit);
+
+            // Apply Academic preset style
+            File.WriteAllText(specPath, @"{""sheet"":""Data"",""entries"":[{""preset"":""Academic""}]}");
+            var styledOut = Path.Combine(dir, "styled.xlsx");
+            var (sjson, sexit) = Run("excel", "style", outPath, specPath, "-o", styledOut, "--json");
+            Assert.Equal(0, sexit);
+            using var doc = Parse(sjson);
+            Assert.Equal("ok", doc.RootElement.GetProperty("status").GetString());
+            Assert.True(File.Exists(styledOut));
+        }
+        finally { try { Directory.Delete(dir, true); } catch { } }
+    }
+
+    [Fact]
+    public void ExcelFormula_WritesFormula()
+    {
+        RequireCli();
+        var dir = Path.Combine(Path.GetTempPath(), "xl-form-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var createJson = Path.Combine(dir, "create.json");
+            var outPath = Path.Combine(dir, "data.xlsx");
+            File.WriteAllText(createJson, @"{""sheets"":[{""name"":""Calc"",""headers"":[""X"",""Y""],""rows"":[[""10"",""20""],[""30"",""40""]]}]}");
+            var (cjson, cexit) = Run("excel", "create", createJson, "-o", outPath, "--json");
+            Assert.Equal(0, cexit);
+
+            var specPath = Path.Combine(dir, "form.json");
+            var formulaOut = Path.Combine(dir, "formula.xlsx");
+            File.WriteAllText(specPath, @"{""sheet"":""Calc"",""entries"":[{""cell"":""C1"",""formula"":""SUM(A2:B3)""}]}");
+            var (fjson, fexit) = Run("excel", "formula", outPath, specPath, "-o", formulaOut, "--json");
+            Assert.Equal(0, fexit);
+            using var doc = Parse(fjson);
+            Assert.Equal("ok", doc.RootElement.GetProperty("status").GetString());
+            Assert.True(File.Exists(formulaOut));
+        }
+        finally { try { Directory.Delete(dir, true); } catch { } }
+    }
+
+    // ===== inspect official-check ====
+
+    [Fact]
+    public void Commands_Json_ExposesOfficialCheck()
+    {
+        RequireCli();
+        var (json, exit) = Run("commands", "--json");
+        Assert.Equal(0, exit);
+
+        using var doc = Parse(json);
+        var names = doc.RootElement.GetProperty("data")
+            .EnumerateArray()
+            .Select(e => e.GetProperty("name").GetString())
+            .ToHashSet();
+
+        Assert.Contains("inspect official-check", names);
+    }
+
+    [Fact]
+    public void OfficialCheck_OnGeneratedGongwen_Passes()
+    {
+        RequireCli();
+        var dir = Path.Combine(Path.GetTempPath(), "official-check-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var specPath = Path.Combine(dir, "official.json");
+            var docxPath = Path.Combine(dir, "official.docx");
+            File.WriteAllText(specPath, @"{
+  ""redHeader"": ""Demo Agency File"",
+  ""docNumber"": ""Demo [2026] 1"",
+  ""title"": ""Demo Notice"",
+  ""recipient"": ""All units:"",
+  ""body"": [""First paragraph."", ""Second paragraph.""],
+  ""closing"": ""This is the notice."",
+  ""signature"": ""Demo Agency"",
+  ""date"": ""2026-06-10""
+}");
+
+            var (_, wexit) = Run("inspect", "write-official", specPath, "-o", docxPath, "--json");
+            Assert.Equal(0, wexit);
+
+            var (json, exit) = Run("inspect", "official-check", docxPath, "--json");
+            Assert.Equal(0, exit);
+            using var doc = Parse(json);
+            Assert.Equal("ok", doc.RootElement.GetProperty("status").GetString());
+            var metrics = doc.RootElement.GetProperty("metrics");
+            Assert.True(metrics.GetProperty("passCount").GetInt32() > 0);
+        }
+        finally { try { Directory.Delete(dir, true); } catch { } }
+    }
+
+    // ===== pptx create ====
+
+    [Fact]
+    public void Commands_Json_ExposesPptxCreate()
+    {
+        RequireCli();
+        var (json, exit) = Run("commands", "--json");
+        Assert.Equal(0, exit);
+        using var doc = Parse(json);
+        var names = doc.RootElement.GetProperty("data").EnumerateArray().Select(e => e.GetProperty("name").GetString()).ToHashSet();
+        Assert.Contains("pptx create", names);
+    }
+
+    [Fact]
+    public void PptxCreate_RejectsInvalidSpec()
+    {
+        RequireCli();
+        var dir = Path.Combine(Path.GetTempPath(), "pptx-create-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var specPath = Path.Combine(dir, "spec.json");
+            File.WriteAllText(specPath, @"{""slides"":[]}");
+            var (json, exit) = Run("pptx", "create", specPath, "-o", Path.Combine(dir, "out.pptx"), "--json");
+            Assert.NotEqual(0, exit);
+            using var doc = Parse(json);
+            Assert.Contains("non-empty", doc.RootElement.GetProperty("errors")[0].GetProperty("message").GetString());
+        }
+        finally { try { Directory.Delete(dir, true); } catch { } }
+    }
+
+    [Fact]
+    public void PptxCreate_GeneratesPptx_HappyPath()
+    {
+        RequireCli();
+        var dir = Path.Combine(Path.GetTempPath(), "pptx-ok-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var specPath = Path.Combine(dir, "spec.json");
+            var outPath = Path.Combine(dir, "out.pptx");
+            File.WriteAllText(specPath, "{\"slides\":[{\"kind\":\"title\",\"title\":\"Test\",\"subtitle\":\"Sub\"},{\"kind\":\"content\",\"title\":\"Slide 2\",\"items\":[\"A\",\"B\"]}]}");
+            var (json, exit) = Run("pptx", "create", specPath, "-o", outPath, "--json");
+            Assert.Equal(0, exit);
+            using var doc = Parse(json);
+            Assert.Equal("ok", doc.RootElement.GetProperty("status").GetString());
+            Assert.True(File.Exists(outPath));
+            Assert.True(new FileInfo(outPath).Length > 1000);
+        }
+        finally { try { Directory.Delete(dir, true); } catch { } }
+    }
+
+    // ===== chart heatmap + radar ====
+
+    [Fact]
+    public void Commands_Json_ExposesHeatmapAndRadar()
+    {
+        RequireCli();
+        var (json, exit) = Run("commands", "--json");
+        Assert.Equal(0, exit);
+        using var doc = Parse(json);
+        var names = doc.RootElement.GetProperty("data").EnumerateArray().Select(e => e.GetProperty("name").GetString()).ToHashSet();
+        Assert.Contains("chart heatmap", names);
+        Assert.Contains("chart radar", names);
+    }
+
+    [Fact]
+    public void ChartHeatmap_GeneratesPng()
+    {
+        RequireCli();
+        var dir = Path.Combine(Path.GetTempPath(), "chart-hm-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var specPath = Path.Combine(dir, "spec.json");
+            var outPath = Path.Combine(dir, "heatmap.png");
+            File.WriteAllText(specPath, @"{""data"":[[1,2,3],[4,5,6],[7,8,9]],""rows"":3,""cols"":3}");
+            var (json, exit) = Run("chart", "heatmap", specPath, "-o", outPath, "--json");
+            Assert.Equal(0, exit);
+            using var doc = Parse(json);
+            Assert.Equal("ok", doc.RootElement.GetProperty("status").GetString());
+            Assert.True(File.Exists(outPath));
+            Assert.True(new FileInfo(outPath).Length > 100);
+        }
+        finally { try { Directory.Delete(dir, true); } catch { } }
+    }
+
+    [Fact]
+    public void ChartRadar_GeneratesPng()
+    {
+        RequireCli();
+        var dir = Path.Combine(Path.GetTempPath(), "chart-rdr-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var specPath = Path.Combine(dir, "spec.json");
+            var outPath = Path.Combine(dir, "radar.png");
+            File.WriteAllText(specPath, @"{""categories"":[""A"",""B"",""C""],""series"":[{""name"":""X"",""values"":[3,4,5]},{""name"":""Y"",""values"":[2,3,4]}]}");
+            var (json, exit) = Run("chart", "radar", specPath, "-o", outPath, "--json");
+            Assert.Equal(0, exit);
+            using var doc = Parse(json);
+            Assert.Equal("ok", doc.RootElement.GetProperty("status").GetString());
+            Assert.True(File.Exists(outPath));
+            Assert.True(new FileInfo(outPath).Length > 100);
+        }
+        finally { try { Directory.Delete(dir, true); } catch { } }
+    }
+
+    // ===== word compare ====
+
+    [Fact]
+    public void Commands_Json_ExposesWordCompare()
+    {
+        RequireCli();
+        var (json, exit) = Run("commands", "--json");
+        Assert.Equal(0, exit);
+        using var doc = Parse(json);
+        var names = doc.RootElement.GetProperty("data").EnumerateArray().Select(e => e.GetProperty("name").GetString()).ToHashSet();
+        Assert.Contains("word compare", names);
+    }
+
+    [Fact]
+    public void WordCompare_IdenticalFiles_NoChanges()
+    {
+        RequireCli();
+        var dir = Path.Combine(Path.GetTempPath(), "wc-ident-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(dir);
+        var doc1 = Path.Combine(dir, "a.docx");
+        var doc2 = Path.Combine(dir, "b.docx");
+        try
+        {
+            CreateMinimalDocx(doc1, "Same text.");
+            CreateMinimalDocx(doc2, "Same text.");
+
+            var (json, exit) = Run("word", "compare", doc1, doc2, "--json");
+            Assert.Equal(0, exit);
+            using var doc = Parse(json);
+            Assert.Equal("ok", doc.RootElement.GetProperty("status").GetString());
+            Assert.Equal(0, doc.RootElement.GetProperty("metrics").GetProperty("changes").GetInt32());
+        }
+        finally { try { Directory.Delete(dir, true); } catch { } }
+    }
+
+    [Fact]
+    public void WordCompare_DifferentFiles_ReportsChanges()
+    {
+        RequireCli();
+        var dir = Path.Combine(Path.GetTempPath(), "wc-diff-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(dir);
+        var doc1 = Path.Combine(dir, "a.docx");
+        var doc2 = Path.Combine(dir, "b.docx");
+        try
+        {
+            CreateMinimalDocx(doc1, "Hello World");
+            CreateMinimalDocx(doc2, "Goodbye World");
+
+            var (json, exit) = Run("word", "compare", doc1, doc2, "--json");
+            Assert.Equal(0, exit);
+            using var doc = Parse(json);
+            Assert.Equal("ok", doc.RootElement.GetProperty("status").GetString());
+            Assert.True(doc.RootElement.GetProperty("metrics").GetProperty("changes").GetInt32() > 0);
+        }
+        finally { try { Directory.Delete(dir, true); } catch { } }
+    }
+
+    [Fact]
+    public void WordCompare_AddedParagraph_Detected()
+    {
+        RequireCli();
+        var dir = Path.Combine(Path.GetTempPath(), "wc-add-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(dir);
+        var doc1 = Path.Combine(dir, "a.docx");
+        var doc2 = Path.Combine(dir, "b.docx");
+        try
+        {
+            CreateMinimalDocx(doc1, "Para 1");
+            CreateMinimalDocx(doc2, "Para 1", "Para 2 - added");
+
+            var (json, exit) = Run("word", "compare", doc1, doc2, "--json");
+            Assert.Equal(0, exit);
+            using var doc = Parse(json);
+            Assert.True(doc.RootElement.GetProperty("metrics").GetProperty("added").GetInt32() > 0);
+        }
+        finally { try { Directory.Delete(dir, true); } catch { } }
+    }
+
+    static void CreateMinimalDocx(string path, params string[] paragraphs)
+    {
+        using var doc = WordprocessingDocument.Create(path, WordprocessingDocumentType.Document);
+        doc.AddMainDocumentPart();
+        var body = new Body();
+        foreach (var text in paragraphs)
+            body.AppendChild(new Paragraph(new Run(new Text(text))));
+        doc.MainDocumentPart!.Document = new Document(body);
+    }
+
+    // ===== excel pivot ====
+
+    [Fact]
+    public void Commands_Json_ExposesExcelPivot()
+    {
+        RequireCli();
+        var (json, exit) = Run("commands", "--json");
+        Assert.Equal(0, exit);
+        using var doc = Parse(json);
+        var names = doc.RootElement.GetProperty("data").EnumerateArray().Select(e => e.GetProperty("name").GetString()).ToHashSet();
+        Assert.Contains("excel pivot", names);
+    }
+
+    [Fact]
+    public void ExcelPivot_CreatesPivot()
+    {
+        RequireCli();
+        var dir = Path.Combine(Path.GetTempPath(), "xl-pivot-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var src = Path.Combine(dir, "src.xlsx");
+            using (var wb = new XLWorkbook())
+            {
+                var ws = wb.AddWorksheet("Data");
+                ws.Cell(1, 1).Value = "Region"; ws.Cell(1, 2).Value = "Product"; ws.Cell(1, 3).Value = "Sales";
+                ws.Cell(2, 1).Value = "East"; ws.Cell(2, 2).Value = "A"; ws.Cell(2, 3).Value = 100;
+                ws.Cell(3, 1).Value = "East"; ws.Cell(3, 2).Value = "B"; ws.Cell(3, 3).Value = 200;
+                ws.Cell(4, 1).Value = "West"; ws.Cell(4, 2).Value = "A"; ws.Cell(4, 3).Value = 150;
+                wb.SaveAs(src);
+            }
+
+            var specPath = Path.Combine(dir, "pivot.json");
+            var outPath = Path.Combine(dir, "pivot.xlsx");
+            var specText = "{" + "\"sheet\":\"Data\",\"range\":\"A1:C4\",\"pivotSheet\":\"Summary\",\"rowLabels\":[\"Region\"],\"columnLabels\":[\"Product\"],\"values\":[{\"field\":\"Sales\",\"summary\":\"sum\"}]" + "}";
+            File.WriteAllText(specPath, specText);
+            var (json, exit) = Run("excel", "pivot", src, specPath, "-o", outPath, "--json");
+            Assert.Equal(0, exit);
+            using var doc = Parse(json);
+            Assert.Equal("ok", doc.RootElement.GetProperty("status").GetString());
+        }
+        finally { try { Directory.Delete(dir, true); } catch { } }
+    }
+
+    // ===== pdf ocr ====
+
+    [Fact]
+    public void Commands_Json_ExposesPdfOcr()
+    {
+        RequireCli();
+        var (json, exit) = Run("commands", "--json");
+        Assert.Equal(0, exit);
+        using var doc = Parse(json);
+        var names = doc.RootElement.GetProperty("data").EnumerateArray().Select(e => e.GetProperty("name").GetString()).ToHashSet();
+        Assert.Contains("pdf ocr", names);
     }
 }

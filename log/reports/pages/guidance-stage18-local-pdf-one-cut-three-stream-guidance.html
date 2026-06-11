@@ -1,10 +1,10 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+﻿<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>2026-06-06 Stage18 Guidance: Local PDF One-Cut Three-Stream — Nong.NET</title>
+<title>2026-06-06 Stage18 Guidance: Local PDF One-Cut Three-Stream - Nong.NET</title>
 <link rel="stylesheet" href="../style.css">
 </head><body><div class="container">
-<header><a href="../index.html" class="back-link">← 返回总览</a> |
-<a href="../guidance.html" class="back-link">← 开发指导</a>
+<header><a href="../index.html" class="back-link">&larr; 返回总览</a> | 
+<a href="../guidance.html" class="back-link">&larr; 开发指导</a>
 <h1>2026-06-06 Stage18 Guidance: Local PDF One-Cut Three-Stream</h1>
 <p class="subtitle">2026-06-06 | <span style="color: #7c3aed">开发指导</span></p></header>
 <article class="content">
@@ -12,7 +12,7 @@
 <br>
 <h2>Mission</h2>
 <br>
-<p>Build Nong's local PDF document parser so users without a cloud OCR key can still turn PDFs into a machine-readable, page-aware, asset-aware, AI-readable document package.</p>
+<p>Build Nong&#39;s local PDF document parser so users without a cloud OCR key can still turn PDFs into a machine-readable, page-aware, asset-aware, AI-readable document package.</p>
 <br>
 <p>This is not a minimal repair. The target is a working local pipeline:</p>
 <br>
@@ -23,7 +23,7 @@ PDF -&gt; classify -&gt; extract/render -&gt; local OCR where needed -&gt; readi
     -&gt; assets and provenance
 </code></pre>
 <br>
-<p>The user-facing result must feel like MinerU's useful path, but implemented inside Nong's pure .NET ecosystem. Do not require Python, pip, MinerU, Pandoc executable, or manual model builds on the client machine.</p>
+<p>The user-facing result must feel like MinerU&#39;s useful path, but implemented inside Nong&#39;s pure .NET ecosystem. Do not require Python, pip, MinerU, Pandoc executable, or manual model builds on the client machine.</p>
 <br>
 <h2>Product Decision</h2>
 <br>
@@ -68,7 +68,7 @@ preview/content.md  # optional lossy preview, never the source of truth
 <br>
 <h2>What to Learn From MinerU</h2>
 <br>
-<p>MinerU's important idea is not "use OCR everywhere". Its useful architecture is:</p>
+<p>MinerU&#39;s important idea is not &quot;use OCR everywhere&quot;. Its useful architecture is:</p>
 <br>
 <ul>
 <li>Input collection supports PDF/images/office files.</li>
@@ -95,7 +95,7 @@ preview/content.md  # optional lossy preview, never the source of truth
 <li>Plain Markdown is an interchange/preview format.</li>
 </ul>
 <br>
-<p>Do not make Markdown the canonical edit model. Nong's canonical model remains JSON-first, aligned with <code>nongmark/v1</code>.</p>
+<p>Do not make Markdown the canonical edit model. Nong&#39;s canonical model remains JSON-first, aligned with <code>nongmark/v1</code>.</p>
 <p>Do not make <code>.md</code> the final user-facing extraction artifact for Stage18.</p>
 <br>
 <h2>New Command Surface</h2>
@@ -326,7 +326,7 @@ unknown:
 <br>
 <h2>Page Rendering</h2>
 <br>
-<p>A pure .NET PDF parser may not be enough for rendering. The implementation agent must choose a package strategy that fits Nong's distribution rules:</p>
+<p>A pure .NET PDF parser may not be enough for rendering. The implementation agent must choose a package strategy that fits Nong&#39;s distribution rules:</p>
 <br>
 <ul>
 <li>No Python.</li>
@@ -765,12 +765,12 @@ changelog/2026-06-06-stage18-local-pdf-one-cut-three-stream-result.md
 <p>Validate:</p>
 <br>
 <pre><code class="language-powershell">
-.\Angri450.Nong\Cli\bin\Release\net8.0\nong.exe skill validate .\GroundPA-Toolkit\pdf --json
-.\Angri450.Nong\Cli\bin\Release\net8.0\nong.exe skill scan .\GroundPA-Toolkit --json
-claude plugin validate .\GroundPA-Toolkit
+.\Nong.Cli.Net\Cli\bin\Release\net8.0\nong.exe skill validate .\Nong.Toolkit.Net\pdf --json
+.\Nong.Cli.Net\Cli\bin\Release\net8.0\nong.exe skill scan .\Nong.Toolkit.Net --json
+claude plugin validate .\Nong.Toolkit.Net
 </code></pre>
 <br>
 
 </article>
-<footer><p>由 progress-report 自动生成</p></footer>
+<footer><p>由 nong progress report 自动生成</p></footer>
 </div></body></html>

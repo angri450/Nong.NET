@@ -1,10 +1,10 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+﻿<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>nong icons + nong genre CLI 命令规范 — Nong.NET</title>
+<title>nong icons + nong genre CLI 命令规范 - Nong.NET</title>
 <link rel="stylesheet" href="../style.css">
 </head><body><div class="container">
-<header><a href="../index.html" class="back-link">← 返回总览</a> |
-<a href="../changelog.html" class="back-link">← 变更记录</a>
+<header><a href="../index.html" class="back-link">&larr; 返回总览</a> | 
+<a href="../changelog.html" class="back-link">&larr; 变更记录</a>
 <h1>nong icons + nong genre CLI 命令规范</h1>
 <p class="subtitle">2026-06-02 | <span style="color: #16a34a">变更记录</span></p></header>
 <article class="content">
@@ -40,7 +40,7 @@ Experimental (3): thermometer, ph-meter, spectrophotometer
 <br>
 <p>实现：IconProvider.GetCategories() + GetIcons()</p>
 <br>
-<h4><code>nong icons search <keyword></code></h4>
+<h4><code>nong icons search &lt;keyword&gt;</code></h4>
 <p>搜索图标。</p>
 <br>
 <pre><code>
@@ -50,7 +50,7 @@ nong icons search flask →  &quot;Chemistry/flask&quot;
 <br>
 <p>实现：遍历所有分类的图标名称，模糊匹配</p>
 <br>
-<h4><code>nong icons show <category> <name></code></h4>
+<h4><code>nong icons show &lt;category&gt; &lt;name&gt;</code></h4>
 <p>显示图标 SVG 内容。</p>
 <br>
 <pre><code>
@@ -59,7 +59,7 @@ nong icons show Biology dna   →  输出 SVG 源码
 <br>
 <p>实现：IconProvider.GetSvg(category, name)</p>
 <br>
-<h4><code>nong icons export <category> <name> [-o <svg>]</code></h4>
+<h4><code>nong icons export &lt;category&gt; &lt;name&gt; [-o &lt;svg&gt;]</code></h4>
 <p>导出图标为 .svg 文件。</p>
 <br>
 <p>实现：IconProvider.SaveSvg(category, name, outputPath)</p>
@@ -95,7 +95,7 @@ business-letter   — 商务信函
 <br>
 <p>实现：GenreTemplate.List()</p>
 <br>
-<h4><code>nong genre show <name></code></h4>
+<h4><code>nong genre show &lt;name&gt;</code></h4>
 <p>显示模板完整 JSON 内容。</p>
 <br>
 <pre><code>
@@ -132,5 +132,5 @@ nong genre show degree-thesis   →  输出完整 JSON
 <br>
 
 </article>
-<footer><p>由 progress-report 自动生成</p></footer>
+<footer><p>由 nong progress report 自动生成</p></footer>
 </div></body></html>

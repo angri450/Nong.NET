@@ -1,10 +1,10 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+﻿<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>2026-06-03 阶段 13 指导：Nong CLI stub 全量补全蓝图 — Nong.NET</title>
+<title>2026-06-03 阶段 13 指导：Nong CLI stub 全量补全蓝图 - Nong.NET</title>
 <link rel="stylesheet" href="../style.css">
 </head><body><div class="container">
-<header><a href="../index.html" class="back-link">← 返回总览</a> |
-<a href="../guidance.html" class="back-link">← 开发指导</a>
+<header><a href="../index.html" class="back-link">&larr; 返回总览</a> | 
+<a href="../guidance.html" class="back-link">&larr; 开发指导</a>
 <h1>2026-06-03 阶段 13 指导：Nong CLI stub 全量补全蓝图</h1>
 <p class="subtitle">2026-06-03 | <span style="color: #7c3aed">开发指导</span></p></header>
 <article class="content">
@@ -21,7 +21,7 @@
 <li>生成命令支持自动创建输出目录</li>
 <li><code>word rebuild</code> 已有同路径守卫</li>
 <li><code>chart</code> 统计输入已有基础校验</li>
-<li>GroundPA-Toolkit 2.0.0 skill 层已经切到 Nong CLI-first</li>
+<li>Nong.Toolkit.Net 2.0.0 skill 层已经切到 Nong CLI-first</li>
 </ul>
 <br>
 <p>下一阶段目标：系统性消灭 stub，补全 <code>nong</code> 的工具调用基础能力，让它成为农学生工作流的主入口。</p>
@@ -102,7 +102,7 @@ E009 not_implemented
 <br>
 <p>1. <code>Cli/Common/Manifest.cs</code> 状态从 <code>stub</code> 改为 implemented。</p>
 <p>2. <code>Cli/AGENT.md</code> 增加输入格式、示例、输出字段。</p>
-<p>3. GroundPA-Toolkit 对应 skill 如需暴露能力，同步更新。</p>
+<p>3. Nong.Toolkit.Net 对应 skill 如需暴露能力，同步更新。</p>
 <p>4. release checklist 更新。</p>
 <br>
 <h3>6. 不引入 .NET 11 preview</h3>
@@ -165,9 +165,9 @@ nong skill package &lt;dir&gt; --json
 <br>
 <pre><code class="language-powershell">
 dotnet build .\Cli\NongCli.csproj -c Release
-nong skill validate C:\Users\Administrator\Documents\Github\GroundPA-Toolkit\word --json
-nong skill scan C:\Users\Administrator\Documents\Github\GroundPA-Toolkit --json
-nong skill inventory C:\Users\Administrator\Documents\Github\GroundPA-Toolkit --json
+nong skill validate C:\Users\Administrator\Documents\Github\Nong.Toolkit.Net\word --json
+nong skill scan C:\Users\Administrator\Documents\Github\Nong.Toolkit.Net --json
+nong skill inventory C:\Users\Administrator\Documents\Github\Nong.Toolkit.Net --json
 nong commands --json
 </code></pre>
 <br>
@@ -203,7 +203,7 @@ Cli.Tests/
 <br>
 <h3>1. 所有 stub 返回 E009</h3>
 <br>
-<p>读取 <code>nong commands --all --json</code>，找 <code>status == "stub"</code>，逐个调用最小命令。若需要参数，允许用固定 dummy 参数，但预期必须：</p>
+<p>读取 <code>nong commands --all --json</code>，找 <code>status == &quot;stub&quot;</code>，逐个调用最小命令。若需要参数，允许用固定 dummy 参数，但预期必须：</p>
 <br>
 <pre><code class="language-json">
 {
@@ -277,7 +277,7 @@ word validate
 word merge
 </code></pre>
 <br>
-<h2>2.1 <code>nong word stats <file.docx> --json</code></h2>
+<h2>2.1 <code>nong word stats &lt;file.docx&gt; --json</code></h2>
 <br>
 <p>用途：极低 token 成本获取 Word 文档统计。</p>
 <br>
@@ -321,7 +321,7 @@ nong word stats sample.docx --json
 <br>
 <p>必须返回 <code>status: ok</code>，无 artifact。</p>
 <br>
-<h2>2.2 <code>nong word fonts <file.docx> --json</code></h2>
+<h2>2.2 <code>nong word fonts &lt;file.docx&gt; --json</code></h2>
 <br>
 <p>用途：列出正文、样式、runs 中出现的字体。</p>
 <br>
@@ -349,7 +349,7 @@ nong word stats sample.docx --json
 <li>样式字体可单独 source=<code>style</code></li>
 </ul>
 <br>
-<h2>2.3 <code>nong word styles <file.docx> --json</code></h2>
+<h2>2.3 <code>nong word styles &lt;file.docx&gt; --json</code></h2>
 <br>
 <p>用途：列出 style definitions，帮助 agent 判断模板结构。</p>
 <br>
@@ -372,7 +372,7 @@ nong word stats sample.docx --json
 }
 </code></pre>
 <br>
-<h2>2.4 <code>nong word validate <file.docx> --json</code></h2>
+<h2>2.4 <code>nong word validate &lt;file.docx&gt; --json</code></h2>
 <br>
 <p>用途：OOXML 与基础质量校验。</p>
 <br>
@@ -405,7 +405,7 @@ nong word stats sample.docx --json
 <li><code>WordPreview</code> 的 warnings/errors</li>
 </ul>
 <br>
-<h2>2.5 <code>nong word extract <file.docx> -o <out-dir> --json</code></h2>
+<h2>2.5 <code>nong word extract &lt;file.docx&gt; -o &lt;out-dir&gt; --json</code></h2>
 <br>
 <p>用途：提取图片等嵌入资源。</p>
 <br>
@@ -440,7 +440,7 @@ file.docx
 <li>0 张图片也可 <code>status: ok</code>，summary 写明 0 images</li>
 </ul>
 <br>
-<h2>2.6 <code>nong word dissect <file.docx> --json</code></h2>
+<h2>2.6 <code>nong word dissect &lt;file.docx&gt; --json</code></h2>
 <br>
 <p>用途：格式指纹 / 文档结构 DNA。</p>
 <br>
@@ -469,7 +469,7 @@ file.docx
 <li>不要试图一次做复杂模板还原</li>
 </ul>
 <br>
-<h2>2.7 <code>nong word merge <file1.docx> <file2.docx> ... -o <out.docx> --json</code></h2>
+<h2>2.7 <code>nong word merge &lt;file1.docx&gt; &lt;file2.docx&gt; ... -o &lt;out.docx&gt; --json</code></h2>
 <br>
 <p>用途：合并多个 Word 文档。</p>
 <br>
@@ -531,7 +531,7 @@ ReferenceAnalyzer
 <br>
 <p>目的：让 agent 可以按需调用小命令，节省 token。</p>
 <br>
-<h2>3.1 <code>nong inspect classify <paper.txt> --json</code></h2>
+<h2>3.1 <code>nong inspect classify &lt;paper.txt&gt; --json</code></h2>
 <br>
 <p>输出：</p>
 <br>
@@ -552,7 +552,7 @@ ReferenceAnalyzer
 }
 </code></pre>
 <br>
-<h2>3.2 <code>nong inspect structure <paper.txt> --json</code></h2>
+<h2>3.2 <code>nong inspect structure &lt;paper.txt&gt; --json</code></h2>
 <br>
 <p>输出：</p>
 <br>
@@ -574,19 +574,19 @@ ReferenceAnalyzer
 }
 </code></pre>
 <br>
-<h2>3.3 <code>nong inspect evidence <paper.txt> --json</code></h2>
+<h2>3.3 <code>nong inspect evidence &lt;paper.txt&gt; --json</code></h2>
 <br>
 <p>输出 evidence chain 表。</p>
 <br>
 <p>字段和 <code>inspect diagnose</code> 中 <code>data.evidence</code> 保持一致。</p>
 <br>
-<h2>3.4 <code>nong inspect data-req <paper.txt> --json</code></h2>
+<h2>3.4 <code>nong inspect data-req &lt;paper.txt&gt; --json</code></h2>
 <br>
 <p>输出 data requirements 表。</p>
 <br>
 <p>字段和 <code>inspect diagnose</code> 中 <code>data.dataRequirements</code> 保持一致。</p>
 <br>
-<h2>3.5 <code>nong inspect gap <paper.txt> --json</code></h2>
+<h2>3.5 <code>nong inspect gap &lt;paper.txt&gt; --json</code></h2>
 <br>
 <p>实现：</p>
 <br>
@@ -608,7 +608,7 @@ ReferenceAnalyzer
 }
 </code></pre>
 <br>
-<h2>3.6 <code>nong inspect varplan <paper.txt> --json</code></h2>
+<h2>3.6 <code>nong inspect varplan &lt;paper.txt&gt; --json</code></h2>
 <br>
 <p>输出变量操作化方案。</p>
 <br>
@@ -626,7 +626,7 @@ ReferenceAnalyzer
 }
 </code></pre>
 <br>
-<h2>3.7 <code>nong inspect semantics <paper.txt> --json</code></h2>
+<h2>3.7 <code>nong inspect semantics &lt;paper.txt&gt; --json</code></h2>
 <br>
 <p>用途：论文语义/逻辑风险诊断。</p>
 <br>
@@ -681,7 +681,7 @@ chart pie
 excel create
 </code></pre>
 <br>
-<h2>4.1 <code>nong excel create <spec.json> -o <out.xlsx> --json</code></h2>
+<h2>4.1 <code>nong excel create &lt;spec.json&gt; -o &lt;out.xlsx&gt; --json</code></h2>
 <br>
 <p>用途：从简单 JSON spec 创建 Excel。</p>
 <br>
@@ -711,7 +711,7 @@ nong excel sheets data.xlsx --json
 nong excel read data.xlsx --json
 </code></pre>
 <br>
-<h2>4.2 <code>nong chart line <spec.json> -o <out.png> --json</code></h2>
+<h2>4.2 <code>nong chart line &lt;spec.json&gt; -o &lt;out.png&gt; --json</code></h2>
 <br>
 <p>输入 spec：</p>
 <br>
@@ -738,7 +738,7 @@ nong excel read data.xlsx --json
 <li>数值不能 NaN/Infinity</li>
 </ul>
 <br>
-<h2>4.3 <code>nong chart scatter <spec.json> -o <out.png> --json</code></h2>
+<h2>4.3 <code>nong chart scatter &lt;spec.json&gt; -o &lt;out.png&gt; --json</code></h2>
 <br>
 <p>输入 spec：</p>
 <br>
@@ -756,7 +756,7 @@ nong excel read data.xlsx --json
 <br>
 <p>P0 可选 trendline；若实现不了，先忽略并在 <code>issues</code> 提示。</p>
 <br>
-<h2>4.4 <code>nong chart pie <spec.json> -o <out.png> --json</code></h2>
+<h2>4.4 <code>nong chart pie &lt;spec.json&gt; -o &lt;out.png&gt; --json</code></h2>
 <br>
 <p>输入 spec：</p>
 <br>
@@ -774,7 +774,7 @@ nong excel read data.xlsx --json
 <br>
 <ul>
 <li>values 至少 2 项</li>
-<li>value > 0</li>
+<li>value &gt; 0</li>
 </ul>
 <br>
 <h2>Chart/Excel 验收</h2>
@@ -800,7 +800,7 @@ nong chart pie pie-spec.json -o pie.png --json
 diagram tree
 </code></pre>
 <br>
-<h2><code>nong diagram tree <newick.txt|spec.json> -o <out.png> --json</code></h2>
+<h2><code>nong diagram tree &lt;newick.txt|spec.json&gt; -o &lt;out.png&gt; --json</code></h2>
 <br>
 <p>用途：系统发育树 / Newick tree。</p>
 <br>
@@ -859,7 +859,7 @@ pptx slides
 <br>
 <p>不要恢复旧 GroundPA <code>pptx</code> skill，直到这两个命令真实 implemented 并验收通过。</p>
 <br>
-<h2>6.1 <code>nong pptx read <file.pptx> --json</code></h2>
+<h2>6.1 <code>nong pptx read &lt;file.pptx&gt; --json</code></h2>
 <br>
 <p>用途：抽取全部 slide 文本。</p>
 <br>
@@ -885,7 +885,7 @@ pptx slides
 }
 </code></pre>
 <br>
-<h2>6.2 <code>nong pptx slides <file.pptx> --json</code></h2>
+<h2>6.2 <code>nong pptx slides &lt;file.pptx&gt; --json</code></h2>
 <br>
 <p>用途：列 slide 结构，不只是文本。</p>
 <br>
@@ -940,7 +940,7 @@ ocr cloud
 <br>
 <p>不要让 skill 层直接调用 Python OCR。OCR 应该是 <code>nong ocr ...</code> 的 .NET CLI 能力。</p>
 <br>
-<h2>7.1 <code>nong ocr cloud <file> -o <out-dir> --json</code></h2>
+<h2>7.1 <code>nong ocr cloud &lt;file&gt; -o &lt;out-dir&gt; --json</code></h2>
 <br>
 <p>用途：云端 OCR，输出 Markdown/文本/可选 Word。</p>
 <br>
@@ -978,7 +978,7 @@ file
 <li>输出失败：<code>E008 write_failed</code></li>
 </ul>
 <br>
-<h2>7.2 <code>nong ocr local <image> -o <out.json|out.txt> --json</code></h2>
+<h2>7.2 <code>nong ocr local &lt;image&gt; -o &lt;out.json|out.txt&gt; --json</code></h2>
 <br>
 <p>用途：本地 OCR。</p>
 <br>
@@ -1034,7 +1034,7 @@ nong ocr cloud sample.pdf -o ocr-out --json
 <br>
 <p>负责人：Agent E</p>
 <br>
-<p>每完成一个 phase，更新 GroundPA-Toolkit。</p>
+<p>每完成一个 phase，更新 Nong.Toolkit.Net。</p>
 <br>
 <p>当前 2.0.0 已暴露：</p>
 <br>
@@ -1052,7 +1052,7 @@ word inspect excel chart diagram genre icons
 word extract/stats/fonts/styles/validate/merge/dissect
 </code></pre>
 <br>
-<p>更新 <code>GroundPA-Toolkit/word/SKILL.md</code>。</p>
+<p>更新 <code>Nong.Toolkit.Net/word/SKILL.md</code>。</p>
 <br>
 <h3>Inspect</h3>
 <br>
@@ -1062,7 +1062,7 @@ word extract/stats/fonts/styles/validate/merge/dissect
 inspect classify/structure/varplan/evidence/data-req/gap/semantics
 </code></pre>
 <br>
-<p>更新 <code>GroundPA-Toolkit/inspect/SKILL.md</code>。</p>
+<p>更新 <code>Nong.Toolkit.Net/inspect/SKILL.md</code>。</p>
 <br>
 <h3>Chart</h3>
 <br>
@@ -1072,7 +1072,7 @@ inspect classify/structure/varplan/evidence/data-req/gap/semantics
 chart line/scatter/pie
 </code></pre>
 <br>
-<p>更新 <code>GroundPA-Toolkit/chart/SKILL.md</code>。</p>
+<p>更新 <code>Nong.Toolkit.Net/chart/SKILL.md</code>。</p>
 <br>
 <h3>Excel</h3>
 <br>
@@ -1082,7 +1082,7 @@ chart line/scatter/pie
 excel create
 </code></pre>
 <br>
-<p>更新 <code>GroundPA-Toolkit/excel/SKILL.md</code>。</p>
+<p>更新 <code>Nong.Toolkit.Net/excel/SKILL.md</code>。</p>
 <br>
 <h3>Diagram</h3>
 <br>
@@ -1092,7 +1092,7 @@ excel create
 diagram tree
 </code></pre>
 <br>
-<p>更新 <code>GroundPA-Toolkit/diagram/SKILL.md</code>。</p>
+<p>更新 <code>Nong.Toolkit.Net/diagram/SKILL.md</code>。</p>
 <br>
 <h3>PPTX/OCR</h3>
 <br>
@@ -1122,8 +1122,8 @@ claude plugin validate .
 <p>以及：</p>
 <br>
 <pre><code class="language-powershell">
-nong skill scan C:\Users\Administrator\Documents\Github\GroundPA-Toolkit --json
-nong skill inventory C:\Users\Administrator\Documents\Github\GroundPA-Toolkit --json
+nong skill scan C:\Users\Administrator\Documents\Github\Nong.Toolkit.Net --json
+nong skill inventory C:\Users\Administrator\Documents\Github\Nong.Toolkit.Net --json
 </code></pre>
 <br>
 <hr>
@@ -1274,7 +1274,7 @@ Cli/Common/Manifest.cs
 Cli/AGENT.md
 Cli/README.md
 Cli.Tests/
-GroundPA-Toolkit skill files
+Nong.Toolkit.Net skill files
 changelog/
 </code></pre>
 <br>
@@ -1330,5 +1330,5 @@ Skill: validate/scan/inventory/package
 <br>
 
 </article>
-<footer><p>由 progress-report 自动生成</p></footer>
+<footer><p>由 nong progress report 自动生成</p></footer>
 </div></body></html>

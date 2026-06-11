@@ -301,28 +301,28 @@
       "Angri450.Nong.Chart": {
         "type": "Project",
         "dependencies": {
-          "Angri450.Nong.ThirdParty": "[3.2.5, )"
+          "Angri450.Nong.ThirdParty": "[4.0.0, )"
         }
       },
       "Angri450.Nong.Diagram": {
         "type": "Project",
         "dependencies": {
-          "Angri450.Nong.Bioicons": "[3.0.2, )",
-          "Angri450.Nong.ThirdParty": "[3.2.5, )"
+          "Angri450.Nong.Bioicons": "[4.0.0, )",
+          "Angri450.Nong.ThirdParty": "[4.0.0, )"
         }
       },
       "Angri450.Nong.Docx": {
         "type": "Project",
         "dependencies": {
-          "Angri450.Nong.Pandoc": "[3.2.5, )",
-          "Angri450.Nong.ThirdParty": "[3.2.5, )"
+          "Angri450.Nong.Pandoc": "[4.0.0, )",
+          "Angri450.Nong.ThirdParty": "[4.0.0, )"
         }
       },
       "Angri450.Nong.Excel": {
         "type": "Project",
         "dependencies": {
-          "Angri450.Nong.Pandoc": "[3.2.5, )",
-          "Angri450.Nong.ThirdParty": "[3.2.5, )",
+          "Angri450.Nong.Pandoc": "[4.0.0, )",
+          "Angri450.Nong.ThirdParty": "[4.0.0, )",
           "System.IO.Packaging": "[10.0.2, )"
         }
       },
@@ -332,8 +332,8 @@
       "Angri450.Nong.Inspect": {
         "type": "Project",
         "dependencies": {
-          "Angri450.Nong.Docx": "[3.1.1, )",
-          "Angri450.Nong.ThirdParty": "[3.2.5, )"
+          "Angri450.Nong.Docx": "[4.0.0, )",
+          "Angri450.Nong.ThirdParty": "[4.0.0, )"
         }
       },
       "Angri450.Nong.Literature": {
@@ -342,7 +342,7 @@
       "Angri450.Nong.MultiModal": {
         "type": "Project",
         "dependencies": {
-          "Angri450.Nong.Docx": "[3.1.1, )",
+          "Angri450.Nong.Docx": "[4.0.0, )",
           "Sdcb.PaddleOCR": "[3.3.1, )",
           "Sdcb.PaddleOCR.Models.Local": "[3.3.1, )"
         }
@@ -353,15 +353,15 @@
       "Angri450.Nong.Pdf": {
         "type": "Project",
         "dependencies": {
-          "Angri450.Nong.Pandoc": "[3.2.5, )",
-          "Angri450.Nong.ThirdParty": "[3.2.5, )"
+          "Angri450.Nong.Pandoc": "[4.0.0, )",
+          "Angri450.Nong.ThirdParty": "[4.0.0, )"
         }
       },
       "Angri450.Nong.Pptx": {
         "type": "Project",
         "dependencies": {
-          "Angri450.Nong.Pandoc": "[3.2.5, )",
-          "Angri450.Nong.ThirdParty": "[3.2.5, )"
+          "Angri450.Nong.Pandoc": "[4.0.0, )",
+          "Angri450.Nong.ThirdParty": "[4.0.0, )"
         }
       },
       "Angri450.Nong.ThirdParty": {

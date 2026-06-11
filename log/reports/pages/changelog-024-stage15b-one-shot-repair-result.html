@@ -1,10 +1,10 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+﻿<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>阶段 15b Word 一刀三流全量返工修复报告 — Nong.NET</title>
+<title>阶段 15b Word 一刀三流全量返工修复报告 - Nong.NET</title>
 <link rel="stylesheet" href="../style.css">
 </head><body><div class="container">
-<header><a href="../index.html" class="back-link">← 返回总览</a> |
-<a href="../changelog.html" class="back-link">← 变更记录</a>
+<header><a href="../index.html" class="back-link">&larr; 返回总览</a> | 
+<a href="../changelog.html" class="back-link">&larr; 变更记录</a>
 <h1>阶段 15b Word 一刀三流全量返工修复报告</h1>
 <p class="subtitle">2026-06-04 | <span style="color: #16a34a">变更记录</span></p></header>
 <article class="content">
@@ -22,7 +22,7 @@
 <h2>Why Previous COMPLETE Was Rejected</h2>
 <br>
 <pre><code>
-word dissect -o 命令不存在（Unrecognized command or argument '-o'）
+word dissect -o 命令不存在（Unrecognized command or argument &#39;-o&#39;）
 add 命令是 hyphen 形态（add-paragraph），不是 canonical（add paragraph）
 --spec 不读文件路径，只解释为内联 JSON
 --after blockId 未实现也未按契约报错
@@ -109,7 +109,7 @@ ImageAnalyzer 未接入资产流
 <li><code>--json</code> 下 System.CommandLine parse error 统一返回 JSON envelope + E003</li>
 <li><code>word merge</code> 将 MergeResult.Warnings 写入 JSON issues</li>
 <li><code>word merge</code> issue severity 统一为 lowercase <code>warning</code></li>
-<li>修复 <code>protect --mode invalid</code> -> E006、<code>embed-font</code> 非字体 -> E002</li>
+<li>修复 <code>protect --mode invalid</code> -&gt; E006、<code>embed-font</code> 非字体 -&gt; E002</li>
 <li>同步 <code>Cli/Common/Manifest.cs</code>、<code>CAPABILITY.md</code>、<code>Cli/AGENT.md</code>、<code>release-checklist.md</code></li>
 </ul>
 <br>
@@ -204,7 +204,7 @@ rg -n &quot;PADDLEOCR_TOKEN\s*[:=]|PADDLEOCR_ACCESS_TOKEN\s*[:=]|sk-[A-Za-z0-9_-
 <br>
 <p>Known limitations:</p>
 <br>
-<p>1. OMML -> LaTeX is best-effort.</p>
+<p>1. OMML -&gt; LaTeX is best-effort.</p>
 <p>2. chemicalStructure schema is reserved; no SMILES/InChI inference.</p>
 <p>3. merge still warns about headers/footers, numbering conflicts, and style-name conflicts.</p>
 <p>4. ImageAnalyzer is local image structure analysis, not OCR.</p>
@@ -221,5 +221,5 @@ rg -n &quot;PADDLEOCR_TOKEN\s*[:=]|PADDLEOCR_ACCESS_TOKEN\s*[:=]|sk-[A-Za-z0-9_-
 <br>
 
 </article>
-<footer><p>由 progress-report 自动生成</p></footer>
+<footer><p>由 nong progress report 自动生成</p></footer>
 </div></body></html>

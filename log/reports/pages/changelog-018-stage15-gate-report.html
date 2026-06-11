@@ -1,10 +1,10 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+﻿<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Stage 14 Gate Report — 开阶段 15 前置检查 — Nong.NET</title>
+<title>Stage 14 Gate Report — 开阶段 15 前置检查 - Nong.NET</title>
 <link rel="stylesheet" href="../style.css">
 </head><body><div class="container">
-<header><a href="../index.html" class="back-link">← 返回总览</a> |
-<a href="../changelog.html" class="back-link">← 变更记录</a>
+<header><a href="../index.html" class="back-link">&larr; 返回总览</a> | 
+<a href="../changelog.html" class="back-link">&larr; 变更记录</a>
 <h1>Stage 14 Gate Report — 开阶段 15 前置检查</h1>
 <p class="subtitle">2026-06-03 | <span style="color: #16a34a">变更记录</span></p></header>
 <article class="content">
@@ -44,8 +44,8 @@ nong commands --all --json   → 46 implemented (无 stub)
 <tr><td>1</td><td>HIGH</td><td>word validate 改用 ValidationErrorType 枚举</td><td>代码用 <code>Schema/Semantic/Package</code> 枚举，不再字符串匹配。缺失文件返回 E001</td></tr>
 <tr><td>2</td><td>MEDIUM</td><td>ocr cloud --format 移除</td><td><code>ocr cloud --help</code> 不含 <code>--format</code>，handler 签名不含 format 参数</td></tr>
 <tr><td>3</td><td>MEDIUM</td><td>ocr local 契约统一</td><td>Manifest status=implemented，命令返回 E005（dependency_missing），EXIT:1</td></tr>
-<tr><td>4</td><td>MEDIUM</td><td>pptx read/slides 使用 SlideIdList</td><td>PptxReader.cs 两处均用 <code>SlideIdList.ChildElements.OfType<SlideId>()</code> 遍历</td></tr>
-<tr><td>5</td><td>MEDIUM</td><td>word merge 文档说明</td><td>DocxAnalysis.cs MergeDocx 有 XML doc 标注"Shallow merge — copies body elements only"</td></tr>
+<tr><td>4</td><td>MEDIUM</td><td>pptx read/slides 使用 SlideIdList</td><td>PptxReader.cs 两处均用 <code>SlideIdList.ChildElements.OfType&lt;SlideId&gt;()</code> 遍历</td></tr>
+<tr><td>5</td><td>MEDIUM</td><td>word merge 文档说明</td><td>DocxAnalysis.cs MergeDocx 有 XML doc 标注&quot;Shallow merge — copies body elements only&quot;</td></tr>
 <tr><td>6</td><td>LOW</td><td>release-checklist + AGENT.md 同步</td><td>两份文件均写 46 implemented，AGENT.md 含新命令输入格式和 spec 示例</td></tr>
 </table>
 <br>
@@ -53,7 +53,7 @@ nong commands --all --json   → 46 implemented (无 stub)
 <br>
 <h2>3. Security Scan</h2>
 <br>
-<p>执行 <code>nong skill scan <repo-root> --json</code>：</p>
+<p>执行 <code>nong skill scan &lt;repo-root&gt; --json</code>：</p>
 <br>
 <table>
 <tr><th>等级</th><th>数量</th><th>分析</th></tr>
@@ -140,5 +140,5 @@ nong commands --all --json   → 46 implemented (无 stub)
 <br>
 
 </article>
-<footer><p>由 progress-report 自动生成</p></footer>
+<footer><p>由 nong progress report 自动生成</p></footer>
 </div></body></html>
