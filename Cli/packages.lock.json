@@ -329,6 +329,12 @@
       "Angri450.Nong.Genre": {
         "type": "Project"
       },
+      "Angri450.Nong.Imaging": {
+        "type": "Project",
+        "dependencies": {
+          "Angri450.Nong.ThirdParty": "[4.0.0, )"
+        }
+      },
       "Angri450.Nong.Inspect": {
         "type": "Project",
         "dependencies": {

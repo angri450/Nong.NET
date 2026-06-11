@@ -5,6 +5,7 @@ using System.Text.Json;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using DocxCore;
+using ImagingCore;
 using Nong.Cli.Common;
 using Nong.Inspect;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -43,6 +44,7 @@ public static class WordCommands
         // === Stage 15: read commands ===
         cmd.AddCommand(CreateOutline(jsonOpt));
         cmd.AddCommand(CreateImages(jsonOpt));
+        cmd.AddCommand(CreateCrop(jsonOpt));
         cmd.AddCommand(CreateComments(jsonOpt));
         cmd.AddCommand(CreateRevisions(jsonOpt));
         cmd.AddCommand(CreateInferFormat(jsonOpt));
@@ -1412,45 +1414,167 @@ public static class WordCommands
     static Command CreateImages(Option<bool> jsonOpt)
     {
         var fileArg = new Argument<string>("file", "Path to .docx file");
-        var outOpt = new Option<string>("-o", "Output directory for extracted images");
-        var cmd = new Command("images", "List and optionally extract images") { fileArg, outOpt };
-        cmd.SetHandler((string file, string? output, bool json) =>
+        var outOpt = new Option<string>("-o", "Output directory for extracted images, or output DOCX path for --crop");
+        var analyzeOpt = new Option<bool>("--analyze", "Analyze images for content-aware crop margins without modifying the file");
+        var cropOpt = new Option<bool>("--crop", "Auto-crop blank margins from all images and write a new DOCX");
+        var cmd = new Command("images", "List, extract, analyze, and auto-crop images") { fileArg, outOpt, analyzeOpt, cropOpt };
+        cmd.SetHandler((string file, string? output, bool analyze, bool crop, bool json) =>
         {
             var err = CliHelpers.ValidateDocxFile(file);
             if (err != null) { CliHelpers.WriteError("word images", err, json); return; }
             try
             {
-                var (result, elapsed) = CliHelpers.Time(() =>
+                if (analyze)
                 {
-                    if (output != null) { CliHelpers.EnsureParentDir(Path.Combine(output, ".keep")); }
-                    return ImageLister.ListImages(file, output);
-                });
-                if (json)
+                    RunImageAnalyze(file, json);
+                }
+                else if (crop)
                 {
-                    var outputJson = JsonOutput.Ok("word images", result.Summary, result);
-                    outputJson.Meta.DurationMs = elapsed;
-                    if (output != null) outputJson.Artifacts["dir"] = Path.GetFullPath(output);
-                    foreach (var warning in result.Warnings)
-                    {
-                        outputJson.Issues.Add(new Issue
-                        {
-                            Id = "vml_image_reference",
-                            Severity = "warning",
-                            Message = warning
-                        });
-                    }
-                    Console.WriteLine(JsonSerializer.Serialize(outputJson, CliHelpers.JsonOpts));
+                    RunImageCrop(file, output, json);
                 }
                 else
                 {
-                    Console.WriteLine(result.Summary);
-                    foreach (var img in result.Images)
-                        Console.WriteLine($"  {img.Id} {img.ContentType} {img.Width}x{img.Height} usedBy={string.Join(",", img.UsedBy ?? new())}");
-                    foreach (var warning in result.Warnings)
-                        Console.Error.WriteLine($"[WARN] {warning}");
+                    RunImageList(file, output, json);
                 }
             }
             catch (Exception ex) { CliHelpers.WriteError("word images", ErrorCodes.InternalError with { Message = ex.Message }, json); }
+        }, fileArg, outOpt, analyzeOpt, cropOpt, jsonOpt);
+        return cmd;
+    }
+
+    static void RunImageList(string file, string? output, bool json)
+    {
+        var (result, elapsed) = CliHelpers.Time(() =>
+        {
+            if (output != null) { CliHelpers.EnsureParentDir(Path.Combine(output, ".keep")); }
+            return ImageLister.ListImages(file, output);
+        });
+        if (json)
+        {
+            var outputJson = JsonOutput.Ok("word images", result.Summary, result);
+            outputJson.Meta.DurationMs = elapsed;
+            if (output != null) outputJson.Artifacts["dir"] = Path.GetFullPath(output);
+            foreach (var warning in result.Warnings)
+                outputJson.Issues.Add(new Issue { Id = "vml_image_reference", Severity = "warning", Message = warning });
+            Console.WriteLine(JsonSerializer.Serialize(outputJson, CliHelpers.JsonOpts));
+        }
+        else
+        {
+            Console.WriteLine(result.Summary);
+            foreach (var img in result.Images)
+                Console.WriteLine($"  {img.Id} {img.ContentType} {img.Width}x{img.Height} usedBy={string.Join(",", img.UsedBy ?? new())}");
+            foreach (var warning in result.Warnings)
+                Console.Error.WriteLine($"[WARN] {warning}");
+        }
+    }
+
+    static void RunImageAnalyze(string file, bool json)
+    {
+        var processor = new ImageProcessor();
+        var imageBytes = DocxImageEditor.ExtractImageBytes(file);
+        var results = new List<ImageAnalyzeResult>();
+
+        foreach (var img in imageBytes)
+        {
+            try
+            {
+                var bounds = processor.Analyze(img.Bytes);
+                results.Add(new ImageAnalyzeResult(
+                    img.ImageId, img.ContentType, img.RelationshipId,
+                    bounds.OriginalWidth, bounds.OriginalHeight,
+                    bounds.CropLeft, bounds.CropTop, bounds.CropRight, bounds.CropBottom,
+                    bounds.ContentWidth, bounds.ContentHeight,
+                    bounds.SavedPct, bounds.HasCropMargins
+                ));
+            }
+            catch (Exception ex)
+            {
+                results.Add(new ImageAnalyzeResult(
+                    img.ImageId, img.ContentType, img.RelationshipId,
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, false
+                ) { Error = ex.Message });
+            }
+        }
+
+        var summary = $"{results.Count(r => r.HasCropMargins)}/{results.Count} images have crop margins";
+        if (json)
+        {
+            var outputJson = JsonOutput.Ok("word images --analyze", summary, new { images = results });
+            Console.WriteLine(JsonSerializer.Serialize(outputJson, CliHelpers.JsonOpts));
+        }
+        else
+        {
+            Console.WriteLine(summary);
+            foreach (var r in results)
+            {
+                if (!string.IsNullOrEmpty(r.Error))
+                    Console.Error.WriteLine($"[ERR] {r.ImageId}: {r.Error}");
+                else if (r.HasCropMargins)
+                    Console.WriteLine($"  {r.ImageId} crop: L={r.CropLeft} T={r.CropTop} R={r.CropRight} B={r.CropBottom} saved={r.SavedPct}% ({r.ContentWidth}x{r.ContentHeight})");
+                else
+                    Console.WriteLine($"  {r.ImageId} no crop margins");
+            }
+        }
+    }
+
+    static void RunImageCrop(string file, string? output, bool json)
+    {
+        string outputPath = output ?? Path.Combine(
+            Path.GetDirectoryName(Path.GetFullPath(file)) ?? ".",
+            Path.GetFileNameWithoutExtension(file) + ".cropped.docx");
+
+        var processor = new ImageProcessor();
+        var result = DocxImageEditor.ReplaceImages(file, outputPath, (relId, contentType, bytes) =>
+        {
+            return processor.AutoCrop(bytes);
+        });
+
+        var summary = $"Cropped: {result.Changed.Count}/{result.Total} images, skipped: {result.Skipped.Count}";
+        if (json)
+        {
+            var outputJson = JsonOutput.Ok("word images --crop", summary, new
+            {
+                output = Path.GetFullPath(outputPath),
+                changed = result.Changed,
+                skipped = result.Skipped,
+                total = result.Total
+            });
+            outputJson.Artifacts["docx"] = Path.GetFullPath(outputPath);
+            Console.WriteLine(JsonSerializer.Serialize(outputJson, CliHelpers.JsonOpts));
+        }
+        else
+        {
+            Console.WriteLine($"{summary} → {outputPath}");
+        }
+    }
+
+    sealed record ImageAnalyzeResult(
+        string ImageId, string ContentType, string RelationshipId,
+        int OriginalWidth, int OriginalHeight,
+        int CropLeft, int CropTop, int CropRight, int CropBottom,
+        int ContentWidth, int ContentHeight,
+        double SavedPct, bool HasCropMargins)
+    {
+        public string? Error { get; init; }
+    }
+
+    // ===== word crop (content-aware image crop) =====
+
+    static Command CreateCrop(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to .docx file");
+        var outOpt = new Option<string>("-o", "Output DOCX path (default: <input>.cropped.docx)");
+        var cmd = new Command("crop", "Auto-crop blank margins from all images using content-aware border detection") { fileArg, outOpt };
+        cmd.AddAlias("images-crop");
+        cmd.SetHandler((string file, string? output, bool json) =>
+        {
+            var err = CliHelpers.ValidateDocxFile(file);
+            if (err != null) { CliHelpers.WriteError("word crop", err, json); return; }
+            try
+            {
+                RunImageCrop(file, output, json);
+            }
+            catch (Exception ex) { CliHelpers.WriteError("word crop", ErrorCodes.InternalError with { Message = ex.Message }, json); }
         }, fileArg, outOpt, jsonOpt);
         return cmd;
     }

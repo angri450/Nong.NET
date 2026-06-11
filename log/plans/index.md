@@ -7,5 +7,5 @@
 - 2026-06-10 | 2026-06-10-progress-report-cli-migration.md | progress-report 从独立工具迁入 nong progress report 命令面 | done
 - 2026-06-10 | 2026-06-10-official-command-surface-alignment.md | 公文写作/公文排版底层能力补到 CLI 命令面并同步 Toolkit | done
 - 2026-06-10 | 2026-06-10-lockfile-and-local-tool-sync.md | P9 lock 文件重算并修复全局 nong 4.0.0 本地工具安装 | done
-- 2026-06-10 | 2026-06-10-command-naming-audit.md | Toolkit/CLI 命令命名审计：区分重复、缺少、不对三类问题 | done
+- 2026-06-11 | 2026-06-11-nong-word-images-crop.md | nong word crop — 内容感知图片裁剪命令 + Angri450.Nong.Imaging 包 | done
 - 2026-06-10 | 2026-06-10-final-blueprint.md | 最终蓝图：三层结构、命名词典、命令组职责和 AI 可理解口径 | done

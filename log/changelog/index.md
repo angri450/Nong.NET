@@ -4,6 +4,7 @@
 
 ## 2026-06-11
 - 2026-06-11 | skill-governance-refactor.md | skill 治理重构：农业五角色体系（breeder/tester/grader/pruner/patrol），15→17 skills
+- 2026-06-11 | 2026-06-11-word-crop-imaging.md | nong word crop：内容感知图片裁剪 + Angri450.Nong.Imaging 包
 
 ## 2026-06-10
 - 2026-06-10 | chart-heatmap-radar.md | 阶段四+：Chart heatmap + radar（106 命令，143 全过）

@@ -37,6 +37,7 @@
     <ProjectReference Include="..\Pdf\PdfCore.csproj" />
     <ProjectReference Include="..\Literature\LiteratureCore.csproj" />
     <ProjectReference Include="..\Pandoc\PandocCore.csproj" />
+    <ProjectReference Include="..\Imaging\ImagingCore.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="/" />
