@@ -35,7 +35,8 @@ public static class Manifest
         list.Add(new("word merge", "Merge two docx files", "word", []));
         list.Add(new("word outline", "Extract document outline", "word", []));
         list.Add(new("word images", "List, extract, analyze, and auto-crop images with content-aware border detection", "word", []));
-        list.Add(new("word crop", "Alias for word images --crop — auto-crop blank margins from all images", "word", []));
+        list.Add(new("word crop", "Auto-crop blank margins from all images using content-aware border detection", "word", []));
+        list.Add(new("word fit-images", "Scale inline multi-image paragraphs so images fit side-by-side within page width", "word", ["word compact-images"]));
         list.Add(new("word comments", "Read document comments", "word", []));
         list.Add(new("word revisions", "List tracked changes", "word", []));
         list.Add(new("word infer-format", "Infer OpenXML format from Chinese description", "word", []));

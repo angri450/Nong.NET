@@ -45,6 +45,7 @@ public static class WordCommands
         cmd.AddCommand(CreateOutline(jsonOpt));
         cmd.AddCommand(CreateImages(jsonOpt));
         cmd.AddCommand(CreateCrop(jsonOpt));
+        cmd.AddCommand(CreateFitImages(jsonOpt));
         cmd.AddCommand(CreateComments(jsonOpt));
         cmd.AddCommand(CreateRevisions(jsonOpt));
         cmd.AddCommand(CreateInferFormat(jsonOpt));
@@ -1576,6 +1577,71 @@ public static class WordCommands
             }
             catch (Exception ex) { CliHelpers.WriteError("word crop", ErrorCodes.InternalError with { Message = ex.Message }, json); }
         }, fileArg, outOpt, jsonOpt);
+        return cmd;
+    }
+
+    // ===== word fit-images (scale inline multi-image paragraphs to side-by-side) =====
+
+    static Command CreateFitImages(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to .docx file");
+        var outOpt = new Option<string>("-o", "Output DOCX path (default: <input>.fit.docx)");
+        var gapOpt = new Option<double>("--gap", () => 2.0, "Gap between images in mm (default: 2)");
+        var cmd = new Command("fit-images", "Scale multi-image paragraphs so inline images fit side-by-side within page width") { fileArg, outOpt, gapOpt };
+        cmd.AddAlias("compact-images");
+        cmd.SetHandler((string file, string? output, double gap, bool json) =>
+        {
+            var err = CliHelpers.ValidateDocxFile(file);
+            if (err != null) { CliHelpers.WriteError("word fit-images", err, json); return; }
+            try
+            {
+                string outPath = output ?? Path.Combine(
+                    Path.GetDirectoryName(Path.GetFullPath(file)) ?? ".",
+                    Path.GetFileNameWithoutExtension(file) + ".fit.docx");
+
+                var result = DocxImageFitter.FitImages(file, outPath, gap);
+
+                string summary = (result.ParagraphsModified, result.ImagesScaled) switch
+                {
+                    (0, _) => "No multi-image paragraphs found that need scaling",
+                    var (p, i) => $"Scaled {i} images across {p} paragraphs → {outPath}"
+                };
+
+                if (json)
+                {
+                    var outputJson = JsonOutput.Ok("word fit-images", summary, new
+                    {
+                        output = Path.GetFullPath(outPath),
+                        paragraphsModified = result.ParagraphsModified,
+                        imagesScaled = result.ImagesScaled,
+                        details = result.Modified.Select(m => new
+                        {
+                            paragraphIndex = m.ParagraphIndex,
+                            imageCount = m.ImageCount,
+                            originalTotalEmu = m.OriginalTotalEmu,
+                            pageTextEmu = m.PageTextEmu,
+                            scaleFactor = m.ScaleFactor,
+                            dimensions = m.Dimensions.Select(d => new
+                            {
+                                oldWidth = d.OldWidth, oldHeight = d.OldHeight,
+                                newWidth = d.NewWidth, newHeight = d.NewHeight
+                            })
+                        })
+                    });
+                    outputJson.Artifacts["docx"] = Path.GetFullPath(outPath);
+                    Console.WriteLine(JsonSerializer.Serialize(outputJson, CliHelpers.JsonOpts));
+                }
+                else
+                {
+                    Console.WriteLine(summary);
+                    foreach (var m in result.Modified)
+                    {
+                        Console.WriteLine($"  para[{m.ParagraphIndex}]: {m.ImageCount} images, scale={m.ScaleFactor:P1}, {m.OriginalTotalEmu}→{m.PageTextEmu} EMU");
+                    }
+                }
+            }
+            catch (Exception ex) { CliHelpers.WriteError("word fit-images", ErrorCodes.InternalError with { Message = ex.Message }, json); }
+        }, fileArg, outOpt, gapOpt, jsonOpt);
         return cmd;
     }
 
