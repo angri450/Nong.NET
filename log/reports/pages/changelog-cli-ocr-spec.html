@@ -1,10 +1,10 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+﻿<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>nong ocr CLI 命令规范 — Nong.NET</title>
+<title>nong ocr CLI 命令规范 - Nong.NET</title>
 <link rel="stylesheet" href="../style.css">
 </head><body><div class="container">
-<header><a href="../index.html" class="back-link">← 返回总览</a> |
-<a href="../changelog.html" class="back-link">← 变更记录</a>
+<header><a href="../index.html" class="back-link">&larr; 返回总览</a> | 
+<a href="../changelog.html" class="back-link">&larr; 变更记录</a>
 <h1>nong ocr CLI 命令规范</h1>
 <p class="subtitle">2026-06-02 | <span style="color: #16a34a">变更记录</span></p></header>
 <article class="content">
@@ -29,7 +29,7 @@
 <br>
 <p>对应命令：</p>
 <br>
-<h4><code>nong ocr local <image> [-o <dir>] [--lang <zh|en>]</code></h4>
+<h4><code>nong ocr local &lt;image&gt; [-o &lt;dir&gt;] [--lang &lt;zh|en&gt;]</code></h4>
 <p>本地 OCR 识别图片文字。</p>
 <br>
 <p>输入：图片文件（PNG/JPEG）</p>
@@ -37,7 +37,7 @@
 <ul>
 <li><code>--lang zh</code> 中文识别，<code>--lang en</code> 英文识别</li>
 <li><code>--gpu</code> 启用 GPU 加速</li>
-<li><code>--batch <files...></code> 批量识别多张图</li>
+<li><code>--batch &lt;files...&gt;</code> 批量识别多张图</li>
 </ul>
 <br>
 <p>输出：每行一个识别结果块，含文本+坐标</p>
@@ -55,19 +55,19 @@
 <br>
 <p>对应命令：</p>
 <br>
-<h4><code>nong ocr cloud <image> [-o <dir>] [--token <token>]</code></h4>
+<h4><code>nong ocr cloud &lt;image&gt; [-o &lt;dir&gt;] [--token &lt;token&gt;]</code></h4>
 <p>云端 OCR 识别（PaddleOCR-VL-1.6）。支持图片、PDF。</p>
 <br>
 <p>选项：</p>
 <ul>
 <li><code>--token</code> API Token（也可通过环境变量 PADDLEOCR_TOKEN 传入）</li>
-<li><code>--url <url></code> 直接提交 URL 而非上传文件</li>
-<li><code>--poll <seconds></code> 轮询间隔，默认 5 秒</li>
+<li><code>--url &lt;url&gt;</code> 直接提交 URL 而非上传文件</li>
+<li><code>--poll &lt;seconds&gt;</code> 轮询间隔，默认 5 秒</li>
 </ul>
 <br>
 <p>实现：PaddleOcrVlClient.SubmitFileAsync() → WaitForJobAsync() → DownloadResultsAsync()</p>
 <br>
-<h4><code>nong ocr to-word <image> [-o <docx>] [--token <token>]</code></h4>
+<h4><code>nong ocr to-word &lt;image&gt; [-o &lt;docx&gt;] [--token &lt;token&gt;]</code></h4>
 <p>云端 OCR 结果直接输出为 Word 文档（含文字+图片+表格布局）。</p>
 <br>
 <p>实现：PaddleOcrVlClient.ProcessToWordAsync()</p>
@@ -78,12 +78,12 @@
 <br>
 <p>对应命令：</p>
 <br>
-<h4><code>nong ocr analyze-image <image> [--json]</code></h4>
+<h4><code>nong ocr analyze-image &lt;image&gt; [--json]</code></h4>
 <p>分析图像结构（不用做 OCR，只分析内容区域分布）。</p>
 <br>
 <p>输出：</p>
 <pre><code>
-原始尺寸: 1920×1080
+原始尺寸: 1920&#215;1080
 内容区域: (120, 80) → (1800, 1000)
 空白率: 15.2%
 黑色像素: 342,000
@@ -134,5 +134,5 @@
 <br>
 
 </article>
-<footer><p>由 progress-report 自动生成</p></footer>
+<footer><p>由 nong progress report 自动生成</p></footer>
 </div></body></html>

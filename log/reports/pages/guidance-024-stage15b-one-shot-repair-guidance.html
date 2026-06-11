@@ -1,10 +1,10 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+﻿<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>2026-06-04 阶段 15b 指导：Word 一刀三流全量返工修复 — Nong.NET</title>
+<title>2026-06-04 阶段 15b 指导：Word 一刀三流全量返工修复 - Nong.NET</title>
 <link rel="stylesheet" href="../style.css">
 </head><body><div class="container">
-<header><a href="../index.html" class="back-link">← 返回总览</a> |
-<a href="../guidance.html" class="back-link">← 开发指导</a>
+<header><a href="../index.html" class="back-link">&larr; 返回总览</a> | 
+<a href="../guidance.html" class="back-link">&larr; 开发指导</a>
 <h1>2026-06-04 阶段 15b 指导：Word 一刀三流全量返工修复</h1>
 <p class="subtitle">2026-06-04 | <span style="color: #7c3aed">开发指导</span></p></header>
 <article class="content">
@@ -54,7 +54,7 @@ dotnet .\Cli\bin\Release\net8.0\nong.dll word dissect tests-output\05-docx\docx-
 <p>当前返回：</p>
 <br>
 <pre><code class="language-text">
-Unrecognized command or argument '-o'
+Unrecognized command or argument &#39;-o&#39;
 </code></pre>
 <br>
 <p>代码证据：</p>
@@ -150,9 +150,9 @@ nong word add-paragraph tests-output\05-docx\docx-basic.docx --spec tests-output
 <p>还存在大小写问题：</p>
 <br>
 <pre><code class="language-text">
---spec '{&quot;text&quot;:&quot;hello&quot;}' 当前不能绑定到 ParagraphSpec.Text
---spec '{&quot;headers&quot;:[&quot;A&quot;],&quot;rows&quot;:[[&quot;1&quot;]]}' 当前 add-table 触发 E004 NullReference
---spec '{&quot;Text&quot;:&quot;hello&quot;}' 才能成功
+--spec &#39;{&quot;text&quot;:&quot;hello&quot;}&#39; 当前不能绑定到 ParagraphSpec.Text
+--spec &#39;{&quot;headers&quot;:[&quot;A&quot;],&quot;rows&quot;:[[&quot;1&quot;]]}&#39; 当前 add-table 触发 E004 NullReference
+--spec &#39;{&quot;Text&quot;:&quot;hello&quot;}&#39; 才能成功
 </code></pre>
 <br>
 <p>必须修成：</p>
@@ -166,7 +166,7 @@ nong word add-paragraph tests-output\05-docx\docx-basic.docx --spec tests-output
 6. 必填字段缺失 -&gt; E006 + EXIT:1，不得落 E004。
 </code></pre>
 <br>
-<h3>1.4 P0：<code>--after <blockId></code> 未实现也未按契约报错</h3>
+<h3>1.4 P0：<code>--after &lt;blockId&gt;</code> 未实现也未按契约报错</h3>
 <br>
 <p>阶段 15 原文说如果暂时无法实现，必须 E006，不得忽略。</p>
 <br>
@@ -792,7 +792,7 @@ PP-OCRv5 本地接入仍不属于 Stage 15b。
 <p>开工前：</p>
 <br>
 <pre><code class="language-powershell">
-cd C:\Users\Administrator\Documents\Github\Angri450.Nong
+cd C:\Users\Administrator\Documents\Github\Nong.Cli.Net
 dotnet build .\Cli\NongCli.csproj -c Release
 dotnet test .\Cli.Tests\Cli.Tests.csproj -c Release
 dotnet .\Cli\bin\Release\net8.0\nong.dll commands --json
@@ -933,5 +933,5 @@ nong word dissect paper.docx -o paper.slice --json
 <br>
 
 </article>
-<footer><p>由 progress-report 自动生成</p></footer>
+<footer><p>由 nong progress report 自动生成</p></footer>
 </div></body></html>

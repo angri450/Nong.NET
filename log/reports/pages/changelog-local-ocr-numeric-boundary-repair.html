@@ -1,10 +1,10 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+﻿<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>2026-06-06 Local OCR Numeric/Boundary Repair — Nong.NET</title>
+<title>2026-06-06 Local OCR Numeric/Boundary Repair - Nong.NET</title>
 <link rel="stylesheet" href="../style.css">
 </head><body><div class="container">
-<header><a href="../index.html" class="back-link">← 返回总览</a> |
-<a href="../changelog.html" class="back-link">← 变更记录</a>
+<header><a href="../index.html" class="back-link">&larr; 返回总览</a> | 
+<a href="../changelog.html" class="back-link">&larr; 变更记录</a>
 <h1>2026-06-06 Local OCR Numeric/Boundary Repair</h1>
 <p class="subtitle">2026-06-06 | <span style="color: #16a34a">变更记录</span></p></header>
 <article class="content">
@@ -44,12 +44,12 @@
 <li><code>metrics.invalidGeometryBlocks</code></li>
 <li>warning issues: <code>local_ocr_numeric_fallback</code>、<code>local_ocr_invalid_confidence</code>、<code>local_ocr_invalid_geometry</code></li>
 <li>非 JSON 文本模式中无效 confidence 显示为 <code>n/a</code>，不再打印 <code>NaN</code>。</li>
-<li><code>ocr local <file.pdf> --json</code> 明确返回 <code>E002 unsupported_format</code>，提示使用 <code>ocr cloud</code> 或 <code>ocr to-word</code>。</li>
+<li><code>ocr local &lt;file.pdf&gt; --json</code> 明确返回 <code>E002 unsupported_format</code>，提示使用 <code>ocr cloud</code> 或 <code>ocr to-word</code>。</li>
 </ul>
 <br>
 <h2>GroundPA Sync</h2>
 <br>
-<p>同步更新 <code>GroundPA-Toolkit</code>：</p>
+<p>同步更新 <code>Nong.Toolkit.Net</code>：</p>
 <br>
 <ul>
 <li><code>multimodal/SKILL.md</code></li>
@@ -65,13 +65,13 @@
 <h2>Validation</h2>
 <br>
 <ul>
-<li><code>dotnet build .\Angri450.Nong\Cli\NongCli.csproj -c Release --nologo</code>: PASS, 0 errors. Existing warnings remain in ThirdParty/OpenXML/Skia/PPTX areas.</li>
-<li><code>dotnet test .\Angri450.Nong\Cli.Tests\Cli.Tests.csproj -c Release --nologo</code>: PASS, 74/74.</li>
+<li><code>dotnet build .\Nong.Cli.Net\Cli\NongCli.csproj -c Release --nologo</code>: PASS, 0 errors. Existing warnings remain in ThirdParty/OpenXML/Skia/PPTX areas.</li>
+<li><code>dotnet test .\Nong.Cli.Net\Cli.Tests\Cli.Tests.csproj -c Release --nologo</code>: PASS, 74/74.</li>
 <li>Real OCR smoke:</li>
 <li>Generated a Windows PNG containing <code>测试123</code>.</li>
-<li><code>nong ocr local <image.png> --json</code>: PASS, 1 text block, <code>confidenceValid=true</code>, no <code>NaN</code>/<code>Infinity</code>, no issues.</li>
-<li><code>nong ocr local <image.png></code>: PASS, text mode printed <code>测试123	1</code>.</li>
-<li><code>nong ocr local <dummy.pdf> --json</code>: returned <code>E002 unsupported_format</code> with cloud/to-word guidance.</li>
+<li><code>nong ocr local &lt;image.png&gt; --json</code>: PASS, 1 text block, <code>confidenceValid=true</code>, no <code>NaN</code>/<code>Infinity</code>, no issues.</li>
+<li><code>nong ocr local &lt;image.png&gt;</code>: PASS, text mode printed <code>测试123	1</code>.</li>
+<li><code>nong ocr local &lt;dummy.pdf&gt; --json</code>: returned <code>E002 unsupported_format</code> with cloud/to-word guidance.</li>
 </ul>
 <br>
 <h2>Remaining Work</h2>
@@ -90,5 +90,5 @@
 <br>
 
 </article>
-<footer><p>由 progress-report 自动生成</p></footer>
+<footer><p>由 nong progress report 自动生成</p></footer>
 </div></body></html>

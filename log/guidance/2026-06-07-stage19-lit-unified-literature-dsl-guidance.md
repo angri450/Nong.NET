@@ -903,7 +903,7 @@ DOI verification pipeline
 Stage22:
 
 ```text
-GroundPA-Toolkit lit skill sync
+Nong.Toolkit.Net lit skill sync
 skill scan
 plugin validate
 ```

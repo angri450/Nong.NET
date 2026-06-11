@@ -59,9 +59,9 @@
 
 **关键词**：dissect-docx.ps1、subcommand 路由、Program.cs
 
-**判定**：这是 groundpa-toolkit word skill 的脚本问题，非包问题。`dissect-docx.ps1` 假设 Program.cs 包含 subcommand 路由（if args[0] == "preview"），当用户自定义 Program.cs 不包含此路由时，dotnet run 直接进入默认生成路径。
+**判定**：这是 nong-toolkit word skill 的脚本问题，非包问题。`dissect-docx.ps1` 假设 Program.cs 包含 subcommand 路由（if args[0] == "preview"），当用户自定义 Program.cs 不包含此路由时，dotnet run 直接进入默认生成路径。
 
-**归属**：groundpa-toolkit word skill。建议在 dissect-docx.ps1 中检测 Program.cs 是否包含必要路由，缺失时给出明确报错。
+**归属**：nong-toolkit word skill。建议在 dissect-docx.ps1 中检测 Program.cs 是否包含必要路由，缺失时给出明确报错。
 
 ---
 
@@ -85,7 +85,7 @@
 
 **判定**：这是 word skill 的 dispatch 逻辑问题。skill 应优先检测 DocxWriter 工程是否存在，存在则通过 .NET CLI 调用 TemplateEngine/WordPreview，不存在时才降级为 PowerShell 方案。
 
-**归属**：groundpa-toolkit word skill。需要修改 SKILL.md 的 dispatch 逻辑和/或 dissect-docx.ps1 脚本。
+**归属**：nong-toolkit word skill。需要修改 SKILL.md 的 dispatch 逻辑和/或 dissect-docx.ps1 脚本。
 
 ---
 
@@ -96,9 +96,9 @@
 | 1 | HIGH | Claude Code Write 工具 | 工具链，非包 |
 | 2 | MEDIUM | Docx 包 | `Docx/StyleBuilder.cs` — 增加 lineRule JSON 解析 |
 | 3 | LOW | Genre 包 | `Genre/PaperWriter.cs` — 改用 Regex.Split |
-| 4 | MEDIUM | word skill | `groundpa-toolkit/word/scripts/dissect-docx.ps1` |
+| 4 | MEDIUM | word skill | `nong-toolkit/word/scripts/dissect-docx.ps1` |
 | 5 | LOW | Docx 包（设计决策） | 可选改进，不修 |
-| 6 | MEDIUM | word skill | `groundpa-toolkit/word/SKILL.md` dispatch 逻辑 |
+| 6 | MEDIUM | word skill | `nong-toolkit/word/SKILL.md` dispatch 逻辑 |
 
 **本次可修**：#2（Docx）、#3（Genre）
 **需 Skill Agent 修**：#4、#6

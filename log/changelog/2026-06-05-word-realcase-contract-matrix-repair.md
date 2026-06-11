@@ -74,8 +74,8 @@ Final real-case result:
 
 ## Validation
 
-- `dotnet build .\Angri450.Nong\Cli\NongCli.csproj -c Release --nologo`: PASS, 18 existing warnings.
-- `dotnet test .\Angri450.Nong\Cli.Tests\Cli.Tests.csproj -c Release --nologo`: PASS, 62/62.
+- `dotnet build .\Nong.Cli.Net\Cli\NongCli.csproj -c Release --nologo`: PASS, 18 existing warnings.
+- `dotnet test .\Nong.Cli.Net\Cli.Tests\Cli.Tests.csproj -c Release --nologo`: PASS, 62/62.
 - `pwsh -NoProfile -ExecutionPolicy Bypass -File .\word-realcase-20260605-083042\run-realcase-matrix.ps1`: PASS, 46/46.
 - Real-case `word preview` diagnostics now report `0 errors` on both rebuilt and gongwen-formatted outputs.
 

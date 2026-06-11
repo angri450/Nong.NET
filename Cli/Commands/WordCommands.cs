@@ -6,6 +6,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using DocxCore;
 using Nong.Cli.Common;
+using Nong.Inspect;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace Nong.Cli.Commands;
@@ -49,6 +50,7 @@ public static class WordCommands
         // === Stage 15: modify commands ===
         cmd.AddCommand(CreateFixOrder(jsonOpt));
         cmd.AddCommand(CreateAcademicFormat(jsonOpt));
+        cmd.AddCommand(CreateFormatGongwen(jsonOpt));
         cmd.AddCommand(CreateFormatAudit(jsonOpt));
         cmd.AddCommand(CreateRepairPlan(jsonOpt));
         cmd.AddCommand(CreateTableReflow(jsonOpt));
@@ -68,6 +70,7 @@ public static class WordCommands
         cmd.AddCommand(CreateAddBookmark(jsonOpt));
         cmd.AddCommand(CreateAddComment(jsonOpt));
         cmd.AddCommand(CreateAddMath(jsonOpt));
+        cmd.AddCommand(CreateCompare(jsonOpt));
 
         return cmd;
     }
@@ -648,6 +651,7 @@ public static class WordCommands
     {
         var fileArg = new Argument<string>("file", "Path to .docx file");
         var cmd = new Command("preview", "7-step document structure diagnostic") { fileArg };
+        cmd.AddAlias("diagnose");
 
         cmd.SetHandler((string file, bool json) =>
         {
@@ -772,6 +776,7 @@ public static class WordCommands
         var fileArg = new Argument<string>("file", "Path to .docx file");
         var outOpt = new Option<string>("-o", "Output path") { IsRequired = true };
         var cmd = new Command("rebuild", "Clean OOXML style pollution") { fileArg, outOpt };
+        cmd.AddAlias("clean-styles");
 
         cmd.SetHandler((string file, string output, bool json) =>
         {
@@ -1767,6 +1772,88 @@ public static class WordCommands
         return failures;
     }
 
+    static Command CreateFormatGongwen(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to .docx file");
+        var outOpt = new Option<string>("-o", "Output .docx path") { IsRequired = true };
+        var configOpt = new Option<string?>("--config", "Optional gongwen style JSON config");
+        var cmd = new Command("format-gongwen", "Apply Chinese official-document formatting to an existing DOCX")
+        {
+            fileArg,
+            outOpt,
+            configOpt,
+        };
+
+        cmd.SetHandler((string file, string output, string? config, bool json) =>
+        {
+            const string command = "word format-gongwen";
+            var err = CliHelpers.ValidateDocxFile(file);
+            if (err != null) { CliHelpers.WriteError(command, err, json); return; }
+            if (!string.Equals(Path.GetExtension(output), ".docx", StringComparison.OrdinalIgnoreCase))
+            {
+                CliHelpers.WriteError(command,
+                    ErrorCodes.ValidationFailed with { Message = "Output path must end with .docx." }, json);
+                return;
+            }
+            if (string.Equals(Path.GetFullPath(file), Path.GetFullPath(output), StringComparison.OrdinalIgnoreCase))
+            {
+                CliHelpers.WriteError(command,
+                    ErrorCodes.ValidationFailed with { Message = "Input and output paths must be different." }, json);
+                return;
+            }
+            if (!string.IsNullOrWhiteSpace(config) && !File.Exists(config))
+            {
+                CliHelpers.WriteError(command,
+                    ErrorCodes.FileNotFound with { Message = $"Config file not found: {config}" }, json);
+                return;
+            }
+
+            try
+            {
+                CliHelpers.EnsureParentDir(output);
+                var (data, elapsed) = CliHelpers.Time(() =>
+                {
+                    var fullInput = Path.GetFullPath(file);
+                    var fullOutput = Path.GetFullPath(output);
+                    var options = string.IsNullOrWhiteSpace(config)
+                        ? new FormatOptions()
+                        : FormatOptions.FromJsonFile(config);
+
+                    File.Copy(fullInput, fullOutput, overwrite: true);
+                    using var doc = WordprocessingDocument.Open(fullOutput, true);
+                    new GongWenFormatter().FormatDocument(doc, options);
+
+                    return new
+                    {
+                        input = fullInput,
+                        output = fullOutput,
+                        config = string.IsNullOrWhiteSpace(config) ? null : Path.GetFullPath(config),
+                        formatProfile = "gongwen",
+                        source = options.Source,
+                    };
+                });
+                var a = CliHelpers.CheckArtifact(output, "DOCX");
+                if (a != null) { CliHelpers.WriteError(command, a, json); return; }
+
+                var o = JsonOutput.Ok(command, $"Applied gongwen formatting: {output}", data);
+                o.Artifacts["docx"] = Path.GetFullPath(output);
+                o.Meta.DurationMs = elapsed;
+                Console.WriteLine(JsonSerializer.Serialize(o, CliHelpers.JsonOpts));
+            }
+            catch (JsonException ex)
+            {
+                CliHelpers.WriteError(command,
+                    ErrorCodes.ValidationFailed with { Message = $"Config is not valid JSON: {ex.Message}" }, json);
+            }
+            catch (Exception ex)
+            {
+                try { if (File.Exists(output)) File.Delete(output); } catch { }
+                CliHelpers.WriteError(command, ErrorCodes.InternalError with { Message = ex.Message }, json);
+            }
+        }, fileArg, outOpt, configOpt, jsonOpt);
+        return cmd;
+    }
+
     static Command CreateRepairPlan(Option<bool> jsonOpt)
     {
         var cmd = new Command("repair-plan", "Explain which Word repair command to use; prevents confusing internal OOXML repair with visible formatting repair");
@@ -1958,6 +2045,107 @@ public static class WordCommands
         }, fileArg, fontArg, outOpt, nameOpt, jsonOpt);
         return cmd;
     }
+
+    // ===== word compare =====
+
+    static Command CreateCompare(Option<bool> jsonOpt)
+    {
+        var file1Arg = new Argument<string>("file1", "First .docx file");
+        var file2Arg = new Argument<string>("file2", "Second .docx file");
+        var cmd = new Command("compare", "Compare two DOCX files and report differences") { file1Arg, file2Arg };
+
+        cmd.SetHandler((string file1, string file2, bool json) =>
+        {
+            const string command = "word compare";
+            var e1 = CliHelpers.ValidateDocxFile(file1);
+            if (e1 != null) { CliHelpers.WriteError(command, e1, json); return; }
+            var e2 = CliHelpers.ValidateDocxFile(file2);
+            if (e2 != null) { CliHelpers.WriteError(command, e2, json); return; }
+
+            try
+            {
+                var (result, elapsed) = CliHelpers.Time(() =>
+                {
+                    var ps1 = ExtractParagraphs(file1);
+                    var ps2 = ExtractParagraphs(file2);
+                    var diffs = DiffParagraphs(ps1, ps2);
+                    return new { file1, file2, changes = diffs, paragraphCount1 = ps1.Count, paragraphCount2 = ps2.Count };
+                });
+
+                var output = JsonOutput.Ok(command,
+                    $"Compared: {result.paragraphCount1} vs {result.paragraphCount2} paragraphs, {result.changes.Count} change(s)",
+                    result);
+                output.Metrics["paragraphsA"] = result.paragraphCount1;
+                output.Metrics["paragraphsB"] = result.paragraphCount2;
+                output.Metrics["changes"] = result.changes.Count;
+                output.Metrics["added"] = result.changes.Count(c => c.Kind == "added");
+                output.Metrics["removed"] = result.changes.Count(c => c.Kind == "removed");
+                output.Metrics["modified"] = result.changes.Count(c => c.Kind == "modified");
+                output.Meta.DurationMs = elapsed;
+                Console.WriteLine(JsonSerializer.Serialize(output, CliHelpers.JsonOpts));
+            }
+            catch (Exception ex) { CliHelpers.WriteError(command, ErrorCodes.InternalError with { Message = ex.Message }, json); }
+        }, file1Arg, file2Arg, jsonOpt);
+        return cmd;
+    }
+
+    static List<ParagraphSnapshot> ExtractParagraphs(string docxPath)
+    {
+        var paragraphs = new List<ParagraphSnapshot>();
+        using var doc = WordprocessingDocument.Open(docxPath, false);
+        var body = doc.MainDocumentPart?.Document?.Body;
+        if (body == null) return paragraphs;
+
+        int idx = 0;
+        foreach (var p in body.Elements<Paragraph>())
+        {
+            var text = p.InnerText;
+            var styleId = p.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
+            paragraphs.Add(new ParagraphSnapshot(idx, text, styleId));
+            idx++;
+        }
+        return paragraphs;
+    }
+
+    static List<CompareChange> DiffParagraphs(List<ParagraphSnapshot> a, List<ParagraphSnapshot> b)
+    {
+        var changes = new List<CompareChange>();
+        int maxLen = Math.Max(a.Count, b.Count);
+        // Simple line-by-line comparison with text normalization
+        for (int i = 0; i < maxLen; i++)
+        {
+            var ta = i < a.Count ? NormalizeText(a[i].Text) : null;
+            var tb = i < b.Count ? NormalizeText(b[i].Text) : null;
+
+            if (i >= a.Count)
+            {
+                changes.Add(new CompareChange(i, "added", b[i].Text, b[i].StyleId));
+            }
+            else if (i >= b.Count)
+            {
+                changes.Add(new CompareChange(i, "removed", a[i].Text, a[i].StyleId));
+            }
+            else if (ta != tb)
+            {
+                // Try to find if this paragraph moved by searching in the other doc
+                changes.Add(new CompareChange(i, "modified", b[i].Text, b[i].StyleId,
+                    previousText: a[i].Text, previousStyleId: a[i].StyleId));
+            }
+        }
+        return changes;
+    }
+
+    static string NormalizeText(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return "";
+        // Collapse whitespace to single spaces
+        var result = System.Text.RegularExpressions.Regex.Replace(text.Trim(), @"\s+", " ");
+        return result;
+    }
+
+    sealed record ParagraphSnapshot(int Index, string Text, string? StyleId);
+    sealed record CompareChange(int Index, string Kind, string Text, string? StyleId,
+        string? previousText = null, string? previousStyleId = null);
 
     // ===== Stage 15: add commands =====
 

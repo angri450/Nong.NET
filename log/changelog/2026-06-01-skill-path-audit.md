@@ -1,7 +1,7 @@
 # Skill 模板全线清除 <skill-path> 绝对路径
 
 **时间**: 2026-06-01
-**影响范围**: GroundPA-Toolkit — Word/Excel/Pptx/Chart skills
+**影响范围**: Nong.Toolkit.Net — Word/Excel/Pptx/Chart skills
 **类型**: Bug Fix (Skill template hardening)
 
 ## 问题

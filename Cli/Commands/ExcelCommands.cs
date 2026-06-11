@@ -21,6 +21,9 @@ public static class ExcelCommands
         cmd.AddCommand(CreateToGroups(jsonOpt));
         cmd.AddCommand(CreateCreateXlsx(jsonOpt));
         cmd.AddCommand(CreateDissect(jsonOpt));
+        cmd.AddCommand(CreateStyle(jsonOpt));
+        cmd.AddCommand(CreateFormula(jsonOpt));
+        cmd.AddCommand(CreatePivot(jsonOpt));
 
         return cmd;
     }
@@ -282,6 +285,232 @@ public static class ExcelCommands
         return cmd;
     }
 
+    // ===== excel style =====
+
+    static Command CreateStyle(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to .xlsx file to modify");
+        var specArg = new Argument<string>("spec", "Path to style spec JSON");
+        var outOpt = new Option<string>("-o", "Output xlsx path") { IsRequired = true };
+        var cmd = new Command("style", "Apply cell styles from a JSON spec") { fileArg, specArg, outOpt };
+
+        cmd.SetHandler((string file, string spec, string output, bool json) =>
+        {
+            var err = ValidateXlsx(file);
+            if (err != null) { CliHelpers.WriteError("excel style", err, json); return; }
+            var serr = CliHelpers.ValidateTextFile(spec);
+            if (serr != null) { CliHelpers.WriteError("excel style", serr, json); return; }
+
+            try
+            {
+                var jsonText = File.ReadAllText(spec);
+                var styleSpec = JsonSerializer.Deserialize<ExcelStyleSpec>(jsonText, CliHelpers.JsonOpts);
+                if (styleSpec?.Entries == null || styleSpec.Entries.Count == 0)
+                {
+                    CliHelpers.WriteError("excel style",
+                        ErrorCodes.ValidationFailed with { Message = "entries array must be non-empty." }, json);
+                    return;
+                }
+
+                CliHelpers.EnsureParentDir(output);
+                File.Copy(file, output, true);
+                var (entryCount, elapsed) = CliHelpers.Time<int>(() =>
+                {
+                    using var wb = new XLWorkbook(output);
+                    var ws = string.IsNullOrEmpty(styleSpec.Sheet) ? wb.Worksheet(1) : wb.Worksheet(styleSpec.Sheet);
+
+                    foreach (var e in styleSpec.Entries)
+                    {
+                        if (!string.IsNullOrEmpty(e.Preset))
+                        {
+                            if (string.Equals(e.Preset, "Academic", StringComparison.OrdinalIgnoreCase)
+                                || string.Equals(e.Preset, "Mono", StringComparison.OrdinalIgnoreCase))
+                            {
+                                var lastRow = ws.LastRowUsed()?.RowNumber() ?? 0;
+                                var lastCol = ws.LastColumnUsed()?.ColumnNumber() ?? 0;
+                                if (lastRow > 0) StylePresets.MonoHeader(ws.Row(1), 1, lastCol);
+                                if (lastRow > 1) StylePresets.AlternatingRows(ws, 1, lastRow, 1, lastCol, "#F5F5F5");
+                            }
+                            else if (string.Equals(e.Preset, "Finance", StringComparison.OrdinalIgnoreCase))
+                            {
+                                var lastRow = ws.LastRowUsed()?.RowNumber() ?? 0;
+                                var lastCol = ws.LastColumnUsed()?.ColumnNumber() ?? 0;
+                                if (lastRow > 0) StylePresets.FinanceHeader(ws.Row(1), 1, lastCol);
+                                if (lastRow > 1) StylePresets.AlternatingRows(ws, 1, lastRow, 1, lastCol, "#FFF3E0");
+                            }
+                            continue;
+                        }
+
+                        var range = !string.IsNullOrEmpty(e.Range) ? ws.Range(e.Range) : null;
+                        if (range == null && !string.IsNullOrEmpty(e.Range))
+                            continue;
+
+                        if (range != null)
+                        {
+                            if (!string.IsNullOrEmpty(e.Font)) range.Style.Font.FontName = e.Font;
+                            if (e.FontSize.HasValue) range.Style.Font.FontSize = e.FontSize.Value;
+                            if (e.Bold.HasValue) range.Style.Font.Bold = e.Bold.Value;
+                            if (!string.IsNullOrEmpty(e.FillColor)) range.Style.Fill.BackgroundColor = XLColor.FromHtml(e.FillColor);
+                            if (!string.IsNullOrEmpty(e.FontColor)) range.Style.Font.FontColor = XLColor.FromHtml(e.FontColor);
+                            if (!string.IsNullOrEmpty(e.NumberFormat)) range.Style.NumberFormat.Format = e.NumberFormat;
+                            range.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                        }
+                    }
+
+                    wb.Save();
+                    return styleSpec.Entries.Count;
+                });
+
+                var aerr = CliHelpers.CheckArtifact(output, "XLSX");
+                if (aerr != null) { CliHelpers.WriteError("excel style", aerr, json); return; }
+
+                if (json)
+                {
+                    var o = JsonOutput.Ok("excel style",
+                        $"Applied {entryCount} style entries", new { entries = entryCount });
+                    o.Artifacts["xlsx"] = Path.GetFullPath(output);
+                    o.Meta.DurationMs = elapsed;
+                    Console.WriteLine(JsonSerializer.Serialize(o, CliHelpers.JsonOpts));
+                }
+                else { Console.WriteLine($"Styled: {Path.GetFullPath(output)} ({entryCount} entries)"); }
+            }
+            catch (JsonException jex) { CliHelpers.WriteError("excel style", ErrorCodes.ValidationFailed with { Message = $"Invalid JSON: {jex.Message}" }, json); }
+            catch (Exception ex) { CliHelpers.WriteError("excel style", ErrorCodes.InternalError with { Message = ex.Message }, json); }
+        }, fileArg, specArg, outOpt, jsonOpt);
+        return cmd;
+    }
+
+    // ===== excel formula =====
+
+    static Command CreateFormula(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to .xlsx file to modify");
+        var specArg = new Argument<string>("spec", "Path to formula spec JSON");
+        var outOpt = new Option<string>("-o", "Output xlsx path") { IsRequired = true };
+        var cmd = new Command("formula", "Write formulas from a JSON spec") { fileArg, specArg, outOpt };
+
+        cmd.SetHandler((string file, string spec, string output, bool json) =>
+        {
+            var err = ValidateXlsx(file);
+            if (err != null) { CliHelpers.WriteError("excel formula", err, json); return; }
+            var serr = CliHelpers.ValidateTextFile(spec);
+            if (serr != null) { CliHelpers.WriteError("excel formula", serr, json); return; }
+
+            try
+            {
+                var jsonText = File.ReadAllText(spec);
+                var fSpec = JsonSerializer.Deserialize<ExcelFormulaSpec>(jsonText, CliHelpers.JsonOpts);
+                if (fSpec?.Entries == null || fSpec.Entries.Count == 0)
+                {
+                    CliHelpers.WriteError("excel formula",
+                        ErrorCodes.ValidationFailed with { Message = "entries array must be non-empty." }, json);
+                    return;
+                }
+
+                CliHelpers.EnsureParentDir(output);
+                File.Copy(file, output, true);
+                var (entryCount, elapsed) = CliHelpers.Time<int>(() =>
+                {
+                    using var wb = new XLWorkbook(output);
+                    var ws = string.IsNullOrEmpty(fSpec.Sheet) ? wb.Worksheet(1) : wb.Worksheet(fSpec.Sheet);
+
+                    foreach (var e in fSpec.Entries)
+                    {
+                        if (string.IsNullOrEmpty(e.Formula)) continue;
+                        if (!string.IsNullOrEmpty(e.Cell))
+                            ws.Cell(e.Cell).FormulaA1 = e.Formula;
+                        else if (!string.IsNullOrEmpty(e.Range))
+                            ws.Range(e.Range).FormulaA1 = e.Formula;
+                    }
+
+                    wb.Save();
+                    return fSpec.Entries.Count;
+                });
+
+                if (json)
+                {
+                    var o = JsonOutput.Ok("excel formula",
+                        $"Wrote {entryCount} formula entries", new { entries = entryCount });
+                    o.Artifacts["xlsx"] = Path.GetFullPath(output);
+                    o.Meta.DurationMs = elapsed;
+                    Console.WriteLine(JsonSerializer.Serialize(o, CliHelpers.JsonOpts));
+                }
+                else { Console.WriteLine($"Formulas written: {Path.GetFullPath(output)} ({entryCount} entries)"); }
+            }
+            catch (JsonException jex) { CliHelpers.WriteError("excel formula", ErrorCodes.ValidationFailed with { Message = $"Invalid JSON: {jex.Message}" }, json); }
+            catch (Exception ex) { CliHelpers.WriteError("excel formula", ErrorCodes.InternalError with { Message = ex.Message }, json); }
+        }, fileArg, specArg, outOpt, jsonOpt);
+        return cmd;
+    }
+
+    // ===== excel pivot =====
+
+    static Command CreatePivot(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to .xlsx file with source data");
+        var specArg = new Argument<string>("spec", "Path to pivot spec JSON");
+        var outOpt = new Option<string>("-o", "Output xlsx path") { IsRequired = true };
+        var cmd = new Command("pivot", "Create a pivot table from a JSON spec") { fileArg, specArg, outOpt };
+
+        cmd.SetHandler((string file, string spec, string output, bool json) =>
+        {
+            var err = ValidateXlsx(file);
+            if (err != null) { CliHelpers.WriteError("excel pivot", err, json); return; }
+            var serr = CliHelpers.ValidateTextFile(spec);
+            if (serr != null) { CliHelpers.WriteError("excel pivot", serr, json); return; }
+
+            try
+            {
+                var jsonText = File.ReadAllText(spec);
+                var pSpec = JsonSerializer.Deserialize<ExcelPivotSpec>(jsonText, CliHelpers.JsonOpts);
+                if (pSpec == null || string.IsNullOrEmpty(pSpec.Sheet) || string.IsNullOrEmpty(pSpec.Range))
+                { CliHelpers.WriteError("excel pivot", ErrorCodes.ValidationFailed with { Message = "sheet and range are required." }, json); return; }
+
+                CliHelpers.EnsureParentDir(output);
+                File.Copy(file, output, true);
+                var (_, elapsed) = CliHelpers.Time<int>(() =>
+                {
+                    using var wb = new XLWorkbook(output);
+                    var ws = wb.Worksheet(pSpec.Sheet);
+                    var range = ws.Range(pSpec.Range);
+                    var pivotSheet = !string.IsNullOrEmpty(pSpec.PivotSheet) ? wb.Worksheets.Add(pSpec.PivotSheet) : wb.Worksheets.Add("Pivot");
+                    var builder = pivotSheet.CreatePivotTable(pSpec.PivotSheet ?? "PivotTable", pivotSheet.Cell("A1"), range);
+
+                    if (pSpec.RowLabels != null)
+                        foreach (var r in pSpec.RowLabels) builder.RowLabel(r);
+                    if (pSpec.ColumnLabels != null)
+                        foreach (var c in pSpec.ColumnLabels) builder.ColumnLabel(c);
+                    if (pSpec.Values != null)
+                        foreach (var v in pSpec.Values) builder.Value(v.Field ?? "", ParseSummary(v.Summary));
+                    if (pSpec.ShowGrandTotals != null)
+                        builder.ShowGrandTotals(pSpec.ShowGrandTotals.Value);
+
+                    wb.Save();
+                    return 1;
+                });
+
+                if (json)
+                {
+                    var o = JsonOutput.Ok("excel pivot", $"Pivot table created on sheet '{pSpec.PivotSheet ?? "Pivot"}'");
+                    o.Artifacts["xlsx"] = Path.GetFullPath(output);
+                    o.Meta.DurationMs = elapsed;
+                    Console.WriteLine(JsonSerializer.Serialize(o, CliHelpers.JsonOpts));
+                }
+                else { Console.WriteLine($"Pivot created: {Path.GetFullPath(output)}"); }
+            }
+            catch (JsonException jex) { CliHelpers.WriteError("excel pivot", ErrorCodes.ValidationFailed with { Message = $"Invalid JSON: {jex.Message}" }, json); }
+            catch (Exception ex) { CliHelpers.WriteError("excel pivot", ErrorCodes.InternalError with { Message = ex.Message }, json); }
+        }, fileArg, specArg, outOpt, jsonOpt);
+        return cmd;
+    }
+
+    static XLPivotSummary ParseSummary(string? summary) => (summary ?? "sum").ToLowerInvariant() switch
+    {
+        "count" => XLPivotSummary.Count, "average" or "avg" => XLPivotSummary.Average,
+        "min" => XLPivotSummary.Minimum, "max" => XLPivotSummary.Maximum,
+        _ => XLPivotSummary.Sum
+    };
+
     static ErrorEntry? ValidateXlsx(string? path)
     {
         if (string.IsNullOrWhiteSpace(path)) return ErrorCodes.MissingArgument with { Message = "File path is required." };
@@ -482,4 +711,56 @@ internal class ExcelSheetEntry
     public string? Name { get; set; }
     public List<string?> Headers { get; set; } = new();
     public List<List<object?>> Rows { get; set; } = new();
+}
+
+// === JSON spec model for excel style ===
+
+internal class ExcelStyleSpec
+{
+    public string? Sheet { get; set; }
+    public List<ExcelStyleEntry> Entries { get; set; } = new();
+}
+
+internal class ExcelStyleEntry
+{
+    public string? Range { get; set; }
+    public string? Font { get; set; }
+    public double? FontSize { get; set; }
+    public bool? Bold { get; set; }
+    public string? FillColor { get; set; }
+    public string? FontColor { get; set; }
+    public string? NumberFormat { get; set; }
+    public string? Preset { get; set; } // "Academic" or "Finance"
+}
+
+// === JSON spec model for excel formula ===
+
+internal class ExcelFormulaSpec
+{
+    public string? Sheet { get; set; }
+    public List<ExcelFormulaEntry> Entries { get; set; } = new();
+}
+
+internal class ExcelFormulaEntry
+{
+    public string? Cell { get; set; }
+    public string? Range { get; set; }
+    public string? Formula { get; set; }
+}
+
+internal class ExcelPivotSpec
+{
+    public string? Sheet { get; set; }
+    public string? PivotSheet { get; set; }
+    public string? Range { get; set; }
+    public List<string>? RowLabels { get; set; }
+    public List<string>? ColumnLabels { get; set; }
+    public List<ExcelPivotValue>? Values { get; set; }
+    public bool? ShowGrandTotals { get; set; }
+}
+
+internal class ExcelPivotValue
+{
+    public string? Field { get; set; }
+    public string? Summary { get; set; }
 }

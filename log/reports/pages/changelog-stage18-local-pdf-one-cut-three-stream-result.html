@@ -1,10 +1,10 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+﻿<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>2026-06-06 Stage18 Local PDF One-Cut Three-Stream Result — Nong.NET</title>
+<title>2026-06-06 Stage18 Local PDF One-Cut Three-Stream Result - Nong.NET</title>
 <link rel="stylesheet" href="../style.css">
 </head><body><div class="container">
-<header><a href="../index.html" class="back-link">← 返回总览</a> |
-<a href="../changelog.html" class="back-link">← 变更记录</a>
+<header><a href="../index.html" class="back-link">&larr; 返回总览</a> | 
+<a href="../changelog.html" class="back-link">&larr; 变更记录</a>
 <h1>2026-06-06 Stage18 Local PDF One-Cut Three-Stream Result</h1>
 <p class="subtitle">2026-06-06 | <span style="color: #16a34a">变更记录</span></p></header>
 <article class="content">
@@ -23,7 +23,7 @@ nong pdf render &lt;file.pdf&gt; --output &lt;pages-dir&gt; --dpi 150 --json
 nong pdf images &lt;file.pdf&gt; --output &lt;assets-dir&gt; --json
 </code></pre>
 <br>
-<p>The main readable output of <code>pdf dissect</code> is <code>content.nongmark</code>, aligned with Nong's enhanced Pandoc/NongMark direction. <code>preview/content.md</code> is generated only as a lossy compatibility preview.</p>
+<p>The main readable output of <code>pdf dissect</code> is <code>content.nongmark</code>, aligned with Nong&#39;s enhanced Pandoc/NongMark direction. <code>preview/content.md</code> is generated only as a lossy compatibility preview.</p>
 <br>
 <h2>Implementation</h2>
 <br>
@@ -50,7 +50,7 @@ nong pdf images &lt;file.pdf&gt; --output &lt;assets-dir&gt; --json
 <p>GroundPA sync:</p>
 <br>
 <ul>
-<li>Added <code>GroundPA-Toolkit/pdf/SKILL.md</code>.</li>
+<li>Added <code>Nong.Toolkit.Net/pdf/SKILL.md</code>.</li>
 <li>Added <code>./pdf</code> to the plugin manifest and skill grouping.</li>
 <li>The skill routes <code>pdf check</code> first, reads <code>content.nongmark</code> as primary evidence, and keeps cloud OCR as an optional stronger path.</li>
 </ul>
@@ -211,7 +211,7 @@ slice: tests-output/stage18-real-xiandao-fixed2
 ![image](assets/img0001.png){#img0001 page=2 bbox=&quot;126,84.7,384.6,300.7&quot; source=pageCrop asset=img0001 confidence=medium}
 </code></pre>
 <br>
-<p>Visual inspection of the generated asset confirmed that <code>assets/img0001.png</code> is the real QR-code region from page 2, including the "扫码在线申请" and "先导杯赛题征集" text.</p>
+<p>Visual inspection of the generated asset confirmed that <code>assets/img0001.png</code> is the real QR-code region from page 2, including the &quot;扫码在线申请&quot; and &quot;先导杯赛题征集&quot; text.</p>
 <br>
 <h2>Verification</h2>
 <br>
@@ -238,13 +238,13 @@ PASS: 7/7
 <p>GroundPA:</p>
 <br>
 <pre><code class="language-text">
-nong skill validate .\GroundPA-Toolkit\pdf --json
+nong skill validate .\Nong.Toolkit.Net\pdf --json
 PASS: 0 errors, 0 warnings
 
-nong skill scan .\GroundPA-Toolkit --json
+nong skill scan .\Nong.Toolkit.Net --json
 PASS: 0 findings, 0 High+
 
-claude plugin validate .\GroundPA-Toolkit
+claude plugin validate .\Nong.Toolkit.Net
 PASS
 </code></pre>
 <br>
@@ -253,7 +253,7 @@ PASS
 <ul>
 <li>Text PDF path is implemented and tested.</li>
 <li>Hybrid mode currently preserves native PDF text and embedded image evidence; image-region OCR/layout enrichment is still limited.</li>
-<li>OCR mode is wired through Nong's local PP-OCRv5 adapter and renders pages first, but local OCR remains text recognition only.</li>
+<li>OCR mode is wired through Nong&#39;s local PP-OCRv5 adapter and renders pages first, but local OCR remains text recognition only.</li>
 <li>If OCR mode returns zero text blocks, <code>pdf dissect</code> fails with <code>E007 read_failed</code> instead of publishing an empty successful slice.</li>
 <li>Local OCR does not claim cloud-grade layout analysis, table structure, Word formatting, or reliable cross-page stitching.</li>
 <li>Cross-page image/table continuation is not yet a confident merge feature.</li>
@@ -262,5 +262,5 @@ PASS
 <br>
 
 </article>
-<footer><p>由 progress-report 自动生成</p></footer>
+<footer><p>由 nong progress report 自动生成</p></footer>
 </div></body></html>

@@ -1,10 +1,10 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+﻿<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MultiModal 新能力：ImageAnalyzer 纯 .NET 图像结构分析 — Nong.NET</title>
+<title>MultiModal 新能力：ImageAnalyzer 纯 .NET 图像结构分析 - Nong.NET</title>
 <link rel="stylesheet" href="../style.css">
 </head><body><div class="container">
-<header><a href="../index.html" class="back-link">← 返回总览</a> |
-<a href="../changelog.html" class="back-link">← 变更记录</a>
+<header><a href="../index.html" class="back-link">&larr; 返回总览</a> | 
+<a href="../changelog.html" class="back-link">&larr; 变更记录</a>
 <h1>MultiModal 新能力：ImageAnalyzer 纯 .NET 图像结构分析</h1>
 <p class="subtitle">2026-06-01 | <span style="color: #16a34a">变更记录</span></p></header>
 <article class="content">
@@ -39,7 +39,7 @@ foreach (var r in layout.Regions)            // 连通内容区块
 <tr><th>属性</th><th>类型</th><th>说明</th></tr>
 <tr><td>AsciiMap</td><td>string</td><td>可直接打印的字符布局</td></tr>
 <tr><td>WhitespaceRatio</td><td>double</td><td>空白比例</td></tr>
-<tr><td>Regions</td><td>List<ContentRegion></td><td>连通内容区块</td></tr>
+<tr><td>Regions</td><td>List&lt;ContentRegion&gt;</td><td>连通内容区块</td></tr>
 <tr><td>ContentWidth/Height</td><td>int</td><td>内容区尺寸</td></tr>
 <tr><td>ContentMinX/Y</td><td>int</td><td>内容区起点</td></tr>
 <tr><td>BlackPixelCount</td><td>int</td><td>暗色文字像素数</td></tr>
@@ -51,7 +51,7 @@ foreach (var r in layout.Regions)            // 连通内容区块
 <br>
 <p>1. SkiaSharp 解码图像</p>
 <p>2. 降采样到 targetWidth</p>
-<p>3. 像素分类：白(>240)、黑(<40)、彩色(RGB 差>30)、边缘(<100)</p>
+<p>3. 像素分类：白(&gt;240)、黑(&lt;40)、彩色(RGB 差&gt;30)、边缘(&lt;100)</p>
 <p>4. 泛洪填充检测连通区域</p>
 <p>5. 返回结构化结果</p>
 <br>
@@ -78,5 +78,5 @@ foreach (var r in layout.Regions)            // 连通内容区块
 <br>
 
 </article>
-<footer><p>由 progress-report 自动生成</p></footer>
+<footer><p>由 nong progress report 自动生成</p></footer>
 </div></body></html>

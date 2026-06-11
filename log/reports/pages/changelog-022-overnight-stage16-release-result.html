@@ -1,10 +1,10 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+﻿<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>阶段 15 Word 一刀三流 + 阶段 16a OCR 基础设施 —— 开发日志 — Nong.NET</title>
+<title>阶段 15 Word 一刀三流 + 阶段 16a OCR 基础设施 —— 开发日志 - Nong.NET</title>
 <link rel="stylesheet" href="../style.css">
 </head><body><div class="container">
-<header><a href="../index.html" class="back-link">← 返回总览</a> |
-<a href="../changelog.html" class="back-link">← 变更记录</a>
+<header><a href="../index.html" class="back-link">&larr; 返回总览</a> | 
+<a href="../changelog.html" class="back-link">&larr; 变更记录</a>
 <h1>阶段 15 Word 一刀三流 + 阶段 16a OCR 基础设施 —— 开发日志</h1>
 <p class="subtitle">2026-06-04 | <span style="color: #16a34a">变更记录</span></p></header>
 <article class="content">
@@ -42,7 +42,7 @@
 <br>
 <table>
 <tr><th>文件</th><th>变更</th></tr>
-<tr><td><code>Cli/Commands/WordCommands.cs</code></td><td>从 777 行扩展到 ~1150 行。新增 19 个命令 handler（outline/images/comments/revisions/infer-format/fix-order/protect/embed-font/add-*×11）。现有 merge 委托给 WordEditOperations</td></tr>
+<tr><td><code>Cli/Commands/WordCommands.cs</code></td><td>从 777 行扩展到 ~1150 行。新增 19 个命令 handler（outline/images/comments/revisions/infer-format/fix-order/protect/embed-font/add-*&#215;11）。现有 merge 委托给 WordEditOperations</td></tr>
 <tr><td><code>Cli/Commands/OcrCommands.cs</code></td><td>重写。新增 check-env、analyze-image。token 优先 PADDLEOCR_ACCESS_TOKEN。cloud 结构化输出。HTTP 错误码按 16a 契约（E005/E006/E007，不落 E004）</td></tr>
 <tr><td><code>MultiModal/PaddleOcrVlClient.cs</code></td><td>token 读取：PADDLEOCR_ACCESS_TOKEN → PADDLEOCR_TOKEN 双 fallback</td></tr>
 <tr><td><code>Cli/Common/Manifest.cs</code></td><td>新增 19 word + 2 ocr 命令</td></tr>
@@ -119,5 +119,5 @@ dotnet test Cli.Tests/Cli.Tests.csproj -c Release → 24/24 PASS
 <br>
 
 </article>
-<footer><p>由 progress-report 自动生成</p></footer>
+<footer><p>由 nong progress report 自动生成</p></footer>
 </div></body></html>

@@ -5,13 +5,13 @@
 
 ## 现状
 
-合并 GroundPA-Toolkit 进 NanoBot.net 后，剩下两个仓库。当前名称：
+合并 Nong.Toolkit.Net 进 Nong.NanoBot.Net 后，剩下两个仓库。当前名称：
 
 | 仓库 | 含义 | 问题 |
 |------|------|------|
-| `NanoBot.net` | 个人 Agent 运行时 | `.net` 后缀像域名不像仓库名 |
+| `Nong.NanoBot.Net` | 个人 Agent 运行时 | `.net` 后缀像域名不像仓库名 |
 | `Angri450.Nong` | 农学文档 CLI 工具集 | 带个人前缀 `Angri450`，与 NanoBot 读不出关联 |
-| ~~GroundPA-Toolkit~~ | 即将合并，消失 |
+| ~~Nong.Toolkit.Net~~ | 即将合并，消失 |
 
 ## 评估维度
 
@@ -47,7 +47,7 @@ nanobot（Agent 平台）
 
 | 项 | 当前 | 建议 |
 |----|------|------|
-| Agent 运行时仓库 | `NanoBot.net` | `nanobot` 或保持不变 |
+| Agent 运行时仓库 | `Nong.NanoBot.Net` | `nanobot` 或保持不变 |
 | 文档工具仓库 | `Angri450.Nong` | 不变（NuGet 包名已固定） |
 | 用户感知的品牌 | 模糊 | "NanoBot 是你的 Agent，Nong 是它写论文用的工具箱" |
 
@@ -60,7 +60,7 @@ nanobot（Agent 平台）
 
 ### 为什么 NanoBot 可以考虑微调
 
-1. `NanoBot.net` 读起来像网站地址而不是项目名
+1. `Nong.NanoBot.Net` 读起来像网站地址而不是项目名
 2. 如果觉得别扭，可以改 repo 名为 `nanobot`（GitHub URL 变成 `angri450/nanobot`）
 3. 但这个改动也影响外链和 clone 地址
 4. 如果不太在意，可以不动
@@ -90,9 +90,9 @@ Nong CLI（文档执行引擎）
 
 ## 结论
 
-两个名字都**不需要大改**。合并 GroundPA-Toolkit 后自然清晰：
+两个名字都**不需要大改**。合并 Nong.Toolkit.Net 后自然清晰：
 
-- `NanoBot.net` = Agent 运行时 + 内置技能包
+- `Nong.NanoBot.Net` = Agent 运行时 + 内置技能包
 - `Angri450.Nong` = 独立 CLI 工具（NuGet 分发，Agent 通过 bridge 调用）
 
 名字之间的关系靠 README 和文档说明，不靠品牌统一。两个工具的服务对象不同（终端用户 vs Agent），分开命名是合理的。

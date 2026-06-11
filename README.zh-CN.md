@@ -1,4 +1,4 @@
-<h1 align="center">Nong.NET</h1>
+<h1 align="center">Nong.Cli.Net</h1>
 
 <p align="center">
   <strong>纯 .NET CLI 农学文档与科研图表工具集</strong><br>
@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="https://www.nuget.org/packages/Angri450.Nong.Cli/"><img src="https://img.shields.io/nuget/v/Angri450.Nong.Cli.svg?label=NuGet" alt="NuGet"></a>
-  <a href="https://github.com/angri450/Nong.NET/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License"></a>
+  <a href="https://github.com/angri450/Nong.Cli.Net/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License"></a>
   <a href="https://dotnet.microsoft.com/en-us/download"><img src="https://img.shields.io/badge/.NET-8.0-8A2BE2" alt=".NET 8.0"></a>
   <img src="https://img.shields.io/badge/commands-93-green" alt="93 commands">
   <a href="README.md"><img src="https://img.shields.io/badge/English-README.md-blue" alt="English"></a>

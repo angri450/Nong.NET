@@ -1,10 +1,10 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+﻿<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>2026-06-08 Word regression visual evidence and reflow rules — Nong.NET</title>
+<title>2026-06-08 Word regression visual evidence and reflow rules - Nong.NET</title>
 <link rel="stylesheet" href="../style.css">
 </head><body><div class="container">
-<header><a href="../index.html" class="back-link">← 返回总览</a> |
-<a href="../changelog.html" class="back-link">← 变更记录</a>
+<header><a href="../index.html" class="back-link">&larr; 返回总览</a> | 
+<a href="../changelog.html" class="back-link">&larr; 变更记录</a>
 <h1>2026-06-08 Word regression visual evidence and reflow rules</h1>
 <p class="subtitle">2026-06-08 | <span style="color: #16a34a">变更记录</span></p></header>
 <article class="content">
@@ -49,7 +49,7 @@
 <li><code>latinNames</code></li>
 <li><code>chemistry</code></li>
 <li><code>audit</code></li>
-<li>补真实文档回归测试链路：<code>academic-format -> validate -> format-audit -> dissect</code>。</li>
+<li>补真实文档回归测试链路：<code>academic-format -&gt; validate -&gt; format-audit -&gt; dissect</code>。</li>
 <li>真实文档额外检查三线表顶线/栏目线/底线线宽、无表格阴影、表格内无首行缩进、化学式数字下标、<code>settings.xml</code> 中 <code>m:mathPr</code> 周边顺序，以及 slice visual evidence。</li>
 <li>明确 <code>word table-reflow</code> 的长表、宽表、跨页/续表规则：长表按行拆并重复表头，宽表按列组拆并重复左侧关键列，续表前段底线 0.75 pt、续页/续表顶线 1.5 pt、最终底线 1.5 pt。</li>
 </ul>
@@ -68,9 +68,9 @@
 <ul>
 <li><code>dotnet build .\Cli\NongCli.csproj -c Release</code></li>
 <li>通过，0 warning，0 error。</li>
-<li><code>dotnet test .\Cli.Tests\Cli.Tests.csproj -c Release --filter "FullyQualifiedName~WordCommandTests.WordFormatAudit|FullyQualifiedName~WordCommandTests.WordAcademicFormat|FullyQualifiedName~WordCommandTests.WordTableReflow|FullyQualifiedName~WordCommandTests.WordDissect"</code></li>
+<li><code>dotnet test .\Cli.Tests\Cli.Tests.csproj -c Release --filter &quot;FullyQualifiedName~WordCommandTests.WordFormatAudit|FullyQualifiedName~WordCommandTests.WordAcademicFormat|FullyQualifiedName~WordCommandTests.WordTableReflow|FullyQualifiedName~WordCommandTests.WordDissect&quot;</code></li>
 <li>通过，17 passed。</li>
-<li><code>dotnet test .\Cli.Tests\Cli.Tests.csproj -c Release --filter "FullyQualifiedName~CliContractTests.Commands_Json|FullyQualifiedName~CliContractTests.WordRepairPlan|FullyQualifiedName~CliContractTests.SliceInspect_Strict|FullyQualifiedName~CliContractTests.SliceFormats_IncludeUnifiedVisualEvidence|FullyQualifiedName~CliContractTests.SliceBlocks|FullyQualifiedName~CliContractTests.SliceBlock|FullyQualifiedName~CliContractTests.SliceAssets"</code></li>
+<li><code>dotnet test .\Cli.Tests\Cli.Tests.csproj -c Release --filter &quot;FullyQualifiedName~CliContractTests.Commands_Json|FullyQualifiedName~CliContractTests.WordRepairPlan|FullyQualifiedName~CliContractTests.SliceInspect_Strict|FullyQualifiedName~CliContractTests.SliceFormats_IncludeUnifiedVisualEvidence|FullyQualifiedName~CliContractTests.SliceBlocks|FullyQualifiedName~CliContractTests.SliceBlock|FullyQualifiedName~CliContractTests.SliceAssets&quot;</code></li>
 <li>通过，7 passed。</li>
 </ul>
 <br>
@@ -83,5 +83,5 @@
 <br>
 
 </article>
-<footer><p>由 progress-report 自动生成</p></footer>
+<footer><p>由 nong progress report 自动生成</p></footer>
 </div></body></html>

@@ -1,10 +1,10 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+﻿<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>2026-06-03 完成后审计指导 — Nong.NET</title>
+<title>2026-06-03 完成后审计指导 - Nong.NET</title>
 <link rel="stylesheet" href="../style.css">
 </head><body><div class="container">
-<header><a href="../index.html" class="back-link">← 返回总览</a> |
-<a href="../guidance.html" class="back-link">← 开发指导</a>
+<header><a href="../index.html" class="back-link">&larr; 返回总览</a> | 
+<a href="../guidance.html" class="back-link">&larr; 开发指导</a>
 <h1>2026-06-03 完成后审计指导</h1>
 <p class="subtitle">2026-06-03 | <span style="color: #7c3aed">开发指导</span></p></header>
 <article class="content">
@@ -36,7 +36,7 @@
 <br>
 <p>1. 命令 JSON 契约一致。</p>
 <p>2. 文件输出 artifacts 可用。</p>
-<p>3. Excel -> groups -> analyze -> bar 这条链能真实跑通。</p>
+<p>3. Excel -&gt; groups -&gt; analyze -&gt; bar 这条链能真实跑通。</p>
 <p>4. Word fill/rebuild 生成的 docx 能再被 word read/preview 读取。</p>
 <p>5. <code>pack</code> 出来的 nupkg 可以本地安装并用全局 <code>nong</code> 调用。</p>
 <br>
@@ -163,7 +163,7 @@ nong inspect write-paper spec.json -o paper.docx
 <h2>阶段 11 ClaudeCode 任务</h2>
 <br>
 <pre><code class="language-text">
-你在 C:\Users\Administrator\Documents\Github\Angri450.Nong 工作。
+你在 C:\Users\Administrator\Documents\Github\Nong.Cli.Net 工作。
 
 目标：阶段 11，只做完成后审计与修补，不新增功能。
 
@@ -194,7 +194,7 @@ nong inspect write-paper spec.json -o paper.docx
 禁止：
    - 不要新增新命令
    - 不要重构 ThirdParty
-   - 不要动 GroundPA-Toolkit
+   - 不要动 Nong.Toolkit.Net
    - 不要处理 OCR/PPTX 复杂能力
 
 输出：
@@ -209,7 +209,7 @@ nong inspect write-paper spec.json -o paper.docx
 <p>后面再考虑：</p>
 <br>
 <ul>
-<li>GroundPA-Toolkit skill 同步</li>
+<li>Nong.Toolkit.Net skill 同步</li>
 <li>PPTX 真实实现</li>
 <li>OCR 接入</li>
 <li>许可证与 NOTICE</li>
@@ -218,5 +218,5 @@ nong inspect write-paper spec.json -o paper.docx
 <br>
 
 </article>
-<footer><p>由 progress-report 自动生成</p></footer>
+<footer><p>由 nong progress report 自动生成</p></footer>
 </div></body></html>

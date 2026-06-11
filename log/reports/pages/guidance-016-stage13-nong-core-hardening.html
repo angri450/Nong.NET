@@ -1,10 +1,10 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+﻿<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>2026-06-03 Stage 13 Guidance: Angri450.Nong Core Hardening — Nong.NET</title>
+<title>2026-06-03 Stage 13 Guidance: Angri450.Nong Core Hardening - Nong.NET</title>
 <link rel="stylesheet" href="../style.css">
 </head><body><div class="container">
-<header><a href="../index.html" class="back-link">← 返回总览</a> |
-<a href="../guidance.html" class="back-link">← 开发指导</a>
+<header><a href="../index.html" class="back-link">&larr; 返回总览</a> | 
+<a href="../guidance.html" class="back-link">&larr; 开发指导</a>
 <h1>2026-06-03 Stage 13 Guidance: Angri450.Nong Core Hardening</h1>
 <p class="subtitle">2026-06-03 | <span style="color: #7c3aed">开发指导</span></p></header>
 <article class="content">
@@ -15,10 +15,10 @@
 <p>This stage only works on:</p>
 <br>
 <pre><code class="language-text">
-C:\Users\Administrator\Documents\Github\Angri450.Nong
+C:\Users\Administrator\Documents\Github\Nong.Cli.Net
 </code></pre>
 <br>
-<p>Do not edit <code>GroundPA-Toolkit</code> in this stage.</p>
+<p>Do not edit <code>Nong.Toolkit.Net</code> in this stage.</p>
 <br>
 <p>The product direction is fixed:</p>
 <br>
@@ -48,7 +48,7 @@ changelog/
 <p>Not allowed:</p>
 <br>
 <pre><code class="language-text">
-Do not edit GroundPA-Toolkit.
+Do not edit Nong.Toolkit.Net.
 Do not merge external repositories.
 Do not refactor unrelated third-party source.
 Do not publish NuGet packages.
@@ -64,7 +64,7 @@ Do not mark completion based only on changelog claims.
 <p>Observed command:</p>
 <br>
 <pre><code class="language-powershell">
-dotnet .\Cli\bin\Release\net8.0\nong.dll skill package C:\Users\Administrator\Documents\Github\GroundPA-Toolkit --json
+dotnet .\Cli\bin\Release\net8.0\nong.dll skill package C:\Users\Administrator\Documents\Github\Nong.Toolkit.Net --json
 </code></pre>
 <br>
 <p>Current behavior:</p>
@@ -135,7 +135,7 @@ nong skill package &lt;plugin-root-dir&gt; --json
 <li>existing <code>*.zip</code></li>
 </ul>
 <p>8. Verify zip exists, nonzero, and contains at least one <code>SKILL.md</code>.</p>
-<p>9. Return <code>artifacts.zip</code>, <code>data.packageType = "plugin"</code>, <code>metrics.skillCount</code>.</p>
+<p>9. Return <code>artifacts.zip</code>, <code>data.packageType = &quot;plugin&quot;</code>, <code>metrics.skillCount</code>.</p>
 <br>
 <p>If a directory is neither a single skill nor a plugin root, return:</p>
 <br>
@@ -431,7 +431,7 @@ changelog/
 <p>Use this invocation pattern:</p>
 <br>
 <pre><code class="language-powershell">
-dotnet C:\Users\Administrator\Documents\Github\Angri450.Nong\Cli\bin\Release\net8.0\nong.dll &lt;args&gt;
+dotnet C:\Users\Administrator\Documents\Github\Nong.Cli.Net\Cli\bin\Release\net8.0\nong.dll &lt;args&gt;
 Write-Output &quot;EXIT:$LASTEXITCODE&quot;
 </code></pre>
 <br>
@@ -475,7 +475,7 @@ Next recommended stage
 <p>Run from:</p>
 <br>
 <pre><code class="language-powershell">
-C:\Users\Administrator\Documents\Github\Angri450.Nong
+C:\Users\Administrator\Documents\Github\Nong.Cli.Net
 </code></pre>
 <br>
 <p>Build:</p>
@@ -536,7 +536,7 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 <br>
 <h2>Expected Behavior Summary</h2>
 <br>
-<h3><code>skill inventory <GroundPA-like plugin root> --json</code></h3>
+<h3><code>skill inventory &lt;GroundPA-like plugin root&gt; --json</code></h3>
 <br>
 <p>Expected:</p>
 <br>
@@ -554,7 +554,7 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 }
 </code></pre>
 <br>
-<h3><code>skill package <GroundPA-like plugin root> --json</code></h3>
+<h3><code>skill package &lt;GroundPA-like plugin root&gt; --json</code></h3>
 <br>
 <p>Expected:</p>
 <br>
@@ -572,7 +572,7 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 }
 </code></pre>
 <br>
-<h3><code>skill package <invalid-dir> --json</code></h3>
+<h3><code>skill package &lt;invalid-dir&gt; --json</code></h3>
 <br>
 <p>Expected:</p>
 <br>
@@ -651,7 +651,7 @@ nong skill run-loop
 <p>Do not touch:</p>
 <br>
 <pre><code class="language-text">
-GroundPA-Toolkit
+Nong.Toolkit.Net
 PPTX/OCR implementation
 Word/Inspect/Chart expansion
 </code></pre>
@@ -677,9 +677,9 @@ changelog/2026-06-03-016-stage13-nong-core-hardening-result.md
 <br>
 <p>9. final report includes exact commands and exit codes.</p>
 <br>
-<p>If any acceptance command fails, do not write "completed". Write <code>PARTIAL</code> and list the failing command.</p>
+<p>If any acceptance command fails, do not write &quot;completed&quot;. Write <code>PARTIAL</code> and list the failing command.</p>
 <br>
 
 </article>
-<footer><p>由 progress-report 自动生成</p></footer>
+<footer><p>由 nong progress report 自动生成</p></footer>
 </div></body></html>

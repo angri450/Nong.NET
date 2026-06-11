@@ -1,10 +1,10 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+﻿<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>nong diagram CLI 命令规范 — Nong.NET</title>
+<title>nong diagram CLI 命令规范 - Nong.NET</title>
 <link rel="stylesheet" href="../style.css">
 </head><body><div class="container">
-<header><a href="../index.html" class="back-link">← 返回总览</a> |
-<a href="../changelog.html" class="back-link">← 变更记录</a>
+<header><a href="../index.html" class="back-link">&larr; 返回总览</a> | 
+<a href="../changelog.html" class="back-link">&larr; 变更记录</a>
 <h1>nong diagram CLI 命令规范</h1>
 <p class="subtitle">2026-06-02 | <span style="color: #16a34a">变更记录</span></p></header>
 <article class="content">
@@ -29,7 +29,7 @@
 <br>
 <p>对应命令：</p>
 <br>
-<h4><code>nong diagram flowchart <spec> [-o <png>] [--width <w>] [--height <h>]</code></h4>
+<h4><code>nong diagram flowchart &lt;spec&gt; [-o &lt;png&gt;] [--width &lt;w&gt;] [--height &lt;h&gt;]</code></h4>
 <p>流程图。</p>
 <br>
 <p>输入：JSON 规格文件</p>
@@ -49,7 +49,7 @@
 <br>
 <p>实现：DiagramBuilder.Flowchart(graph, ...)，内部使用 SugiyamaLayout + FlowchartRenderer</p>
 <br>
-<h4><code>nong diagram network <spec> [-o <png>] [--width <w>] [--height <h>]</code></h4>
+<h4><code>nong diagram network &lt;spec&gt; [-o &lt;png&gt;] [--width &lt;w&gt;] [--height &lt;h&gt;]</code></h4>
 <p>网络图/关系图。</p>
 <br>
 <p>输入：JSON 规格文件（同 flowchart 结构，但布局不同）</p>
@@ -69,7 +69,7 @@
 <br>
 <p>实现：DiagramBuilder.NetworkGraph(graph, ...)，内部使用 ForceDirectedLayout + NetworkGraphRenderer</p>
 <br>
-<h4><code>nong diagram tree <newick> [-o <png>] [--radial] [--width <w>] [--height <h>]</code></h4>
+<h4><code>nong diagram tree &lt;newick&gt; [-o &lt;png&gt;] [--radial] [--width &lt;w&gt;] [--height &lt;h&gt;]</code></h4>
 <p>系统发育树。</p>
 <br>
 <p>输入：Newick 格式字符串或文件，如 <code>(A:0.1,B:0.2,(C:0.3,D:0.4):0.5);</code></p>
@@ -77,7 +77,7 @@
 <br>
 <p>实现：DiagramBuilder.PhylogeneticTree(newick, ...)，内部使用 NewickTree.Parse → TreeLayout + TreeRenderer</p>
 <br>
-<h4><code>nong diagram dsl <json> [-o <png>] [--width <w>] [--height <h>]</code></h4>
+<h4><code>nong diagram dsl &lt;json&gt; [-o &lt;png&gt;] [--width &lt;w&gt;] [--height &lt;h&gt;]</code></h4>
 <p>JSON DSL 驱动。JSON 中指定 <code>renderer</code> 字段自动选择渲染器。</p>
 <br>
 <pre><code class="language-json">
@@ -90,7 +90,7 @@
 <br>
 <p>实现：DiagramBuilder.FromDsl(json, ...)</p>
 <br>
-<h4><code>nong diagram icons [-o <png>] [--width <w>] [--height <h>]</code></h4>
+<h4><code>nong diagram icons [-o &lt;png&gt;] [--width &lt;w&gt;] [--height &lt;h&gt;]</code></h4>
 <p>生成 Bioicon 图标参考表（40 个图标一览）。</p>
 <br>
 <p>实现：DiagramBuilder.BioIconSheet(...)</p>
@@ -147,5 +147,5 @@
 <br>
 
 </article>
-<footer><p>由 progress-report 自动生成</p></footer>
+<footer><p>由 nong progress report 自动生成</p></footer>
 </div></body></html>

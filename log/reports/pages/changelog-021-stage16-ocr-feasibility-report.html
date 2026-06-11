@@ -1,10 +1,10 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+﻿<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>阶段 16 OCR 基础设施可行性报告 — Nong.NET</title>
+<title>阶段 16 OCR 基础设施可行性报告 - Nong.NET</title>
 <link rel="stylesheet" href="../style.css">
 </head><body><div class="container">
-<header><a href="../index.html" class="back-link">← 返回总览</a> |
-<a href="../changelog.html" class="back-link">← 变更记录</a>
+<header><a href="../index.html" class="back-link">&larr; 返回总览</a> | 
+<a href="../changelog.html" class="back-link">&larr; 变更记录</a>
 <h1>阶段 16 OCR 基础设施可行性报告</h1>
 <p class="subtitle">2026-06-04 | <span style="color: #16a34a">变更记录</span></p></header>
 <article class="content">
@@ -62,7 +62,7 @@
 <br>
 <p>三层定位：</p>
 <ul>
-<li><strong>本地 PP-OCRv5</strong>：纯文字检测+识别，离线、CPU、<20MB 模型。适合截图、标签、简单扫描件、敏感文档</li>
+<li><strong>本地 PP-OCRv5</strong>：纯文字检测+识别，离线、CPU、&lt;20MB 模型。适合截图、标签、简单扫描件、敏感文档</li>
 <li><strong>云端 PaddleOCR-VL-1.6</strong>：完整文档解析（版面、表格、公式、图表、印章）。需要 token，保留最强模型</li>
 <li><strong>ImageAnalyzer</strong>：通用视觉验收工具。纯 .NET 本地图像结构分析（像素分类、内容区域、空白率），永远可无 token 执行。服务 OCR 图片预检、chart/diagram 生成质量检查、pptx 幻灯片内容验证、word assets 图片审计，不是 OCR 的附属功能</li>
 </ul>
@@ -80,7 +80,7 @@
 <tr><td>ch_ppocr_mobile_cls</td><td>文字方向分类</td><td>~2 MB</td><td>是</td></tr>
 </table>
 <br>
-<p>总计 < 20MB ONNX 模型。已有工程验证：<code>paddleocr-js</code>（PaddleOCR 官方浏览器 SDK）基于 ONNX Runtime Web 跑 PP-OCRv5。</p>
+<p>总计 &lt; 20MB ONNX 模型。已有工程验证：<code>paddleocr-js</code>（PaddleOCR 官方浏览器 SDK）基于 ONNX Runtime Web 跑 PP-OCRv5。</p>
 <br>
 <h3>2.2 C# 实现路径</h3>
 <br>
@@ -98,7 +98,7 @@
 <tr><th>操作</th><th>GPU</th><th>ARM CPU</th><th>x64 CPU (预估)</th></tr>
 <tr><td>检测（mobile_det）</td><td>5.7ms</td><td>92ms</td><td>~50ms</td></tr>
 <tr><td>识别（mobile_rec）</td><td>1.7ms</td><td>33ms</td><td>~20ms</td></tr>
-<tr><td>一页 A4 文字 (~30 行)</td><td><1s</td><td>~3s</td><td>~1.5s</td></tr>
+<tr><td>一页 A4 文字 (~30 行)</td><td>&lt;1s</td><td>~3s</td><td>~1.5s</td></tr>
 </table>
 <br>
 <p>量化后（INT8）可进一步缩小模型和加速。</p>
@@ -241,7 +241,7 @@
 <li>不允许 <code>--token</code> CLI 参数（避免命令行泄露）</li>
 <li>不允许在 JSON 输出、异常消息、日志中打印 token 值</li>
 <li>测试只检查 token 是否存在，不输出 token 内容</li>
-<li>错误消息只提示"设置环境变量"，不粘贴 token 前缀</li>
+<li>错误消息只提示&quot;设置环境变量&quot;，不粘贴 token 前缀</li>
 </ul>
 <br>
 <hr>
@@ -363,14 +363,14 @@
 </code></pre>
 <p>等实现后：下载 → checksum 验证 → 解压到缓存目录。</p>
 <br>
-<h4><code>nong ocr local <image> -o <dir> --json</code></h4>
+<h4><code>nong ocr local &lt;image&gt; -o &lt;dir&gt; --json</code></h4>
 <br>
-<p>本地 PP-OCRv5 文字识别。选项：<code>--lang zh|en</code>，<code>--model-dir <dir></code>，<code>--format json|txt</code>，<code>--analyze-image</code>。</p>
+<p>本地 PP-OCRv5 文字识别。选项：<code>--lang zh|en</code>，<code>--model-dir &lt;dir&gt;</code>，<code>--format json|txt</code>，<code>--analyze-image</code>。</p>
 <br>
 <p>当前状态：E005（模型缺失）→ 提示 <code>nong ocr install-model pp-ocrv5-mobile</code>。</p>
 <p>完整实现后：PP-OCRv5 ONNX 推理 → <code>nong-ocr/v1</code> JSON。</p>
 <br>
-<h4><code>nong ocr analyze-image <image> -o <out-dir> --json</code></h4>
+<h4><code>nong ocr analyze-image &lt;image&gt; -o &lt;out-dir&gt; --json</code></h4>
 <br>
 <p>通用视觉验收工具。纯 .NET ImageAnalyzer，不需要 token，不需要 Python。立即可实现（代码已在 <code>MultiModal/ImageAnalyzer.cs</code>，需暴露 CLI 入口）。</p>
 <br>
@@ -390,9 +390,9 @@
   image.map.txt            # ASCII 像素地图
 </code></pre>
 <br>
-<h4><code>nong ocr cloud <file> -o <out-dir> --json</code></h4>
+<h4><code>nong ocr cloud &lt;file&gt; -o &lt;out-dir&gt; --json</code></h4>
 <br>
-<p>PaddleOCR-VL-1.6 云端文档解析。选项：<code>--pages "1-5,10"</code>，<code>--poll 5</code>，<code>--timeout 600</code>，<code>--url</code>。</p>
+<p>PaddleOCR-VL-1.6 云端文档解析。选项：<code>--pages &quot;1-5,10&quot;</code>，<code>--poll 5</code>，<code>--timeout 600</code>，<code>--url</code>。</p>
 <br>
 <p>当前修复项（第一轮小修范围）：</p>
 <ul>
@@ -400,7 +400,7 @@
 <li>输出尝试结构化（不只统计 markdown blocks 数量）</li>
 </ul>
 <br>
-<p><code>--to-word <docx></code> 属于后续 16d 路线图，不属于 16a，不得在 16a 实现或注册。</p>
+<p><code>--to-word &lt;docx&gt;</code> 属于后续 16d 路线图，不属于 16a，不得在 16a 实现或注册。</p>
 <br>
 <p>完整实现后：nongmark/v1 三流输出。</p>
 <br>
@@ -442,7 +442,7 @@
 <p>明确不做：</p>
 <br>
 <ul>
-<li>不实现 <code>--to-word <docx></code> — 等阶段 15 NongMark/Word 结构稳定后再接</li>
+<li>不实现 <code>--to-word &lt;docx&gt;</code> — 等阶段 15 NongMark/Word 结构稳定后再接</li>
 <li>不实现完整 ONNX det/rec 推理</li>
 <li>不实现自动模型下载</li>
 <li>不发布 PP-OCRv5 模型 NuGet 包</li>
@@ -486,5 +486,5 @@
 <br>
 
 </article>
-<footer><p>由 progress-report 自动生成</p></footer>
+<footer><p>由 nong progress report 自动生成</p></footer>
 </div></body></html>

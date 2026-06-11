@@ -39,9 +39,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\OcrRuntime\pack-runtimes.p
 GroundPA 同步验证：
 
 ```powershell
-.\Angri450.Nong\Cli\bin\Release\net8.0\nong.exe skill validate .\GroundPA-Toolkit\multimodal --json
-.\Angri450.Nong\Cli\bin\Release\net8.0\nong.exe skill scan .\GroundPA-Toolkit --json
-claude plugin validate .\GroundPA-Toolkit
+.\Nong.Cli.Net\Cli\bin\Release\net8.0\nong.exe skill validate .\Nong.Toolkit.Net\multimodal --json
+.\Nong.Cli.Net\Cli\bin\Release\net8.0\nong.exe skill scan .\Nong.Toolkit.Net --json
+claude plugin validate .\Nong.Toolkit.Net
 ```
 
 ## 国内镜像说明

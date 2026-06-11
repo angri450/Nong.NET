@@ -1,10 +1,10 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+﻿<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>nong word CLI 命令规范 — Nong.NET</title>
+<title>nong word CLI 命令规范 - Nong.NET</title>
 <link rel="stylesheet" href="../style.css">
 </head><body><div class="container">
-<header><a href="../index.html" class="back-link">← 返回总览</a> |
-<a href="../changelog.html" class="back-link">← 变更记录</a>
+<header><a href="../index.html" class="back-link">&larr; 返回总览</a> | 
+<a href="../changelog.html" class="back-link">&larr; 变更记录</a>
 <h1>nong word CLI 命令规范</h1>
 <p class="subtitle">2026-06-02 | <span style="color: #16a34a">变更记录</span></p></header>
 <article class="content">
@@ -29,7 +29,7 @@
 <br>
 <h3>一、读（8 个）</h3>
 <br>
-<h4><code>nong word read <file></code></h4>
+<h4><code>nong word read &lt;file&gt;</code></h4>
 <p>提取文档纯文本内容。</p>
 <br>
 <p>输入：.docx 文件路径</p>
@@ -37,7 +37,7 @@
 <br>
 <p>实现：TemplateEngine 读取 docx → 遍历所有段落/表格/脚注 → 拼接文本</p>
 <br>
-<h4><code>nong word outline <file></code></h4>
+<h4><code>nong word outline &lt;file&gt;</code></h4>
 <p>提取文档结构（标题层级）。</p>
 <br>
 <p>输入：.docx 文件路径</p>
@@ -51,7 +51,7 @@
 <br>
 <p>实现：读取 styles.xml 识别 Heading1/Heading2/Heading3 → 按出现顺序输出</p>
 <br>
-<h4><code>nong word stats <file></code></h4>
+<h4><code>nong word stats &lt;file&gt;</code></h4>
 <p>文档统计信息。</p>
 <br>
 <p>输入：.docx 文件路径</p>
@@ -68,7 +68,7 @@
 <br>
 <p>实现：WordPreview.Preview() 的 Statistics 部分</p>
 <br>
-<h4><code>nong word fonts <file></code></h4>
+<h4><code>nong word fonts &lt;file&gt;</code></h4>
 <p>列出文档中所有使用的字体。</p>
 <br>
 <p>输入：.docx 文件路径</p>
@@ -81,7 +81,7 @@
 <br>
 <p>实现：WordPreview 步骤 6 字体信息提取</p>
 <br>
-<h4><code>nong word styles <file></code></h4>
+<h4><code>nong word styles &lt;file&gt;</code></h4>
 <p>列出所有样式定义。</p>
 <br>
 <p>输入：.docx 文件路径</p>
@@ -95,19 +95,19 @@ Title       — 黑体 14pt 居中
 <br>
 <p>实现：读取 styles.xml → 解析 Style 元素 → 提取 font/size/alignment/indent</p>
 <br>
-<h4><code>nong word images <file></code></h4>
+<h4><code>nong word images &lt;file&gt;</code></h4>
 <p>列出嵌入图片及尺寸。</p>
 <br>
 <p>输入：.docx 文件路径</p>
 <p>输出：</p>
 <pre><code>
-image1.png  — 1200×800  段落 3
-image2.jpeg — 800×600   段落 7
+image1.png  — 1200&#215;800  段落 3
+image2.jpeg — 800&#215;600   段落 7
 </code></pre>
 <br>
 <p>实现：ImageHeaderReader 读取图片尺寸 + 遍历文档找图片引用位置</p>
 <br>
-<h4><code>nong word comments <file></code></h4>
+<h4><code>nong word comments &lt;file&gt;</code></h4>
 <p>列出所有批注。</p>
 <br>
 <p>输入：.docx 文件路径</p>
@@ -119,7 +119,7 @@ image2.jpeg — 800×600   段落 7
 <br>
 <p>实现：AdvancedFeatures 批注读取</p>
 <br>
-<h4><code>nong word revisions <file></code></h4>
+<h4><code>nong word revisions &lt;file&gt;</code></h4>
 <p>列出所有修订记录。</p>
 <br>
 <p>输入：.docx 文件路径</p>
@@ -135,7 +135,7 @@ image2.jpeg — 800×600   段落 7
 <br>
 <h3>二、查（4 个）</h3>
 <br>
-<h4><code>nong word preview <file></code></h4>
+<h4><code>nong word preview &lt;file&gt;</code></h4>
 <p>7 步文件结构诊断。</p>
 <br>
 <p>输入：.docx 文件路径</p>
@@ -143,7 +143,7 @@ image2.jpeg — 800×600   段落 7
 <br>
 <p>实现：WordPreview.Preview() 完整流程</p>
 <br>
-<h4><code>nong word validate <file></code></h4>
+<h4><code>nong word validate &lt;file&gt;</code></h4>
 <p>OOXML Schema 合规性验证。</p>
 <br>
 <p>输入：.docx 文件路径</p>
@@ -151,7 +151,7 @@ image2.jpeg — 800×600   段落 7
 <br>
 <p>实现：OpenXmlValidator 验证</p>
 <br>
-<h4><code>nong word dissect <file></code></h4>
+<h4><code>nong word dissect &lt;file&gt;</code></h4>
 <p>提取文档格式指纹 → JSON。</p>
 <br>
 <p>输入：.docx 文件路径</p>
@@ -159,10 +159,10 @@ image2.jpeg — 800×600   段落 7
 <br>
 <p>实现：TemplateEngine.Analyze() 完整分析</p>
 <br>
-<h4><code>nong word infer-format <text></code></h4>
+<h4><code>nong word infer-format &lt;text&gt;</code></h4>
 <p>中文排版描述 → OpenXML 参数。</p>
 <br>
-<p>输入：中文排版描述文本，如 "黑体，四号，居中，固定行距 28 磅"</p>
+<p>输入：中文排版描述文本，如 &quot;黑体，四号，居中，固定行距 28 磅&quot;</p>
 <p>输出：</p>
 <pre><code class="language-json">
 {
@@ -180,7 +180,7 @@ image2.jpeg — 800×600   段落 7
 <br>
 <h3>三、改（6 个）</h3>
 <br>
-<h4><code>nong word rebuild <file></code></h4>
+<h4><code>nong word rebuild &lt;file&gt;</code></h4>
 <p>清理 OOXML 样式污染（WPS/Office 遗留属性）。</p>
 <br>
 <p>输入：.docx 文件路径</p>
@@ -188,7 +188,7 @@ image2.jpeg — 800×600   段落 7
 <br>
 <p>实现：StyleRebuilder.RebuildAllParagraphs()</p>
 <br>
-<h4><code>nong word fix-order <file></code></h4>
+<h4><code>nong word fix-order &lt;file&gt;</code></h4>
 <p>修正 ECMA-376 元素顺序（某些编辑器产出乱序 XML）。</p>
 <br>
 <p>输入：.docx 文件路径</p>
@@ -196,7 +196,7 @@ image2.jpeg — 800×600   段落 7
 <br>
 <p>实现：ElementOrder.RectifyTree() + FixOrphanBorders()</p>
 <br>
-<h4><code>nong word fill <tmpl> <data> [-o <file>]</code></h4>
+<h4><code>nong word fill &lt;tmpl&gt; &lt;data&gt; [-o &lt;file&gt;]</code></h4>
 <p>模板填充。</p>
 <br>
 <p>输入：模板 .docx + 数据 .json</p>
@@ -204,7 +204,7 @@ image2.jpeg — 800×600   段落 7
 <br>
 <p>实现：DocxTemplate.Fill()</p>
 <br>
-<h4><code>nong word merge <a> <b> [-o <file>]</code></h4>
+<h4><code>nong word merge &lt;a&gt; &lt;b&gt; [-o &lt;file&gt;]</code></h4>
 <p>合并两个 docx 文件。</p>
 <br>
 <p>输入：两个 .docx 文件路径</p>
@@ -212,7 +212,7 @@ image2.jpeg — 800×600   段落 7
 <br>
 <p>实现：AdvancedFeatures.AppendDocument()</p>
 <br>
-<h4><code>nong word protect <file> [--mode <mode>]</code></h4>
+<h4><code>nong word protect &lt;file&gt; [--mode &lt;mode&gt;]</code></h4>
 <p>文档保护。</p>
 <br>
 <p>输入：.docx 文件路径 + 保护模式</p>
@@ -221,7 +221,7 @@ image2.jpeg — 800×600   段落 7
 <br>
 <p>实现：AdvancedFeatures.ProtectDocument()</p>
 <br>
-<h4><code>nong word embed-font <file> <font></code></h4>
+<h4><code>nong word embed-font &lt;file&gt; &lt;font&gt;</code></h4>
 <p>嵌入 TrueType 字体到文档。</p>
 <br>
 <p>输入：.docx 文件路径 + 字体名称</p>
@@ -235,43 +235,43 @@ image2.jpeg — 800×600   段落 7
 <br>
 <p>以下命令从 JSON 规格生成 Word 元素，直接写入已有 docx。</p>
 <br>
-<h4><code>nong word add paragraph <file> --spec <json></code></h4>
+<h4><code>nong word add paragraph &lt;file&gt; --spec &lt;json&gt;</code></h4>
 <p>添加段落。JSON 规格：</p>
 <pre><code class="language-json">
 {&quot;text&quot;: &quot;正文&quot;, &quot;style&quot;: &quot;Normal&quot;, &quot;bold&quot;: false, &quot;italic&quot;: false}
 </code></pre>
 <br>
-<h4><code>nong word add table <file> --spec <json></code></h4>
+<h4><code>nong word add table &lt;file&gt; --spec &lt;json&gt;</code></h4>
 <p>添加表格。JSON 规格：</p>
 <pre><code class="language-json">
 {&quot;caption&quot;: &quot;表1&quot;, &quot;headers&quot;: [&quot;列1&quot;,&quot;列2&quot;], &quot;rows&quot;: [[&quot;a&quot;,&quot;b&quot;]]}
 </code></pre>
 <br>
-<h4><code>nong word add footnote <file> --text <text></code></h4>
+<h4><code>nong word add footnote &lt;file&gt; --text &lt;text&gt;</code></h4>
 <p>添加脚注。</p>
 <br>
-<h4><code>nong word add endnote <file> --text <text></code></h4>
+<h4><code>nong word add endnote &lt;file&gt; --text &lt;text&gt;</code></h4>
 <p>添加尾注。</p>
 <br>
-<h4><code>nong word add image <file> --src <path> [--caption <text>]</code></h4>
+<h4><code>nong word add image &lt;file&gt; --src &lt;path&gt; [--caption &lt;text&gt;]</code></h4>
 <p>嵌入图片。</p>
 <br>
-<h4><code>nong word add toc <file></code></h4>
+<h4><code>nong word add toc &lt;file&gt;</code></h4>
 <p>插入目录。</p>
 <br>
-<h4><code>nong word add xref <file> --to <bookmark> --text <display></code></h4>
+<h4><code>nong word add xref &lt;file&gt; --to &lt;bookmark&gt; --text &lt;display&gt;</code></h4>
 <p>交叉引用。</p>
 <br>
-<h4><code>nong word add link <file> --url <url> --text <display></code></h4>
+<h4><code>nong word add link &lt;file&gt; --url &lt;url&gt; --text &lt;display&gt;</code></h4>
 <p>超链接。</p>
 <br>
-<h4><code>nong word add bookmark <file> --name <name></code></h4>
+<h4><code>nong word add bookmark &lt;file&gt; --name &lt;name&gt;</code></h4>
 <p>书签。</p>
 <br>
-<h4><code>nong word add comment <file> --text <text> [--author <name>]</code></h4>
+<h4><code>nong word add comment &lt;file&gt; --text &lt;text&gt; [--author &lt;name&gt;]</code></h4>
 <p>批注。</p>
 <br>
-<h4><code>nong word add math <file> --latex <latex> [--display]</code></h4>
+<h4><code>nong word add math &lt;file&gt; --latex &lt;latex&gt; [--display]</code></h4>
 <p>插入数学公式。内联模式（默认）插入 OfficeMath 到当前段落末尾，<code>--display</code> 独立行居中。</p>
 <br>
 <pre><code>
@@ -335,11 +335,11 @@ nong word add math doc.docx --latex &quot;\frac{a}{b}&quot; --display
 <ul>
 <li><code>--json</code>：输出 JSON 格式，供 AI 解析</li>
 <li><code>--verbose</code>：输出详细过程信息</li>
-<li><code>--output/-o <path></code>：指定输出文件路径（写入类命令）</li>
+<li><code>--output/-o &lt;path&gt;</code>：指定输出文件路径（写入类命令）</li>
 <li>命令失败时返回非零退出码 + stderr 错误信息</li>
 </ul>
 <br>
 
 </article>
-<footer><p>由 progress-report 自动生成</p></footer>
+<footer><p>由 nong progress report 自动生成</p></footer>
 </div></body></html>

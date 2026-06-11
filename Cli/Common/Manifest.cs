@@ -23,9 +23,9 @@ public static class Manifest
         list.Add(new("word convert", "Convert legacy .doc to .docx as a boundary step", "word", []));
         list.Add(new("word create", "Create DOCX directly from authored NongMark", "word", []));
         list.Add(new("word read", "Extract plain text from a .docx file", "word", []));
-        list.Add(new("word preview", "7-step document structure diagnostic", "word", []));
+        list.Add(new("word preview", "7-step document structure diagnostic", "word", ["word diagnose"]));
         list.Add(new("word fill", "Template fill from JSON data", "word", []));
-        list.Add(new("word rebuild", "Clean OOXML style pollution", "word", []));
+        list.Add(new("word rebuild", "Clean OOXML style pollution", "word", ["word clean-styles"]));
         list.Add(new("word extract", "Extract embedded images", "word", []));
         list.Add(new("word dissect", "Format fingerprint or NongPandoc package slice", "word", []));
         list.Add(new("word stats", "Document statistics", "word", []));
@@ -40,6 +40,7 @@ public static class Manifest
         list.Add(new("word infer-format", "Infer OpenXML format from Chinese description", "word", []));
         list.Add(new("word fix-order", "Internal OOXML/structure repair only; not a visible formatting repair", "word", []));
         list.Add(new("word academic-format", "Visible academic Word formatting repair for headings, body text, tables, fonts, and spacing", "word", []));
+        list.Add(new("word format-gongwen", "Apply Chinese official-document formatting to an existing DOCX", "word", []));
         list.Add(new("word format-audit", "Read-only visible Word formatting evidence audit for headings, body text, tables, fonts, spacing, and CI gates", "word", []));
         list.Add(new("word repair-plan", "Explain which Word repair command to use and how to verify visible formatting repairs", "word", []));
         list.Add(new("word table-reflow", "Explicitly split long or wide tables into continuation tables", "word", []));
@@ -56,22 +57,25 @@ public static class Manifest
         list.Add(new("word add bookmark", "Append bookmark to document", "word", ["word add-bookmark"]));
         list.Add(new("word add comment", "Append comment to document", "word", ["word add-comment"]));
         list.Add(new("word add math", "Append math equation to document", "word", ["word add-math"]));
+        list.Add(new("word compare", "Compare two DOCX files paragraph-by-paragraph", "word", []));
 
-        // === inspect (implemented: diagnose, refs, write-paper) ===
+        // === inspect (implemented: diagnose, refs, write-paper, write-official) ===
         list.Add(new("inspect diagnose", "Full paper quality diagnosis", "inspect", []));
-        list.Add(new("inspect refs", "Reference analysis and risk check", "inspect", []));
+        list.Add(new("inspect refs", "Reference analysis and risk check", "inspect", ["inspect references"]));
         list.Add(new("inspect write-paper", "Generate paper from JSON spec", "inspect", []));
+        list.Add(new("inspect write-official", "Generate official-document DOCX from JSON spec", "inspect", []));
+        list.Add(new("inspect official-check", "Audit official-document DOCX format compliance", "inspect", []));
 
         // === inspect (implemented) ===
         list.Add(new("inspect classify", "Classify paper type (16 types)", "inspect", []));
         list.Add(new("inspect structure", "Extract paper structure", "inspect", []));
-        list.Add(new("inspect varplan", "Variable operationalization plan", "inspect", []));
+        list.Add(new("inspect varplan", "Variable operationalization plan", "inspect", ["inspect variables"]));
         list.Add(new("inspect evidence", "Evidence chain diagnosis", "inspect", []));
-        list.Add(new("inspect data-req", "Data requirements diagnosis", "inspect", []));
+        list.Add(new("inspect data-req", "Data requirements diagnosis", "inspect", ["inspect data-requirements"]));
         list.Add(new("inspect gap", "Gap grade assessment", "inspect", []));
         list.Add(new("inspect semantics", "Semantic diagnosis", "inspect", []));
 
-        // === chart (implemented: analyze, bar, anova, duncan, line, scatter, pie) ===
+        // === chart (implemented: 11 commands) ===
         list.Add(new("chart analyze", "Full analysis: ANOVA + Duncan + stats", "chart", []));
         list.Add(new("chart bar", "Bar chart with error bars and significance", "chart", []));
         list.Add(new("chart anova", "One-way ANOVA", "chart", []));
@@ -79,13 +83,20 @@ public static class Manifest
         list.Add(new("chart line", "Line chart", "chart", []));
         list.Add(new("chart scatter", "Scatter plot", "chart", []));
         list.Add(new("chart pie", "Pie chart", "chart", []));
+        list.Add(new("chart boxplot", "Box plot for treatment group distribution comparison", "chart", []));
+        list.Add(new("chart histogram", "Histogram for data distribution", "chart", []));
+        list.Add(new("chart heatmap", "Heatmap chart from 2D data", "chart", []));
+        list.Add(new("chart radar", "Radar/spider chart for multi-index comparison", "chart", []));
 
-        // === excel (implemented: sheets, read, to-groups, create, dissect) ===
+        // === excel (implemented: 8 commands) ===
         list.Add(new("excel sheets", "List worksheets", "excel", []));
         list.Add(new("excel read", "Read xlsx content", "excel", []));
         list.Add(new("excel to-groups", "Convert Excel columns to grouped data", "excel", []));
         list.Add(new("excel create", "Create xlsx from JSON spec", "excel", []));
         list.Add(new("excel dissect", "Slice xlsx into a NongPandoc package", "excel", []));
+        list.Add(new("excel style", "Apply cell styles from a JSON spec", "excel", []));
+        list.Add(new("excel formula", "Write formulas from a JSON spec", "excel", []));
+        list.Add(new("excel pivot", "Create a pivot table from a JSON spec", "excel", []));
 
         // === diagram (implemented: flowchart, network, tree) ===
         list.Add(new("diagram flowchart", "Flowchart from JSON spec", "diagram", []));
@@ -110,6 +121,7 @@ public static class Manifest
         list.Add(new("pptx read", "Extract slide text", "pptx", []));
         list.Add(new("pptx slides", "List slide structure", "pptx", []));
         list.Add(new("pptx dissect", "Slice pptx into a NongPandoc package", "pptx", []));
+        list.Add(new("pptx create", "Create pptx from JSON spec", "pptx", []));
 
         // === ocr (implemented: cloud, local, check-env, analyze-image, models, install-model, to-word) ===
         list.Add(new("ocr local", "Local PP-OCRv5 Chinese text recognition through pure .NET runtime", "ocr", []));
@@ -120,11 +132,14 @@ public static class Manifest
         list.Add(new("ocr install-model", "Install/check first-party PP-OCRv5 platform native runtime bundle from Huawei NuGet/cache", "ocr", []));
         list.Add(new("ocr to-word", "Convert image/PDF to Word document via cloud OCR", "ocr", []));
 
-        // === pdf (implemented: check, dissect, render, images) ===
+        // === pdf (implemented: 7 commands) ===
         list.Add(new("pdf check", "Preflight PDF and classify text/hybrid/scan route", "pdf", []));
         list.Add(new("pdf dissect", "Slice PDF into a NongPandoc package", "pdf", []));
         list.Add(new("pdf render", "Render PDF pages to PNG images through local PDFium runtime", "pdf", []));
         list.Add(new("pdf images", "Extract embedded PDF images with page/bbox provenance", "pdf", []));
+        list.Add(new("pdf merge", "Merge multiple PDF files into one", "pdf", []));
+        list.Add(new("pdf split", "Split PDF pages into a separate document", "pdf", []));
+        list.Add(new("pdf ocr", "Add rendered image layer to scanned PDF pages", "pdf", []));
 
         // === lit (implemented: parse, validate, plan, search, export) ===
         list.Add(new("lit parse", "Parse CNKI-like literature retrieval DSL", "lit", []));
@@ -138,6 +153,9 @@ public static class Manifest
         list.Add(new("slice blocks", "List content blocks from a NongPandoc package", "slice", []));
         list.Add(new("slice block", "Read one block with unified content, structure, format, diagnostics, and assets", "slice", []));
         list.Add(new("slice assets", "List assets from a NongPandoc package", "slice", []));
+
+        // === progress (implemented: report) ===
+        list.Add(new("progress report", "Generate HTML progress reports from log/plans, log/changelog, log/debug, and log/guidance", "progress", []));
 
         return list;
     }

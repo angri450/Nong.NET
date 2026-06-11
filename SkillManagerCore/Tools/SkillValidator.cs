@@ -279,7 +279,12 @@ public class SkillValidator
             if (content.Contains(dir + "/") || content.Contains(dir + "\\"))
             {
                 var fullDir = Path.Combine(baseDir, dir);
-                if (!Directory.Exists(fullDir))
+                var parentDir = Path.GetFullPath(Path.Combine(baseDir, "..", dir));
+                var referencesParentResource =
+                    (content.Contains("../" + dir + "/") || content.Contains("..\\" + dir + "\\")) &&
+                    Directory.Exists(parentDir);
+
+                if (!Directory.Exists(fullDir) && !referencesParentResource)
                 {
                     result.MissingResourceDirs.Add(dir);
                     result.Issues.Add(new ValidationIssue

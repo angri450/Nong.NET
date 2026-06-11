@@ -17,7 +17,7 @@
 - Word/文档处理库：ClosedXML、ClosedXML.Report、DocX-master、ShapeCrawler、Clippit、Open-Xml-PowerTools、openize-open-xml-sdk-net
 - 图像/图表/可视化：ImageSharp、SkiaSharp、Magick.NET、ScottPlot、MSAGL、ExcelNumberFormat、RBush
 - AI Skills 合集：awesome-agent-skills、awesome-claude-skills、microsoft-skills、GLM/Kimi/MiniMax 内值版对比
-- 平台/转换/框架：cherry-studio、NanoBot.net、Office-PowerPoint-MCP-Server、frontend-slides、AIWriteX、pandoc
+- 平台/转换/框架：cherry-studio、Nong.NanoBot.Net、Office-PowerPoint-MCP-Server、frontend-slides、AIWriteX、pandoc
 - 公文专项：gongwen-paiban、official-document-drafting、official-document-writing-skill
 - 微信/文章：wechat-article-skills、微信公众号 AI 运营助手
 

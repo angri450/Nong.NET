@@ -31,7 +31,7 @@ Harden the `nong skill` migration and release surface. Fix 5 issues from the sta
 
 | Area | Why |
 |------|-----|
-| GroundPA-Toolkit | Explicitly excluded from this stage |
+| Nong.Toolkit.Net | Explicitly excluded from this stage |
 | PPTX/OCR implementation | Not in scope |
 | Word/Inspect/Chart expansion | Not in scope |
 | `nong skill eval/scaffold/serve/optimize` | P1, not in scope |
@@ -58,7 +58,7 @@ Harden the `nong skill` migration and release surface. Fix 5 issues from the sta
 | 13 | `commands --json` | default | 24 implemented, 0 stubs in output | PASS |
 | 14 | `commands --all --json` | with --all | 47 total (24 impl + 23 stub) | PASS |
 | 15 | `word extract` | stub command | E009, EXIT:1 | PASS |
-| 16 | GroundPA-Toolkit | full integration | inventory rootType=plugin, scan 0 High+, package plugin zip with 17 skills | PASS |
+| 16 | Nong.Toolkit.Net | full integration | inventory rootType=plugin, scan 0 High+, package plugin zip with 17 skills | PASS |
 
 ### Zip content verification
 
@@ -91,7 +91,7 @@ dotnet build .\SkillManager\SkillManager.Cli.csproj -c Release  # 0 errors (lega
 
 ## Known Remaining Issues
 
-1. GroundPA-Toolkit `nuget` skill includes `nuget.exe` (8.4MB) in its directory — this gets packaged into the plugin zip. This is a data issue in GroundPA, not a code issue in nong.
+1. Nong.Toolkit.Net `nuget` skill includes `nuget.exe` (8.4MB) in its directory — this gets packaged into the plugin zip. This is a data issue in GroundPA, not a code issue in nong.
 2. Old `SkillManager` project retains `net10.0` build artifacts in `bin/` — these are `.gitignore`d and harmless.
 
 ---
@@ -99,7 +99,7 @@ dotnet build .\SkillManager\SkillManager.Cli.csproj -c Release  # 0 errors (lega
 ## What Was Deliberately Not Changed
 
 - Did not implement `nong skill eval/scaffold/serve/optimize-description/run-loop` — P1
-- Did not touch GroundPA-Toolkit skill files
+- Did not touch Nong.Toolkit.Net skill files
 - Did not change any PPTX/OCR/Word/Inspect/Chart commands
 - Did not publish NuGet packages
 - Did not change git branches
@@ -114,7 +114,7 @@ Proceed to Phase 1 (contract test harness) and Phase 2 (Word stub completion) pe
 
 ## Reviewer Checklist
 
-Run from `C:\Users\Administrator\Documents\Github\Angri450.Nong`:
+Run from `C:\Users\Administrator\Documents\Github\Nong.Cli.Net`:
 
 ```powershell
 # Build
@@ -126,16 +126,16 @@ dotnet .\Cli\bin\Release\net8.0\nong.dll commands --json
 dotnet .\Cli\bin\Release\net8.0\nong.dll commands --all --json
 
 # Validate GroundPA word skill
-dotnet .\Cli\bin\Release\net8.0\nong.dll skill validate C:\Users\Administrator\Documents\Github\GroundPA-Toolkit\word --json
+dotnet .\Cli\bin\Release\net8.0\nong.dll skill validate C:\Users\Administrator\Documents\Github\Nong.Toolkit.Net\word --json
 
-# Inventory GroundPA-Toolkit
-dotnet .\Cli\bin\Release\net8.0\nong.dll skill inventory C:\Users\Administrator\Documents\Github\GroundPA-Toolkit --json
+# Inventory Nong.Toolkit.Net
+dotnet .\Cli\bin\Release\net8.0\nong.dll skill inventory C:\Users\Administrator\Documents\Github\Nong.Toolkit.Net --json
 
-# Scan GroundPA-Toolkit
-dotnet .\Cli\bin\Release\net8.0\nong.dll skill scan C:\Users\Administrator\Documents\Github\GroundPA-Toolkit --json
+# Scan Nong.Toolkit.Net
+dotnet .\Cli\bin\Release\net8.0\nong.dll skill scan C:\Users\Administrator\Documents\Github\Nong.Toolkit.Net --json
 
-# Package GroundPA-Toolkit
-dotnet .\Cli\bin\Release\net8.0\nong.dll skill package C:\Users\Administrator\Documents\Github\GroundPA-Toolkit --json
+# Package Nong.Toolkit.Net
+dotnet .\Cli\bin\Release\net8.0\nong.dll skill package C:\Users\Administrator\Documents\Github\Nong.Toolkit.Net --json
 
 # Error behaviors
 dotnet .\Cli\bin\Release\net8.0\nong.dll skill validate "" --json

@@ -1,10 +1,10 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+﻿<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>nong pptx CLI 命令规范 — Nong.NET</title>
+<title>nong pptx CLI 命令规范 - Nong.NET</title>
 <link rel="stylesheet" href="../style.css">
 </head><body><div class="container">
-<header><a href="../index.html" class="back-link">← 返回总览</a> |
-<a href="../changelog.html" class="back-link">← 变更记录</a>
+<header><a href="../index.html" class="back-link">&larr; 返回总览</a> | 
+<a href="../changelog.html" class="back-link">&larr; 变更记录</a>
 <h1>nong pptx CLI 命令规范</h1>
 <p class="subtitle">2026-06-02 | <span style="color: #16a34a">变更记录</span></p></header>
 <article class="content">
@@ -29,7 +29,7 @@
 <br>
 <p>对应命令（写）：</p>
 <br>
-<h4><code>nong pptx create <file> [--theme <name>]</code></h4>
+<h4><code>nong pptx create &lt;file&gt; [--theme &lt;name&gt;]</code></h4>
 <p>创建空白 PPT 文件。主题：professional / academic / modern / minimal / warm / cool。</p>
 <br>
 <p>实现：SlideBuilder.Create().Theme(ThemePreset.xxx).Save()</p>
@@ -40,24 +40,24 @@
 <br>
 <p>对应命令（写）：</p>
 <br>
-<h4><code>nong pptx add title-slide <file> --title <text> [--subtitle <text>] [--author <text>]</code></h4>
+<h4><code>nong pptx add title-slide &lt;file&gt; --title &lt;text&gt; [--subtitle &lt;text&gt;] [--author &lt;text&gt;]</code></h4>
 <p>添加封面页。</p>
 <br>
 <p>实现：PresentationBuilder.AddTitleSlide()</p>
 <br>
-<h4><code>nong pptx add slide <file> --title <text> --bullets <json> [--layout <name>]</code></h4>
-<p>添加内容页。<code>--bullets</code> JSON 数组 <code>["要点1", "要点2"]</code>。</p>
+<h4><code>nong pptx add slide &lt;file&gt; --title &lt;text&gt; --bullets &lt;json&gt; [--layout &lt;name&gt;]</code></h4>
+<p>添加内容页。<code>--bullets</code> JSON 数组 <code>[&quot;要点1&quot;, &quot;要点2&quot;]</code>。</p>
 <br>
 <p>10 种布局模式：TwoColumns / Cards / BigNumber / Quote / SingleFocus / Symmetric / Asymmetric / ThreeColumn / PrimarySecondary / HeroTop</p>
 <br>
 <p>实现：PresentationBuilder.AddContentSlide()</p>
 <br>
-<h4><code>nong pptx add table-slide <file> --title <text> --data <json></code></h4>
-<p>添加表格页。JSON 格式：<code>{"headers":["A","B"],"rows":[["1","2"]]}</code></p>
+<h4><code>nong pptx add table-slide &lt;file&gt; --title &lt;text&gt; --data &lt;json&gt;</code></h4>
+<p>添加表格页。JSON 格式：<code>{&quot;headers&quot;:[&quot;A&quot;,&quot;B&quot;],&quot;rows&quot;:[[&quot;1&quot;,&quot;2&quot;]]}</code></p>
 <br>
 <p>实现：PresentationBuilder.AddTableSlide()</p>
 <br>
-<h4><code>nong pptx add chart-slide <file> --title <text> --chart <pie|bar> --data <json></code></h4>
+<h4><code>nong pptx add chart-slide &lt;file&gt; --title &lt;text&gt; --chart &lt;pie|bar&gt; --data &lt;json&gt;</code></h4>
 <p>添加图表页。</p>
 <br>
 <p>实现：PresentationBuilder.AddChartSlide()</p>
@@ -80,7 +80,7 @@
 <br>
 <p>对应命令（读+查）：</p>
 <br>
-<h4><code>nong pptx read <file></code></h4>
+<h4><code>nong pptx read &lt;file&gt;</code></h4>
 <p>提取所有幻灯片文本内容。</p>
 <br>
 <p>输出：</p>
@@ -99,12 +99,12 @@
 <br>
 <p>实现：SlidePreview.Preview()</p>
 <br>
-<h4><code>nong pptx slides <file></code></h4>
+<h4><code>nong pptx slides &lt;file&gt;</code></h4>
 <p>列出幻灯片结构（类型+标题+形状数）。</p>
 <br>
 <p>实现：SlidePreview.Preview() 摘要部分</p>
 <br>
-<h4><code>nong pptx shape-map <file></code></h4>
+<h4><code>nong pptx shape-map &lt;file&gt;</code></h4>
 <p>输出幻灯片完整形状映射（JSON），供程序化处理。</p>
 <br>
 <p>实现：SlidePreview.ShapeMap()</p>
@@ -115,7 +115,7 @@
 <br>
 <p>对应命令（查）：</p>
 <br>
-<h4><code>nong pptx validate <file></code></h4>
+<h4><code>nong pptx validate &lt;file&gt;</code></h4>
 <p>验证 PPT 文件结构完整性：文件大小、幻灯片数量、尺寸、内容可见性。</p>
 <br>
 <p>实现：SlideValidator.Validate()</p>
@@ -132,13 +132,13 @@
 <br>
 <p>对应命令（改）：</p>
 <br>
-<h4><code>nong pptx raw <file> list-parts</code></h4>
+<h4><code>nong pptx raw &lt;file&gt; list-parts</code></h4>
 <p>列出所有 OOXML 部件。</p>
 <br>
-<h4><code>nong pptx raw <file> get-part <path></code></h4>
+<h4><code>nong pptx raw &lt;file&gt; get-part &lt;path&gt;</code></h4>
 <p>获取指定部件 XML。</p>
 <br>
-<h4><code>nong pptx raw <file> set-part <path> --xml <xml></code></h4>
+<h4><code>nong pptx raw &lt;file&gt; set-part &lt;path&gt; --xml &lt;xml&gt;</code></h4>
 <p>设置指定部件 XML。</p>
 <br>
 <p>实现：RawAccessor 的 ListParts / GetPart / SetPart</p>
@@ -177,5 +177,5 @@
 <br>
 
 </article>
-<footer><p>由 progress-report 自动生成</p></footer>
+<footer><p>由 nong progress report 自动生成</p></footer>
 </div></body></html>

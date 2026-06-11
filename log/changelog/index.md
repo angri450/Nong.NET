@@ -2,6 +2,19 @@
 
 > Agent 添加变更记录后同步更新此文件。格式：`- YYYY-MM-DD | 文件名 | 一句话摘要`
 
+## 2026-06-10
+- 2026-06-10 | chart-heatmap-radar.md | 阶段四+：Chart heatmap + radar（106 命令，143 全过）
+- 2026-06-10 | pptx-create.md | 阶段四+：PPTX create（104 命令，SlideBuilder API）
+- 2026-06-10 | inspect-official-check.md | 阶段四+：inspect official-check（103 命令）
+- 2026-06-10 | excel-style-formula.md | 阶段四+：excel style + formula（102 命令）
+- 2026-06-10 | pdf-merge-split.md | 阶段四+：PDF merge + split（100 命令）
+- 2026-06-10 | chart-boxplot-histogram.md | 阶段四+：Chart boxplot + histogram（98 命令）
+- 2026-06-10 | p1-alias.md | 阶段一完工：5 个 P1 alias（word diagnose/clean-styles、inspect references/variables/data-requirements） + 6 个回归测试
+- 2026-06-10 | final-blueprint.md | 最终蓝图：用中文定稿三层结构、命名词典、命令组职责与 AI 口径
+- 2026-06-10 | command-naming-audit.md | Toolkit/CLI 命令命名审计：明确区分命令重复、命令缺少、命令不对
+- 2026-06-10 | toolkit-cli-command-parity.md | Toolkit/CLI 命令面对齐：新增 `word format-gongwen` 与 `inspect write-official`
+- 2026-06-10 | lockfile-and-local-tool-sync.md | P9 lock 文件重算并修复全局 nong 4.0.0 本地工具安装
+
 ## 2026-06-09
 - 2026-06-09 | ocr-runtime-repo-name-sync.md | OCR runtime 仓库名称同步
 - 2026-06-09 | progress-report-skill.md | progress-report skill 创建：纯 .NET CLI 工具 + SKILL.md，读取 log/ 生成 90 页 HTML 报表

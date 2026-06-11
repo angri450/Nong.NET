@@ -1,10 +1,10 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+﻿<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>nong chart CLI 命令规范 — Nong.NET</title>
+<title>nong chart CLI 命令规范 - Nong.NET</title>
 <link rel="stylesheet" href="../style.css">
 </head><body><div class="container">
-<header><a href="../index.html" class="back-link">← 返回总览</a> |
-<a href="../changelog.html" class="back-link">← 变更记录</a>
+<header><a href="../index.html" class="back-link">&larr; 返回总览</a> | 
+<a href="../changelog.html" class="back-link">&larr; 变更记录</a>
 <h1>nong chart CLI 命令规范</h1>
 <p class="subtitle">2026-06-02 | <span style="color: #16a34a">变更记录</span></p></header>
 <article class="content">
@@ -29,7 +29,7 @@
 <br>
 <p>对应命令：</p>
 <br>
-<h4><code>nong chart bar <data> [-o <png>] [--title <text>] [--ylabel <text>]</code></h4>
+<h4><code>nong chart bar &lt;data&gt; [-o &lt;png&gt;] [--title &lt;text&gt;] [--ylabel &lt;text&gt;]</code></h4>
 <p>柱状图（带误差棒、显著性标注、均值显示）。</p>
 <br>
 <p>输入：分组数据 JSON/CSV/xlsx，每组包含多个重复值</p>
@@ -38,7 +38,7 @@
 nong chart bar data.json -o bar.png --title &quot;发酵产量&quot; --ylabel &quot;OD600&quot; --error-bar --significance sig.json
 </code></pre>
 <br>
-<p>significance.json 格式：<code>{"A": "a", "B": "b", "C": "a"}</code>，不同字母表示显著性差异组。</p>
+<p>significance.json 格式：<code>{&quot;A&quot;: &quot;a&quot;, &quot;B&quot;: &quot;b&quot;, &quot;C&quot;: &quot;a&quot;}</code>，不同字母表示显著性差异组。</p>
 <br>
 <p>实现：ChartBuilder.BarChart() / BarChartWithSignificance() / BarChart(BarChartConfig)</p>
 <br>
@@ -48,58 +48,58 @@ nong chart bar data.json -o bar.png --title &quot;发酵产量&quot; --ylabel &q
 <br>
 <p>对应 18 个命令：</p>
 <br>
-<h4><code>nong chart pie <data> [-o <png>] --title <text></code></h4>
-<p>饼图。数据：<code>{"A": 30, "B": 20, "C": 50}</code></p>
+<h4><code>nong chart pie &lt;data&gt; [-o &lt;png&gt;] --title &lt;text&gt;</code></h4>
+<p>饼图。数据：<code>{&quot;A&quot;: 30, &quot;B&quot;: 20, &quot;C&quot;: 50}</code></p>
 <br>
-<h4><code>nong chart donut <data> [-o <png>] --title <text> [--inner <ratio>]</code></h4>
+<h4><code>nong chart donut &lt;data&gt; [-o &lt;png&gt;] --title &lt;text&gt; [--inner &lt;ratio&gt;]</code></h4>
 <p>环形图。<code>--inner</code> 内径比例，默认 0.5。</p>
 <br>
-<h4><code>nong chart line <data> [-o <png>] --title <text> --xlabel <text> --ylabel <text></code></h4>
+<h4><code>nong chart line &lt;data&gt; [-o &lt;png&gt;] --title &lt;text&gt; --xlabel &lt;text&gt; --ylabel &lt;text&gt;</code></h4>
 <p>折线图。x 值数组 + 多系列 y 值。</p>
 <br>
-<h4><code>nong chart area <data> [-o <png>] --title <text></code></h4>
+<h4><code>nong chart area &lt;data&gt; [-o &lt;png&gt;] --title &lt;text&gt;</code></h4>
 <p>面积图。同折线图参数，区域填充。</p>
 <br>
-<h4><code>nong chart scatter <data> [-o <png>] --title <text> [--regression]</code></h4>
+<h4><code>nong chart scatter &lt;data&gt; [-o &lt;png&gt;] --title &lt;text&gt; [--regression]</code></h4>
 <p>散点图。<code>--regression</code> 叠加线性回归线。</p>
 <br>
-<h4><code>nong chart multi-scatter <data> [-o <png>] --title <text></code></h4>
+<h4><code>nong chart multi-scatter &lt;data&gt; [-o &lt;png&gt;] --title &lt;text&gt;</code></h4>
 <p>多系列散点图。</p>
 <br>
-<h4><code>nong chart box <data> [-o <png>] --title <text> --ylabel <text></code></h4>
+<h4><code>nong chart box &lt;data&gt; [-o &lt;png&gt;] --title &lt;text&gt; --ylabel &lt;text&gt;</code></h4>
 <p>箱线图。</p>
 <br>
-<h4><code>nong chart histogram <data> [-o <png>] --title <text> [--bins <n>]</code></h4>
+<h4><code>nong chart histogram &lt;data&gt; [-o &lt;png&gt;] --title &lt;text&gt; [--bins &lt;n&gt;]</code></h4>
 <p>直方图。<code>--bins</code> 分箱数。</p>
 <br>
-<h4><code>nong chart radar <data> [-o <png>] --title <text></code></h4>
+<h4><code>nong chart radar &lt;data&gt; [-o &lt;png&gt;] --title &lt;text&gt;</code></h4>
 <p>雷达图。categories 数组 + 多系列数据。</p>
 <br>
-<h4><code>nong chart stock <data> [-o <png>] --title <text></code></h4>
+<h4><code>nong chart stock &lt;data&gt; [-o &lt;png&gt;] --title &lt;text&gt;</code></h4>
 <p>K线图/OHLC。数据：<code>[{open, high, low, close, date}, ...]</code></p>
 <br>
-<h4><code>nong chart bubble <data> [-o <png>] --title <text></code></h4>
+<h4><code>nong chart bubble &lt;data&gt; [-o &lt;png&gt;] --title &lt;text&gt;</code></h4>
 <p>气泡图。x + y + size 三维数据。</p>
 <br>
-<h4><code>nong chart heatmap <data> [-o <png>] --title <text> [--colormap <name>]</code></h4>
+<h4><code>nong chart heatmap &lt;data&gt; [-o &lt;png&gt;] --title &lt;text&gt; [--colormap &lt;name&gt;]</code></h4>
 <p>热力图。二维数值矩阵。</p>
 <br>
-<h4><code>nong chart gauge <data> [-o <png>] --title <text></code></h4>
+<h4><code>nong chart gauge &lt;data&gt; [-o &lt;png&gt;] --title &lt;text&gt;</code></h4>
 <p>仪表盘。多指针值 + 标签。</p>
 <br>
-<h4><code>nong chart coxcomb <data> [-o <png>] --title <text></code></h4>
+<h4><code>nong chart coxcomb &lt;data&gt; [-o &lt;png&gt;] --title &lt;text&gt;</code></h4>
 <p>南丁格尔玫瑰图。</p>
 <br>
-<h4><code>nong chart lollipop <data> [-o <png>] --title <text></code></h4>
+<h4><code>nong chart lollipop &lt;data&gt; [-o &lt;png&gt;] --title &lt;text&gt;</code></h4>
 <p>棒棒糖图。</p>
 <br>
-<h4><code>nong chart population <data> [-o <png>] --title <text></code></h4>
+<h4><code>nong chart population &lt;data&gt; [-o &lt;png&gt;] --title &lt;text&gt;</code></h4>
 <p>人口金字塔/双向条形图。</p>
 <br>
-<h4><code>nong chart function <expr> <xMin> <xMax> [-o <png>] --title <text></code></h4>
+<h4><code>nong chart function &lt;expr&gt; &lt;xMin&gt; &lt;xMax&gt; [-o &lt;png&gt;] --title &lt;text&gt;</code></h4>
 <p>函数图。表达式如 <code>Math.Sin(x)</code></p>
 <br>
-<h4><code>nong chart error-bar <data> [-o <png>] --title <text></code></h4>
+<h4><code>nong chart error-bar &lt;data&gt; [-o &lt;png&gt;] --title &lt;text&gt;</code></h4>
 <p>误差棒图。x + y + xError + yError。</p>
 <br>
 <hr>
@@ -108,7 +108,7 @@ nong chart bar data.json -o bar.png --title &quot;发酵产量&quot; --ylabel &q
 <br>
 <p>对应命令：</p>
 <br>
-<h4><code>nong chart anova <data></code></h4>
+<h4><code>nong chart anova &lt;data&gt;</code></h4>
 <p>单因素方差分析。</p>
 <br>
 <p>输入：分组数据（同 bar chart 数据格式）</p>
@@ -128,7 +128,7 @@ C     6  28.1   3.2   1.31
 <br>
 <p>实现：StatsEngine.OneWayAnova()</p>
 <br>
-<h4><code>nong chart duncan <data> [--alpha <0.05>]</code></h4>
+<h4><code>nong chart duncan &lt;data&gt; [--alpha &lt;0.05&gt;]</code></h4>
 <p>Duncan 多重比较检验。需先做过 ANOVA。</p>
 <br>
 <p>输出：</p>
@@ -142,7 +142,7 @@ B     18.2   c
 <br>
 <p>实现：StatsEngine.DuncanMRT()</p>
 <br>
-<h4><code>nong chart analyze <data> [--alpha <0.05>]</code></h4>
+<h4><code>nong chart analyze &lt;data&gt; [--alpha &lt;0.05&gt;]</code></h4>
 <p>完整统计管线：ANOVA → Duncan → 输出完整报告。</p>
 <br>
 <p>实现：StatsEngine.FullAnalysis() → .Print()</p>
@@ -161,7 +161,7 @@ B     18.2   c
 <br>
 <p>对应命令：</p>
 <br>
-<h4><code>nong chart combine <files...> [-o <png>] [--labels <A,B,C>]</code></h4>
+<h4><code>nong chart combine &lt;files...&gt; [-o &lt;png&gt;] [--labels &lt;A,B,C&gt;]</code></h4>
 <p>横向拼接多张图表为一张组合图。</p>
 <br>
 <pre><code>
@@ -215,5 +215,5 @@ nong chart combine fig1.png fig2.png fig3.png -o combined.png --labels A,B,C
 <br>
 
 </article>
-<footer><p>由 progress-report 自动生成</p></footer>
+<footer><p>由 nong progress report 自动生成</p></footer>
 </div></body></html>

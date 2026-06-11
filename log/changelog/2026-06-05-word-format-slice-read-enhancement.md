@@ -39,8 +39,8 @@ Added `WordDissect_Output_IncludesParagraphAndTableFormatting`.
 Validation run:
 
 ```powershell
-dotnet build .\Angri450.Nong\Cli\NongCli.csproj -c Release --nologo
-dotnet test .\Angri450.Nong\Cli.Tests\Cli.Tests.csproj -c Release --nologo
+dotnet build .\Nong.Cli.Net\Cli\NongCli.csproj -c Release --nologo
+dotnet test .\Nong.Cli.Net\Cli.Tests\Cli.Tests.csproj -c Release --nologo
 ```
 
 Result:

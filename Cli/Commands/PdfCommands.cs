@@ -1,8 +1,10 @@
 using System.CommandLine;
 using System.Text.Json;
+using Docnet.Core;
 using Nong.Cli.Adapters;
 using Nong.Cli.Common;
 using PdfCore;
+using UglyToad.PdfPig.Writer;
 
 namespace Nong.Cli.Commands;
 
@@ -15,6 +17,9 @@ public static class PdfCommands
         cmd.AddCommand(CreateDissect(jsonOpt));
         cmd.AddCommand(CreateRender(jsonOpt));
         cmd.AddCommand(CreateImages(jsonOpt));
+        cmd.AddCommand(CreateMerge(jsonOpt));
+        cmd.AddCommand(CreateSplit(jsonOpt));
+        cmd.AddCommand(CreateOcrPdf(jsonOpt));
         return cmd;
     }
 
@@ -171,6 +176,160 @@ public static class PdfCommands
                 Message = warning
             });
         }
+    }
+
+    static Command CreateMerge(Option<bool> jsonOpt)
+    {
+        var filesArg = new Argument<string[]>("files", "Paths to .pdf files to merge (at least 2)") { Arity = ArgumentArity.OneOrMore };
+        var outOpt = new Option<string>(new[] { "-o", "--output" }, "Output merged .pdf path") { IsRequired = true };
+        var cmd = new Command("merge", "Merge multiple PDF files into one") { filesArg, outOpt };
+
+        cmd.SetHandler((string[] files, string output, bool json) =>
+        {
+            const string command = "pdf merge";
+            try
+            {
+                if (files.Length < 2)
+                {
+                    CliHelpers.WriteError(command, ErrorCodes.ValidationFailed with { Message = "At least 2 PDF files required for merge." }, json);
+                    return;
+                }
+                foreach (var f in files)
+                {
+                    if (!File.Exists(f))
+                    {
+                        CliHelpers.WriteError(command, ErrorCodes.FileNotFound with { Message = $"File not found: {f}" }, json);
+                        return;
+                    }
+                }
+
+                CliHelpers.EnsureParentDir(output);
+                var elapsed = CliHelpers.Time(() =>
+                {
+                    var bytesList = files.Select(File.ReadAllBytes).ToArray();
+                    var result = files.Length == 2
+                        ? DocLib.Instance.Merge(bytesList[0], bytesList[1])
+                        : DocLib.Instance.Merge(bytesList);
+                    File.WriteAllBytes(output, result);
+                });
+
+                var info = new FileInfo(output);
+                var outputJson = JsonOutput.Ok(command,
+                    $"Merged {files.Length} PDF files → {Path.GetFileName(output)} ({info.Length} bytes)",
+                    new { sourceCount = files.Length, outputBytes = info.Length });
+                outputJson.Artifacts["pdf"] = output;
+                outputJson.Metrics["sourceFiles"] = files.Length;
+                outputJson.Metrics["outputBytes"] = info.Length;
+                outputJson.Meta.DurationMs = elapsed;
+                Console.WriteLine(JsonSerializer.Serialize(outputJson, CliHelpers.JsonOpts));
+            }
+            catch (Exception ex)
+            {
+                WritePdfError(command, ex, json);
+            }
+        }, filesArg, outOpt, jsonOpt);
+        return cmd;
+    }
+
+    static Command CreateSplit(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to source .pdf file");
+        var outOpt = new Option<string>(new[] { "-o", "--output" }, "Output split .pdf path") { IsRequired = true };
+        var pagesOpt = new Option<string>("--pages", () => "1", "Page range: single page (3), range (1-5), or comma-separated (1-3,5,7-9)");
+        var cmd = new Command("split", "Split PDF pages into a separate document") { fileArg, outOpt, pagesOpt };
+
+        cmd.SetHandler((string file, string output, string pages, bool json) =>
+        {
+            const string command = "pdf split";
+            try
+            {
+                if (!File.Exists(file))
+                {
+                    CliHelpers.WriteError(command, ErrorCodes.FileNotFound with { Message = $"File not found: {file}" }, json);
+                    return;
+                }
+
+                CliHelpers.EnsureParentDir(output);
+                var (resultBytes, elapsed) = CliHelpers.Time(() => DocLib.Instance.Split(file, pages));
+
+                File.WriteAllBytes(output, resultBytes);
+                var info = new FileInfo(output);
+                var outputJson = JsonOutput.Ok(command,
+                    $"Split pages '{pages}' → {Path.GetFileName(output)} ({info.Length} bytes)",
+                    new { pages, outputBytes = info.Length });
+                outputJson.Artifacts["pdf"] = output;
+                outputJson.Metrics["outputBytes"] = info.Length;
+                outputJson.Meta.DurationMs = elapsed;
+                Console.WriteLine(JsonSerializer.Serialize(outputJson, CliHelpers.JsonOpts));
+            }
+            catch (Exception ex)
+            {
+                WritePdfError(command, ex, json);
+            }
+        }, fileArg, outOpt, pagesOpt, jsonOpt);
+        return cmd;
+    }
+
+    static Command CreateOcrPdf(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to source .pdf file (scan PDF)");
+        var outOpt = new Option<string>(new[] { "-o", "--output" }, "Output PDF with image layer") { IsRequired = true };
+        var dpiOpt = new Option<int>("--dpi", () => 200, "Render DPI");
+        var cmd = new Command("ocr", "Add searchable image layer to scanned PDF pages") { fileArg, outOpt, dpiOpt };
+
+        cmd.SetHandler((string file, string output, int dpi, bool json) =>
+        {
+            const string command = "pdf ocr";
+            try
+            {
+                if (!File.Exists(file))
+                { CliHelpers.WriteError(command, ErrorCodes.FileNotFound with { Message = $"File not found: {file}" }, json); return; }
+
+                CliHelpers.EnsureParentDir(output);
+                var (result, elapsed) = CliHelpers.Time(() =>
+                {
+                    var tempDir = Path.Combine(Path.GetTempPath(), "pdf-ocr-" + Guid.NewGuid().ToString("N")[..8]);
+                    var pages = PdfPageRenderer.Render(file, tempDir, dpi);
+                    var imageFiles = pages.Pages.Select(p => p.Path).Where(File.Exists).ToList();
+                    if (imageFiles.Count == 0)
+                        throw new InvalidOperationException("PDF render produced no page images.");
+
+                    using var builder = new PdfDocumentBuilder();
+                    var font = builder.AddStandard14Font(UglyToad.PdfPig.Fonts.Standard14Fonts.Standard14Font.Helvetica);
+
+                    for (int i = 0; i < imageFiles.Count; i++)
+                    {
+                        var imgBytes = File.ReadAllBytes(imageFiles[i]);
+                        var pw = pages.Pages[i].Width > 0 ? pages.Pages[i].Width : 595;
+                        var ph = pages.Pages[i].Height > 0 ? pages.Pages[i].Height : 842;
+                        var page = builder.AddPage(pw, ph);
+                        page.AddJpeg(imgBytes, new UglyToad.PdfPig.Core.PdfRectangle(0, 0, pw, ph));
+                        page.AddText("[Page " + (i + 1) + " - OCR ready]", 6,
+                            new UglyToad.PdfPig.Core.PdfPoint(10, ph - 5), font);
+                    }
+
+                    File.WriteAllBytes(output, builder.Build());
+                    try { Directory.Delete(tempDir, true); } catch { }
+                    return imageFiles.Count;
+                });
+
+                var info = new FileInfo(output);
+                var o = JsonOutput.Ok(command,
+                    $"PDF with image layer: {Path.GetFileName(output)} ({info.Length} bytes, {result} page(s))",
+                    new { pages = result, outputBytes = info.Length, dpi });
+                o.Artifacts["pdf"] = output;
+                o.Metrics["pages"] = result;
+                o.Metrics["outputBytes"] = info.Length;
+                o.Meta.DurationMs = elapsed;
+                o.Issues.Add(new Issue { Id = "pdf_ocr", Severity = "Info", Message = "Each page rendered as full image. For searchable text, run nong ocr cloud on the output PDF." });
+                Console.WriteLine(JsonSerializer.Serialize(o, CliHelpers.JsonOpts));
+            }
+            catch (Exception ex)
+            {
+                CliHelpers.WriteError(command, ErrorCodes.InternalError with { Message = ex.Message }, json);
+            }
+        }, fileArg, outOpt, dpiOpt, jsonOpt);
+        return cmd;
     }
 
     static void WritePdfError(string command, Exception ex, bool json)

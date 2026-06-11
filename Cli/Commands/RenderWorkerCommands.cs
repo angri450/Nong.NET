@@ -26,6 +26,9 @@ public static class RenderWorkerCommands
         var ylabelOpt = new Option<string>("--ylabel", () => "", "Y-axis label");
         var errorOpt = new Option<string>("--error", () => "sem", "Error bar type");
         var noSignificanceOpt = new Option<bool>("--no-significance", () => false, "Disable significance labels");
+        var binCountOpt = new Option<int>("--bin-count", () => 20, "Number of histogram bins");
+        var xlabelOpt = new Option<string>("--xlabel", () => "", "X-axis label");
+        var colormapOpt = new Option<string>("--colormap", () => "", "Colormap name");
 
         cmd.AddArgument(kindArg);
         cmd.AddArgument(actionArg);
@@ -35,6 +38,9 @@ public static class RenderWorkerCommands
         cmd.AddOption(ylabelOpt);
         cmd.AddOption(errorOpt);
         cmd.AddOption(noSignificanceOpt);
+        cmd.AddOption(binCountOpt);
+        cmd.AddOption(xlabelOpt);
+        cmd.AddOption(colormapOpt);
 
         cmd.SetHandler((InvocationContext context) =>
         {
@@ -46,6 +52,9 @@ public static class RenderWorkerCommands
             var ylabel = context.ParseResult.GetValueForOption(ylabelOpt) ?? "";
             var error = context.ParseResult.GetValueForOption(errorOpt) ?? "sem";
             var noSignificance = context.ParseResult.GetValueForOption(noSignificanceOpt);
+            var binCount = context.ParseResult.GetValueForOption(binCountOpt);
+            var xlabel = context.ParseResult.GetValueForOption(xlabelOpt) ?? "";
+            var colormap = context.ParseResult.GetValueForOption(colormapOpt) ?? "";
             var json = context.ParseResult.GetValueForOption(jsonOpt);
 
             switch ((kind, action))
@@ -61,6 +70,18 @@ public static class RenderWorkerCommands
                     break;
                 case ("chart", "pie"):
                     RenderChartPie(file, output, json);
+                    break;
+                case ("chart", "boxplot"):
+                    RenderChartBoxplot(file, output, title, ylabel, json);
+                    break;
+                case ("chart", "histogram"):
+                    RenderChartHistogram(file, output, title, xlabel, ylabel, binCount, json);
+                    break;
+                case ("chart", "heatmap"):
+                    RenderChartHeatmap(file, output, title, json);
+                    break;
+                case ("chart", "radar"):
+                    RenderChartRadar(file, output, title, json);
                     break;
                 case ("diagram", "flowchart"):
                     RenderDiagramFlowchart(file, output, json);
@@ -460,6 +481,130 @@ public static class RenderWorkerCommands
         regLine.LineWidth = 2;
         regLine.LineColor = new Color(200, 50, 50);
         regLine.LegendText = $"y={slope:F3}x+{intercept:F3}";
+    }
+
+    static void RenderChartBoxplot(string file, string output, string title, string ylabel, bool json)
+    {
+        const string command = "chart boxplot";
+        if (!ValidateWorkerInput(command, file, output, json)) return;
+
+        try
+        {
+            var groups = DataLoader.FromJson(file);
+            var validation = StatsValidation.Validate(groups, command);
+            if (validation != null)
+            {
+                CliHelpers.WriteError(command, validation, json);
+                return;
+            }
+
+            var elapsed = CliHelpers.Time(() =>
+            {
+                ChartCore.ChartTypes.BoxPlot(groups, title, ylabel, output);
+            });
+
+            WritePngSuccess(command, $"Box plot saved: {Path.GetFullPath(output)}",
+                new { groups = groups.Count }, output, elapsed, json);
+        }
+        catch (Exception ex)
+        {
+            CliHelpers.WriteError(command, ErrorCodes.InternalError with { Message = ex.Message }, json);
+        }
+    }
+
+    static void RenderChartHistogram(string file, string output, string title, string xlabel, string ylabel, int binCount, bool json)
+    {
+        const string command = "chart histogram";
+        if (!ValidateWorkerInput(command, file, output, json)) return;
+
+        try
+        {
+            var groups = DataLoader.FromJson(file);
+            if (groups.Count == 0 || groups.Values.All(v => v.Count == 0))
+            {
+                CliHelpers.WriteError(command,
+                    ErrorCodes.ValidationFailed with { Message = "Data file must contain at least one non-empty group." }, json);
+                return;
+            }
+
+            // Merge all group values into a single array
+            var values = groups.SelectMany(g => g.Value).ToArray();
+
+            var elapsed = CliHelpers.Time(() =>
+            {
+                ChartCore.ChartTypes.Histogram(values, title, xlabel, ylabel, output, binCount);
+            });
+
+            WritePngSuccess(command, $"Histogram saved: {Path.GetFullPath(output)}",
+                new { groups = groups.Count, totalValues = values.Length, binCount }, output, elapsed, json);
+        }
+        catch (Exception ex)
+        {
+            CliHelpers.WriteError(command, ErrorCodes.InternalError with { Message = ex.Message }, json);
+        }
+    }
+
+    static void RenderChartHeatmap(string file, string output, string title, bool json)
+    {
+        const string command = "chart heatmap";
+        if (!ValidateWorkerInput(command, file, output, json)) return;
+
+        try
+        {
+            var jsonText = File.ReadAllText(file);
+            var spec = JsonSerializer.Deserialize<HeatmapSpec>(jsonText, CliHelpers.JsonOpts);
+            if (spec?.Data == null || spec.Rows == 0 || spec.Cols == 0)
+            {
+                CliHelpers.WriteError(command, ErrorCodes.ValidationFailed with { Message = "data must be a non-empty 2D array of numbers." }, json);
+                return;
+            }
+
+            double[,] intensities = new double[spec.Rows, spec.Cols];
+            for (int r = 0; r < spec.Rows; r++)
+                for (int c = 0; c < spec.Cols; c++)
+                    intensities[r, c] = spec.Data[r][c];
+
+            var elapsed = CliHelpers.Time(() =>
+                ChartCore.ChartTypes.HeatmapChart(intensities, title, output, spec.Colormap));
+
+            WritePngSuccess(command, $"Heatmap saved: {Path.GetFullPath(output)}",
+                new { rows = spec.Rows, cols = spec.Cols }, output, elapsed, json);
+        }
+        catch (Exception ex) { CliHelpers.WriteError(command, ErrorCodes.InternalError with { Message = ex.Message }, json); }
+    }
+
+    static void RenderChartRadar(string file, string output, string title, bool json)
+    {
+        const string command = "chart radar";
+        if (!ValidateWorkerInput(command, file, output, json)) return;
+
+        try
+        {
+            var jsonText = File.ReadAllText(file);
+            var spec = JsonSerializer.Deserialize<RadarSpec>(jsonText, CliHelpers.JsonOpts);
+            if (spec?.Categories == null || spec.Categories.Length == 0)
+            {
+                CliHelpers.WriteError(command, ErrorCodes.ValidationFailed with { Message = "categories must be a non-empty array." }, json);
+                return;
+            }
+            if (spec.Series == null || spec.Series.Count == 0)
+            {
+                CliHelpers.WriteError(command, ErrorCodes.ValidationFailed with { Message = "series must be non-empty." }, json);
+                return;
+            }
+
+            var elapsed = CliHelpers.Time(() =>
+            {
+                var seriesDict = spec.Series.ToDictionary(
+                    s => s.Name ?? "Unnamed",
+                    s => s.Values ?? Array.Empty<double>());
+                ChartCore.ChartTypes.RadarChart(spec.Categories!, seriesDict, title, output);
+            });
+
+            WritePngSuccess(command, $"Radar chart saved: {Path.GetFullPath(output)}",
+                new { categories = spec.Categories.Length, series = spec.Series.Count }, output, elapsed, json);
+        }
+        catch (Exception ex) { CliHelpers.WriteError(command, ErrorCodes.InternalError with { Message = ex.Message }, json); }
     }
 
     static void WritePngSuccess(string command, string summary, object? data, string output, long elapsed, bool json)
