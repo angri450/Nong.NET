@@ -53,6 +53,9 @@ public static class WordCommands
         cmd.AddCommand(CreatePageSetup(jsonOpt));
         cmd.AddCommand(CreateIndent(jsonOpt));
         cmd.AddCommand(CreateParagraphControl(jsonOpt));
+        cmd.AddCommand(CreateImageWrap(jsonOpt));
+        cmd.AddCommand(CreateCellFormat(jsonOpt));
+        cmd.AddCommand(CreateRunFormat(jsonOpt));
         cmd.AddCommand(CreateComments(jsonOpt));
         cmd.AddCommand(CreateRevisions(jsonOpt));
         cmd.AddCommand(CreateInferFormat(jsonOpt));
@@ -1928,6 +1931,108 @@ public static class WordCommands
                 if (j) { var x=JsonOutput.Ok("word paragraph-control",s,new{output=Path.GetFullPath(o),pc=res.ParagraphsChanged,changes=res.Changes}); x.Artifacts["docx"]=Path.GetFullPath(o); Console.WriteLine(JsonSerializer.Serialize(x,CliHelpers.JsonOpts)); }
                 else Console.WriteLine($"{s} → {o}");
             } catch (Exception ex) { CliHelpers.WriteError("word paragraph-control", ErrorCodes.InternalError with{Message=ex.Message}, j); }
+        });
+        return cmd;
+    }
+
+    // ===== word image-wrap (inline→floating anchor + wrap modes) =====
+
+    static Command CreateImageWrap(Option<bool> jsonOpt)
+    {
+        var fa = new Argument<string>("file", "Path to .docx file");
+        var md = new Option<string>("--mode", "Wrap mode: square, topAndBottom, tight, through, behind, inFront, inline");
+        var off = new Option<double?>("--offset", "Distance from text in mm (default 3)");
+        var ah = new Option<string>("--align-h", "Horizontal alignment: left, center, right");
+        var av = new Option<string>("--align-v", "Vertical alignment: top, center, bottom");
+        var ot = new Option<string>("-o", "Output DOCX path");
+        var cmd = new Command("image-wrap", "Convert inline images to floating with configurable text wrap modes") { fa, md, off, ah, av, ot };
+        cmd.AddAlias("wrap");
+        cmd.SetHandler((InvocationContext ctx) =>
+        {
+            var r = ctx.ParseResult; var f = r.GetValueForArgument(fa); var j = r.GetValueForOption(jsonOpt);
+            var er = CliHelpers.ValidateDocxFile(f);
+            if (er != null) { CliHelpers.WriteError("word image-wrap", er, j); return; }
+            try {
+                var o = r.GetValueForOption(ot) ?? Path.Combine(Path.GetDirectoryName(Path.GetFullPath(f))??".",Path.GetFileNameWithoutExtension(f)+".wrap.docx");
+                var opt = new DocxImageWrap.WrapOptions{Mode=r.GetValueForOption(md),OffsetMm=r.GetValueForOption(off),AlignH=r.GetValueForOption(ah),AlignV=r.GetValueForOption(av)};
+                var res = DocxImageWrap.Apply(f,o,opt);
+                var s = string.Join("; ",res.Changes);
+                if (j) { var x=JsonOutput.Ok("word image-wrap",s,new{output=Path.GetFullPath(o),converted=res.ImagesConverted,total=res.ImagesTotal,changes=res.Changes}); x.Artifacts["docx"]=Path.GetFullPath(o); Console.WriteLine(JsonSerializer.Serialize(x,CliHelpers.JsonOpts)); }
+                else Console.WriteLine($"{s} → {o}");
+            } catch (Exception ex) { CliHelpers.WriteError("word image-wrap", ErrorCodes.InternalError with{Message=ex.Message}, j); }
+        });
+        return cmd;
+    }
+
+    // ===== word cell-format (table cell borders/shading/alignment) =====
+
+    static Command CreateCellFormat(Option<bool> jsonOpt)
+    {
+        var fa = new Argument<string>("file", "Path to .docx file");
+        var ti = new Option<int?>("--table", "Table index (0-based, default all tables)");
+        var ri = new Option<int?>("--row", "Row index (0-based)");
+        var ci = new Option<int?>("--col", "Column index (0-based)");
+        var sh = new Option<string>("--shading", "Cell background color hex or 'none' to remove");
+        var bt = new Option<double?>("--border-top", "Top border width in mm");
+        var bb = new Option<double?>("--border-bottom", "Bottom border width in mm");
+        var bl = new Option<double?>("--border-left", "Left border width in mm");
+        var br = new Option<double?>("--border-right", "Right border width in mm");
+        var bc = new Option<string>("--border-color", "Border color hex (default 2A7A65)");
+        var va = new Option<string>("--valign", "Vertical alignment: top, center, bottom");
+        var pt = new Option<double?>("--pad-top", "Top padding in mm");
+        var pl = new Option<double?>("--pad-left", "Left padding in mm");
+        var pb = new Option<double?>("--pad-bottom", "Bottom padding in mm");
+        var pr = new Option<double?>("--pad-right", "Right padding in mm");
+        var ot = new Option<string>("-o", "Output DOCX path");
+        var cmd = new Command("cell-format", "Format table cells: borders, shading, alignment, padding") { fa, ti, ri, ci, sh, bt, bb, bl, br, bc, va, pt, pl, pb, pr, ot };
+        cmd.SetHandler((InvocationContext ctx) =>
+        {
+            var r = ctx.ParseResult; var f = r.GetValueForArgument(fa); var j = r.GetValueForOption(jsonOpt);
+            var er = CliHelpers.ValidateDocxFile(f);
+            if (er != null) { CliHelpers.WriteError("word cell-format", er, j); return; }
+            try {
+                var o = r.GetValueForOption(ot) ?? Path.Combine(Path.GetDirectoryName(Path.GetFullPath(f))??".",Path.GetFileNameWithoutExtension(f)+".cells.docx");
+                var opt = new DocxCellFormatter.CellFormatOptions{TableIndex=r.GetValueForOption(ti),RowIndex=r.GetValueForOption(ri),ColIndex=r.GetValueForOption(ci),Shading=r.GetValueForOption(sh),BorderTopMm=r.GetValueForOption(bt),BorderBottomMm=r.GetValueForOption(bb),BorderLeftMm=r.GetValueForOption(bl),BorderRightMm=r.GetValueForOption(br),BorderColor=r.GetValueForOption(bc),VAlign=r.GetValueForOption(va),PaddingTopMm=r.GetValueForOption(pt),PaddingLeftMm=r.GetValueForOption(pl),PaddingBottomMm=r.GetValueForOption(pb),PaddingRightMm=r.GetValueForOption(pr)};
+                var res = DocxCellFormatter.Apply(f,o,opt);
+                var s = $"{res.CellsChanged} cells: {string.Join("; ",res.Changes)}";
+                if (j) { var x=JsonOutput.Ok("word cell-format",s,new{output=Path.GetFullPath(o),cellsChanged=res.CellsChanged,changes=res.Changes}); x.Artifacts["docx"]=Path.GetFullPath(o); Console.WriteLine(JsonSerializer.Serialize(x,CliHelpers.JsonOpts)); }
+                else Console.WriteLine($"{s} → {o}");
+            } catch (Exception ex) { CliHelpers.WriteError("word cell-format", ErrorCodes.InternalError with{Message=ex.Message}, j); }
+        });
+        return cmd;
+    }
+
+    // ===== word run-format (character-level formatting) =====
+
+    static Command CreateRunFormat(Option<bool> jsonOpt)
+    {
+        var fa = new Argument<string>("file", "Path to .docx file");
+        var ul = new Option<string>("--underline", "Underline: single, double, or none");
+        var uc = new Option<string>("--underline-color", "Underline color hex");
+        var sk = new Option<bool?>("--strikethrough", "Strikethrough text");
+        var cl = new Option<string>("--color", "Font color hex or 'none'");
+        var hl = new Option<string>("--highlight", "Highlight color: yellow, cyan, none, etc.");
+        var sp = new Option<double?>("--spacing", "Character spacing in mm");
+        var su = new Option<bool?>("--superscript", "Superscript");
+        var sb = new Option<bool?>("--subscript", "Subscript");
+        var pt = new Option<string>("--pattern", "Regex pattern to match text content");
+        var rl = new Option<string>("--role", "Target role: heading, body, or all");
+        var ot = new Option<string>("-o", "Output DOCX path");
+        var cmd = new Command("run-format", "Character-level formatting: underline, strikethrough, color, highlight, spacing, superscript") { fa, ul, uc, sk, cl, hl, sp, su, sb, pt, rl, ot };
+        cmd.AddAlias("char-format");
+        cmd.SetHandler((InvocationContext ctx) =>
+        {
+            var r = ctx.ParseResult; var f = r.GetValueForArgument(fa); var j = r.GetValueForOption(jsonOpt);
+            var er = CliHelpers.ValidateDocxFile(f);
+            if (er != null) { CliHelpers.WriteError("word run-format", er, j); return; }
+            try {
+                var o = r.GetValueForOption(ot) ?? Path.Combine(Path.GetDirectoryName(Path.GetFullPath(f))??".",Path.GetFileNameWithoutExtension(f)+".runs.docx");
+                var opt = new DocxRunFormatter.RunFormatOptions{Underline=r.GetValueForOption(ul),UnderlineColor=r.GetValueForOption(uc),Strikethrough=r.GetValueForOption(sk),Color=r.GetValueForOption(cl),Highlight=r.GetValueForOption(hl),SpacingMm=r.GetValueForOption(sp),Superscript=r.GetValueForOption(su),Subscript=r.GetValueForOption(sb),Pattern=r.GetValueForOption(pt),Role=r.GetValueForOption(rl)??"all"};
+                var res = DocxRunFormatter.Apply(f,o,opt);
+                var s = $"{res.RunsChanged} runs: {string.Join("; ",res.Changes)}";
+                if (j) { var x=JsonOutput.Ok("word run-format",s,new{output=Path.GetFullPath(o),runsChanged=res.RunsChanged,changes=res.Changes}); x.Artifacts["docx"]=Path.GetFullPath(o); Console.WriteLine(JsonSerializer.Serialize(x,CliHelpers.JsonOpts)); }
+                else Console.WriteLine($"{s} → {o}");
+            } catch (Exception ex) { CliHelpers.WriteError("word run-format", ErrorCodes.InternalError with{Message=ex.Message}, j); }
         });
         return cmd;
     }

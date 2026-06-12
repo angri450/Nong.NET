@@ -43,7 +43,9 @@ public static class Manifest
         list.Add(new("word page-setup", "Set page size, orientation, margins, columns, different first page", "word", ["word layout"]));
         list.Add(new("word indent", "Set paragraph indentation: first-line, hanging, left, right, outline level", "word", []));
         list.Add(new("word paragraph-control", "Set pagination controls: keepNext, keepLines, pageBreakBefore, widowControl", "word", []));
-        list.Add(new("word estimate", "Estimate page breaks and measure blank space on each page", "word", ["word pages"]));
+        list.Add(new("word image-wrap", "Convert inline images to floating with configurable text wrap modes", "word", ["word wrap"]));
+        list.Add(new("word cell-format", "Format table cells: borders, shading, alignment, padding", "word", []));
+        list.Add(new("word run-format", "Character-level formatting: underline, strikethrough, color, highlight, spacing", "word", ["word char-format"]));
         list.Add(new("word comments", "Read document comments", "word", []));
         list.Add(new("word revisions", "List tracked changes", "word", []));
         list.Add(new("word infer-format", "Infer OpenXML format from Chinese description", "word", []));

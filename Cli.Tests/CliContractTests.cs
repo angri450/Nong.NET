@@ -1691,4 +1691,73 @@ public class CliContractTests
         var names = doc.RootElement.GetProperty("data").EnumerateArray().Select(e => e.GetProperty("name").GetString()).ToHashSet();
         Assert.Contains("pdf ocr", names);
     }
+
+    // ===== word page-setup ====
+
+    [Fact]
+    public void WordPageSetup_B5Size_ExitsCleanly()
+    {
+        RequireCli();
+        var src = Path.Combine(Path.GetTempPath(), "ps-b5-" + Guid.NewGuid().ToString("N")[..8] + ".docx");
+        var dst = src.Replace(".docx", ".layout.docx");
+        CreateMinimalDocx(src, "Test paragraph");
+        try
+        {
+            var (json, exit) = Run("word", "page-setup", src, "--size", "B5", "--margin-top", "15", "--margin-bottom", "15", "-o", dst, "--json");
+            Assert.Equal(0, exit);
+            Assert.Contains("section(s)", json);
+            Assert.True(File.Exists(dst));
+        }
+        finally { try { File.Delete(src); File.Delete(dst); } catch { } }
+    }
+
+    // ===== word indent ====
+
+    [Fact]
+    public void WordIndent_FirstLine_AppliesRoleAll()
+    {
+        RequireCli();
+        var src = Path.Combine(Path.GetTempPath(), "ind-" + Guid.NewGuid().ToString("N")[..8] + ".docx");
+        var dst = src.Replace(".docx", ".indent.docx");
+        CreateMinimalDocx(src, "Body paragraph one", "Body paragraph two");
+        try
+        {
+            var (json, exit) = Run("word", "indent", src, "--role", "all", "--first-line", "7.4", "-o", dst, "--json");
+            Assert.Equal(0, exit);
+            Assert.Contains("indent applied", json);
+            Assert.True(File.Exists(dst));
+        }
+        finally { try { File.Delete(src); File.Delete(dst); } catch { } }
+    }
+
+    // ===== word compact-tables ====
+
+    [Fact]
+    public void WordCompactTables_WidthToPct_ExitsCleanly()
+    {
+        RequireCli();
+        var src = Path.Combine(Path.GetTempPath(), "ct-" + Guid.NewGuid().ToString("N")[..8] + ".docx");
+        var dst = src.Replace(".docx", ".compact.docx");
+        // Create a minimal docx with a table
+        using (var doc = WordprocessingDocument.Create(src, WordprocessingDocumentType.Document))
+        {
+            doc.AddMainDocumentPart();
+            var body = new Body();
+            var table = new Table();
+            var row = new TableRow();
+            row.AppendChild(new TableCell(new Paragraph(new Run(new Text("A")))));
+            row.AppendChild(new TableCell(new Paragraph(new Run(new Text("B")))));
+            table.AppendChild(row);
+            body.AppendChild(table);
+            doc.MainDocumentPart!.Document = new Document(body);
+        }
+        try
+        {
+            var (json, exit) = Run("word", "compact-tables", src, "-o", dst, "--json");
+            Assert.Equal(0, exit);
+            Assert.Contains("tables compacted", json);
+            Assert.True(File.Exists(dst));
+        }
+        finally { try { File.Delete(src); File.Delete(dst); } catch { } }
+    }
 }
