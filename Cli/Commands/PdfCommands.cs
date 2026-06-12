@@ -403,7 +403,7 @@ public static class PdfCommands
             CliHelpers.WriteError(command,
                 ErrorCodes.DependencyMissing with
                 {
-                    Message = $"Local OCR/PDF native dependency is unavailable: {ex.Message}. Run 'nong ocr install-model pp-ocrv5-mobile --json' for OCR mode. No Python is required."
+                    Message = $"Local OCR/PDF native dependency is unavailable: {ex.Message}. Run 'nong ocr install-model pp-ocrv6-medium --json' for OCR mode. No Python is required."
                 }, json);
             return;
         }

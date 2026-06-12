@@ -226,7 +226,7 @@ public static class OcrCommands
     {
         var imageArg = new Argument<string>("image", "Path to image file");
         var forceOpt = new Option<bool>("--force", "Run local OCR even if image preflight flags QR/code/graphic-heavy input");
-        var cmd = new Command("local", "Local PP-OCRv5 recognition with pure .NET runtime (no Python)") { imageArg, forceOpt };
+        var cmd = new Command("local", "Local PP-OCRv6 recognition with pure .NET runtime (no Python)") { imageArg, forceOpt };
 
         cmd.SetHandler((string image, bool force, bool json) =>
         {
@@ -375,7 +375,7 @@ public static class OcrCommands
     {
         var error = ErrorCodes.ValidationFailed with
         {
-            Message = $"Local OCR skipped before PP-OCRv5 inference: {preflight.Reason} {preflight.Recommendation}"
+            Message = $"Local OCR skipped before PP-OCRv6 inference: {preflight.Reason} {preflight.Recommendation}"
         };
 
         Environment.ExitCode = 1;
@@ -907,7 +907,7 @@ public static class OcrCommands
             "NuGet v3 source for native runtime packages; use a domestic mirror for client deployment");
         var allowUpstreamFallbackOpt = new Option<bool>("--allow-upstream-fallback", () => false,
             "Allow fallback to upstream Sdcb/OpenCvSharp native runtime packages when the first-party Nong runtime bundle is unavailable");
-        var cmd = new Command("install-model", "Install/check pure .NET PP-OCRv5 native runtime")
+        var cmd = new Command("install-model", "Install/check pure .NET PP-OCRv6 native runtime")
         {
             modelIdArg,
             dryRunOpt,
