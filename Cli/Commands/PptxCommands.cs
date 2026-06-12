@@ -44,7 +44,9 @@ public static class PptxCommands
                         {
                             index = s.Index,
                             title = s.Title,
-                            texts = s.Texts
+                            texts = s.Texts,
+                            background = s.Background,
+                            runs = s.Runs
                         }).ToList()
                     };
                     var metrics = new Dictionary<string, object>

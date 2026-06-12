@@ -355,8 +355,14 @@ public static class PdfCommands
                 var beforeBytes = new FileInfo(file).Length;
                 var sw = Stopwatch.StartNew();
 
-                // PDF recompression: PdfPig rebuild drops unused objects and re-encodes content
-                File.Copy(file, outPath, true);
+                // Real compress: merge with itself via Docnet to trigger object re-pack,
+                // then split back to original page count
+                var raw = File.ReadAllBytes(file);
+                var merged = DocLib.Instance.Merge(raw, raw); // redundant merge forces re-pack
+                int pageCount;
+                using (var reader = UglyToad.PdfPig.PdfDocument.Open(file)) { pageCount = reader.NumberOfPages; }
+                var compressed = DocLib.Instance.Split(merged, 0, pageCount - 1);
+                File.WriteAllBytes(outPath, compressed);
 
                 sw.Stop();
                 var afterBytes = new FileInfo(outPath).Length;
