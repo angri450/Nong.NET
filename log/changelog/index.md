@@ -4,6 +4,7 @@
 
 ## 2026-06-13
 - 2026-06-13 | 2026-06-13-ppocrv6-modular-split.md | PP-OCRv6 与 CLI 模块化拆分审计修复：主 CLI 12MB、外部工具路由、PDF/Chart worker 修复、154 测试通过
+- 2026-06-13 | 2026-06-13-modular-release-final-audit.md | 模块化发布最终审计：7 包全 GO、RID 瘦身 83→26MB、pack audit 闸门、OCR v6 文案统一、本地安装闭环
 
 ## 2026-06-12
 - 2026-06-12 | 2026-06-12-ocr-expansion.md | OCR 4 新命令：batch(批量)/video(视频帧+SRT)/screen(屏幕区域)/camera(摄像头)

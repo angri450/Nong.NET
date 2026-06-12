@@ -12,7 +12,7 @@
 - 2026-06-12 | 2026-06-12-pdf-pptx-excel-audit.md | PDF/PPTX/Excel 三模块格式缺口审计 — CLI 暴露缺口为主 | done
 - 2026-06-12 | 2026-06-12-ocr-expansion-plan.md | OCR 能力扩张：视频帧/批量图片/屏幕区域/摄像头 OCR | done
 - 2026-06-12 | 2026-06-12-cli-modular-split.md | CLI 模块化拆分：轻路由 + 独立子工具 (chart/diagram/ocr/pdf)，103MB → 12MB | done
-- 2026-06-13 | 2026-06-13-modular-release-to-audit-roadmap.md | 模块化拆分后续施工：工具包身份、pack 体积闸门、native/RID 策略、ThirdParty 边界审计、发布前总审计 | pending
+- 2026-06-13 | 2026-06-13-modular-release-to-audit-roadmap.md | 模块化拆分后续施工：工具包身份、pack 体积闸门、native/RID 策略、ThirdParty 边界审计、发布前总审计 | done
 - 2026-06-12 | 2026-06-12-nanobot-bridge-plan.md | NanoBot 桥接：function-calling schema + Skill 路由 + 上下文管理 | pending
 - 2026-06-12 | 2026-06-12-table-compact-regroup.md | 表格紧缩 + 图片重组 + 页面空白估算：文档紧缩三件套 | done
 - 2026-06-12 | 2026-06-12-ppocrv6-adaptation.md | PP-OCRv6 全线适配：runtime 不动 / CLI 轻索引 / Toolkit skill 文档更新 | done
