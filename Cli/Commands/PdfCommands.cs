@@ -2,9 +2,9 @@ using System.CommandLine;
 using System.Diagnostics;
 using System.Text.Json;
 using Docnet.Core;
+using PdfCore;
 using Nong.Cli.Adapters;
 using Nong.Cli.Common;
-using PdfCore;
 using UglyToad.PdfPig.Writer;
 
 namespace Nong.Cli.Commands;
@@ -13,6 +13,7 @@ public static class PdfCommands
 {
     public static Command Create(Option<bool> jsonOpt)
     {
+        PdfNativeRuntime.EnsureRegistered();
         var cmd = new Command("pdf", "PDF document parsing operations");
         cmd.AddCommand(CreateCheck(jsonOpt));
         cmd.AddCommand(CreateDissect(jsonOpt));

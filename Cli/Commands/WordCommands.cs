@@ -6,7 +6,6 @@ using System.Text.Json;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using DocxCore;
-using ImagingCore;
 using Nong.Cli.Common;
 using Nong.Inspect;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -1214,7 +1213,7 @@ public static class WordCommands
                 {
                     // Full one-cut three-stream mode
                     CliHelpers.EnsureParentDir(Path.Combine(output, ".keep"));
-                    var analyzer = new Nong.Cli.Adapters.WordImageAnalyzerAdapter();
+                    IImageAnalyzer? analyzer = null;
                     var (result, elapsed) = CliHelpers.Time(() => WordSlice.Slice(file, output, analyzer));
                     if (json)
                     {
@@ -1437,11 +1436,11 @@ public static class WordCommands
             {
                 if (analyze)
                 {
-                    RunImageAnalyze(file, json);
+                    Environment.ExitCode = RunImagingImages(file, analyze: true, crop: false, output: null, json);
                 }
                 else if (crop)
                 {
-                    RunImageCrop(file, output, json);
+                    Environment.ExitCode = RunImagingImages(file, analyze: false, crop: true, output, json);
                 }
                 else
                 {
@@ -1479,97 +1478,21 @@ public static class WordCommands
         }
     }
 
-    static void RunImageAnalyze(string file, bool json)
+    static int RunImagingImages(string file, bool analyze, bool crop, string? output, bool json)
     {
-        var processor = new ImageProcessor();
-        var imageBytes = DocxImageEditor.ExtractImageBytes(file);
-        var results = new List<ImageAnalyzeResult>();
-
-        foreach (var img in imageBytes)
+        var args = new List<string> { "images", file };
+        if (analyze) args.Add("--analyze");
+        if (crop) args.Add("--crop");
+        if (crop && output != null)
         {
-            try
-            {
-                var bounds = processor.Analyze(img.Bytes);
-                results.Add(new ImageAnalyzeResult(
-                    img.ImageId, img.ContentType, img.RelationshipId,
-                    bounds.OriginalWidth, bounds.OriginalHeight,
-                    bounds.CropLeft, bounds.CropTop, bounds.CropRight, bounds.CropBottom,
-                    bounds.ContentWidth, bounds.ContentHeight,
-                    bounds.SavedPct, bounds.HasCropMargins
-                ));
-            }
-            catch (Exception ex)
-            {
-                results.Add(new ImageAnalyzeResult(
-                    img.ImageId, img.ContentType, img.RelationshipId,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, false
-                ) { Error = ex.Message });
-            }
+            args.Add("-o");
+            args.Add(output);
         }
-
-        var summary = $"{results.Count(r => r.HasCropMargins)}/{results.Count} images have crop margins";
-        if (json)
-        {
-            var outputJson = JsonOutput.Ok("word images --analyze", summary, new { images = results });
-            Console.WriteLine(JsonSerializer.Serialize(outputJson, CliHelpers.JsonOpts));
-        }
-        else
-        {
-            Console.WriteLine(summary);
-            foreach (var r in results)
-            {
-                if (!string.IsNullOrEmpty(r.Error))
-                    Console.Error.WriteLine($"[ERR] {r.ImageId}: {r.Error}");
-                else if (r.HasCropMargins)
-                    Console.WriteLine($"  {r.ImageId} crop: L={r.CropLeft} T={r.CropTop} R={r.CropRight} B={r.CropBottom} saved={r.SavedPct}% ({r.ContentWidth}x{r.ContentHeight})");
-                else
-                    Console.WriteLine($"  {r.ImageId} no crop margins");
-            }
-        }
+        if (json) args.Add("--json");
+        return CliHelpers.RunTool("nong-imaging", ToolPackages.Imaging, args.ToArray());
     }
 
-    static void RunImageCrop(string file, string? output, bool json)
-    {
-        string outputPath = output ?? Path.Combine(
-            Path.GetDirectoryName(Path.GetFullPath(file)) ?? ".",
-            Path.GetFileNameWithoutExtension(file) + ".cropped.docx");
-
-        var processor = new ImageProcessor();
-        var result = DocxImageEditor.ReplaceImages(file, outputPath, (relId, contentType, bytes) =>
-        {
-            return processor.AutoCrop(bytes);
-        });
-
-        var summary = $"Cropped: {result.Changed.Count}/{result.Total} images, skipped: {result.Skipped.Count}";
-        if (json)
-        {
-            var outputJson = JsonOutput.Ok("word images --crop", summary, new
-            {
-                output = Path.GetFullPath(outputPath),
-                changed = result.Changed,
-                skipped = result.Skipped,
-                total = result.Total
-            });
-            outputJson.Artifacts["docx"] = Path.GetFullPath(outputPath);
-            Console.WriteLine(JsonSerializer.Serialize(outputJson, CliHelpers.JsonOpts));
-        }
-        else
-        {
-            Console.WriteLine($"{summary} → {outputPath}");
-        }
-    }
-
-    sealed record ImageAnalyzeResult(
-        string ImageId, string ContentType, string RelationshipId,
-        int OriginalWidth, int OriginalHeight,
-        int CropLeft, int CropTop, int CropRight, int CropBottom,
-        int ContentWidth, int ContentHeight,
-        double SavedPct, bool HasCropMargins)
-    {
-        public string? Error { get; init; }
-    }
-
-    // ===== word crop (content-aware image crop) =====
+    // ===== word crop (external imaging tool) =====
 
     static Command CreateCrop(Option<bool> jsonOpt)
     {
@@ -1581,11 +1504,7 @@ public static class WordCommands
         {
             var err = CliHelpers.ValidateDocxFile(file);
             if (err != null) { CliHelpers.WriteError("word crop", err, json); return; }
-            try
-            {
-                RunImageCrop(file, output, json);
-            }
-            catch (Exception ex) { CliHelpers.WriteError("word crop", ErrorCodes.InternalError with { Message = ex.Message }, json); }
+            Environment.ExitCode = RunImagingImages(file, analyze: false, crop: true, output, json);
         }, fileArg, outOpt, jsonOpt);
         return cmd;
     }

@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Nong.Cli</RootNamespace>
+    <AssemblyName>nong-imaging</AssemblyName>
+    <PackageId>Angri450.Nong.Tool.Imaging</PackageId>
+    <ToolCommandName>nong-imaging</ToolCommandName>
+    <PackAsTool>true</PackAsTool>
+    <Version>4.1.0</Version>
+    <Authors>angri450</Authors>
+    <Description>Image analysis and content-aware cropping.</Description>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/angri450/Nong.Cli.Net</RepositoryUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Win32" Version="3.119.0" />
+    <PackageReference Include="SkiaSharp.NativeAssets.macOS" Version="3.119.0" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.119.0" />
+    <PackageReference Include="HarfBuzzSharp.NativeAssets.Win32" Version="8.3.1.1" />
+    <PackageReference Include="HarfBuzzSharp.NativeAssets.macOS" Version="8.3.1.1" />
+    <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="8.3.1.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ImagingCore.csproj" />
+    <ProjectReference Include="..\..\Docx\DocxCore.csproj" />
+    <ProjectReference Include="..\..\ThirdParty\ThirdParty.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\..\Cli\Common\*.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+</Project>

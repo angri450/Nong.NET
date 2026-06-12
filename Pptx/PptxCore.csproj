@@ -4,8 +4,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>PptxCore</RootNamespace>
-    <AssemblyName>PptxCore</AssemblyName>
-    <PackageId>Angri450.Nong.Pptx</PackageId>
+    <IsPackable>false</IsPackable>
     <Version>4.1.0</Version>
     <Authors>angri450</Authors>
     <Description>ShapeCrawler wrapper for AI agents.</Description>
@@ -15,6 +14,9 @@
     <PackageTags>nong agriculture pptx powerpoint</PackageTags>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="tools/**" />
+  </ItemGroup>
   <ItemGroup>
     <Compile Include="LayoutSystem.cs" />
     <Compile Include="PresentationBuilder.cs" />

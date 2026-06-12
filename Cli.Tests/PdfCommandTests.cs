@@ -16,21 +16,14 @@ public class PdfCommandTests
 
     (string json, int exitCode) Run(params string[] args)
     {
-        var allArgs = new List<string> { NongDll };
-        allArgs.AddRange(args);
-
-        var psi = new ProcessStartInfo("dotnet", allArgs)
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
-        using var proc = Process.Start(psi)!;
-        proc.WaitForExit(60000);
-        var json = proc.StandardOutput.ReadToEnd();
-        return (json, proc.ExitCode);
+        var result = CliTestToolPath.RunDotnetCli(
+            RepoRoot,
+            NongDll,
+            timeoutMs: 60000,
+            captureStdErr: true,
+            environment: null,
+            args);
+        return (result.StdOut, result.ExitCode);
     }
 
     JsonDocument Parse(string json) => JsonDocument.Parse(json);

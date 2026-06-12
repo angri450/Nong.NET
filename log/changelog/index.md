@@ -2,6 +2,9 @@
 
 > Agent 添加变更记录后同步更新此文件。格式：`- YYYY-MM-DD | 文件名 | 一句话摘要`
 
+## 2026-06-13
+- 2026-06-13 | 2026-06-13-ppocrv6-modular-split.md | PP-OCRv6 与 CLI 模块化拆分审计修复：主 CLI 12MB、外部工具路由、PDF/Chart worker 修复、154 测试通过
+
 ## 2026-06-12
 - 2026-06-12 | 2026-06-12-ocr-expansion.md | OCR 4 新命令：batch(批量)/video(视频帧+SRT)/screen(屏幕区域)/camera(摄像头)
 - 2026-06-12 | 2026-06-12-ppocrv6-adaptation.md | PP-OCRv6 全线适配：4 model-ID + CDN 下载 + 嵌入式字典 + v6 优先自动检测

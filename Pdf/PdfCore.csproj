@@ -4,8 +4,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>PdfCore</RootNamespace>
-    <AssemblyName>Angri450.Nong.Pdf</AssemblyName>
-    <PackageId>Angri450.Nong.Pdf</PackageId>
+    <IsPackable>false</IsPackable>
     <Version>4.1.0</Version>
     <Authors>angri450</Authors>
     <Description>Local PDF document slicing engine for Nong: PDF classification, text extraction, rendering, assets, OCR bridge, and NongMark/Pandoc-enhanced text projection.</Description>
@@ -16,6 +15,9 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NoWarn>$(NoWarn);CS0169;CS0649;CS1591;CS8600;CS8618;CS8625;CS8765</NoWarn>
   </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="tools/**" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Pandoc\PandocCore.csproj" />
     <ProjectReference Include="..\ThirdParty\ThirdParty.csproj" />

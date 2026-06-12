@@ -215,12 +215,6 @@
   <!-- NuGet dependencies -->
   <ItemGroup>
     <PackageReference Include="System.IO.Packaging" Version="10.0.2" />
-    <PackageReference Include="SkiaSharp.NativeAssets.Win32" Version="3.119.0" />
-    <PackageReference Include="SkiaSharp.NativeAssets.macOS" Version="3.119.0" />
-    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.119.0" />
-    <PackageReference Include="HarfBuzzSharp.NativeAssets.Win32" Version="8.3.1.1" />
-    <PackageReference Include="HarfBuzzSharp.NativeAssets.macOS" Version="8.3.1.1" />
-    <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="8.3.1.1" />
     <PackageReference Include="System.IO.Hashing" Version="9.0.0" />
     <PackageReference Include="System.Resources.Extensions" Version="9.0.0" />
   </ItemGroup>

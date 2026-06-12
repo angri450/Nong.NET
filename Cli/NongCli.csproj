@@ -25,23 +25,31 @@
     <PackageReference Include="System.Drawing.Common" Version="9.0.0" />
   </ItemGroup>
   <ItemGroup>
+    <!-- Lightweight pure-.NET modules (stay in CLI) -->
     <ProjectReference Include="..\Docx\DocxCore.csproj" />
     <ProjectReference Include="..\Inspect\Inspect.csproj" />
     <ProjectReference Include="..\Excel\ExcelCore.csproj" />
-    <ProjectReference Include="..\Chart\ChartCore.csproj" />
-    <ProjectReference Include="..\Diagram\DiagramCore.csproj" />
     <ProjectReference Include="..\Genre\Genre.csproj" />
     <ProjectReference Include="..\Bioicons\Bioicons.csproj" />
     <ProjectReference Include="..\SkillManagerCore\SkillManagerCore.csproj" />
-    <ProjectReference Include="..\Pptx\PptxCore.csproj" />
-    <ProjectReference Include="..\MultiModal\MultiModalCore.csproj" />
-    <ProjectReference Include="..\Pdf\PdfCore.csproj" />
     <ProjectReference Include="..\Literature\LiteratureCore.csproj" />
     <ProjectReference Include="..\Pandoc\PandocCore.csproj" />
-    <ProjectReference Include="..\Imaging\ImagingCore.csproj" />
     <ProjectReference Include="..\OcrModels\OcrModels.csproj" />
+    <!-- Heavy modules (Chart/Diagram/Pdf/Pptx/MultiModal/Imaging) are separate dotnet tools -->
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+  <!-- Exclude command files for external modules -->
+  <ItemGroup>
+    <Compile Remove="Commands\ChartCommands.cs" />
+    <Compile Remove="Commands\DiagramCommands.cs" />
+    <Compile Remove="Commands\PdfCommands.cs" />
+    <Compile Remove="Commands\PptxCommands.cs" />
+    <Compile Remove="Commands\OcrCommands.cs" />
+    <Compile Remove="Commands\RenderWorkerCommands.cs" />
+    <Compile Remove="Adapters\PdfOcrRecognizerAdapter.cs" />
+    <Compile Remove="Adapters\PdfOcrRecognizerStub.cs" />
+    <Compile Remove="Adapters\WordImageAnalyzerAdapter.cs" />
   </ItemGroup>
 </Project>

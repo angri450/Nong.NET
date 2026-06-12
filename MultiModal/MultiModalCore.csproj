@@ -4,8 +4,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>MultiModalCore</RootNamespace>
-    <AssemblyName>Angri450.Nong.MultiModal</AssemblyName>
-    <PackageId>Angri450.Nong.MultiModal</PackageId>
+    <IsPackable>false</IsPackable>
     <Version>4.1.0</Version>
     <Authors>angri450</Authors>
     <Description>Pure .NET local PP-OCRv6 CPU OCR engine via Sdcb.PaddleOCR + PaddleInference. No Python, no pip, no external OCR executable.</Description>
@@ -14,6 +13,9 @@
     <RepositoryUrl>https://github.com/angri450/Nong.Cli.Net</RepositoryUrl>
     <PackageTags>ocr paddleocr ppocrv6 native-runtime dotnet</PackageTags>
   </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="tools/**" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Docx\DocxCore.csproj" />
     <ProjectReference Include="..\OcrModels\OcrModels.csproj" />

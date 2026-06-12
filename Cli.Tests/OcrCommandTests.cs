@@ -13,69 +13,46 @@ public class OcrCommandTests
         Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
 
     static string NongDll => Path.Combine(RepoRoot, "Cli", "bin", "Release", "net8.0", "nong.dll");
-    static string MultiModalDll => Path.Combine(Path.GetDirectoryName(NongDll)!, "Angri450.Nong.MultiModal.dll");
+    static string OcrToolDir => Path.Combine(RepoRoot, "MultiModal", "tools", "bin", "Release", "net8.0");
+    static string OcrToolDll => Path.Combine(OcrToolDir, "nong-ocr.dll");
+    static string MultiModalDll => Path.Combine(OcrToolDir, "MultiModalCore.dll");
     static string OcrRuntimeVersionSource => Path.Combine(RepoRoot, "Cli", "Common", "OcrRuntimeVersion.cs");
     static string OcrCommandsSource => Path.Combine(RepoRoot, "Cli", "Commands", "OcrCommands.cs");
 
     (string json, int exitCode) Run(params string[] args)
     {
-        var allArgs = new List<string> { NongDll };
-        allArgs.AddRange(args);
-
-        var psi = new ProcessStartInfo("dotnet", allArgs)
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = false,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
-        using var proc = Process.Start(psi)!;
-        proc.WaitForExit(30000);
-        var json = proc.StandardOutput.ReadToEnd();
-        return (json, proc.ExitCode);
+        var result = CliTestToolPath.RunDotnetCli(
+            RepoRoot,
+            NongDll,
+            timeoutMs: 60000,
+            captureStdErr: false,
+            environment: null,
+            args);
+        return (result.StdOut, result.ExitCode);
     }
 
     (string stdout, string stderr, int exitCode) RunWithStderr(params string[] args)
     {
-        var allArgs = new List<string> { NongDll };
-        allArgs.AddRange(args);
-
-        var psi = new ProcessStartInfo("dotnet", allArgs)
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
-        using var proc = Process.Start(psi)!;
-        proc.WaitForExit(30000);
-        var stdout = proc.StandardOutput.ReadToEnd();
-        var stderr = proc.StandardError.ReadToEnd();
-        return (stdout, stderr, proc.ExitCode);
+        var result = CliTestToolPath.RunDotnetCli(
+            RepoRoot,
+            NongDll,
+            timeoutMs: 60000,
+            captureStdErr: true,
+            environment: null,
+            args);
+        return (result.StdOut, result.StdErr, result.ExitCode);
     }
 
     (string json, int exitCode) RunWithEnv(IReadOnlyDictionary<string, string> env, params string[] args)
     {
-        var allArgs = new List<string> { NongDll };
-        allArgs.AddRange(args);
-
-        var psi = new ProcessStartInfo("dotnet", allArgs)
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = false,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
-        foreach (var kvp in env)
-            psi.Environment[kvp.Key] = kvp.Value;
-
-        using var proc = Process.Start(psi)!;
-        proc.WaitForExit(60000);
-        var json = proc.StandardOutput.ReadToEnd();
-        return (json, proc.ExitCode);
+        var result = CliTestToolPath.RunDotnetCli(
+            RepoRoot,
+            NongDll,
+            timeoutMs: 60000,
+            captureStdErr: false,
+            environment: env,
+            args);
+        return (result.StdOut, result.ExitCode);
     }
 
     JsonDocument Parse(string json) => JsonDocument.Parse(json);
@@ -84,6 +61,8 @@ public class OcrCommandTests
     {
         Assert.True(File.Exists(NongDll),
             "nong.dll not found. Build first: dotnet build Cli/NongCli.csproj -c Release");
+        Assert.True(File.Exists(OcrToolDll),
+            "nong-ocr.dll not found. Build first: dotnet build MultiModal/tools/nong-ocr.csproj -c Release");
     }
 
     static string ReadOcrRuntimeVersion()
@@ -200,24 +179,13 @@ public class OcrCommandTests
         Assert.Equal("ocr install-model", root.GetProperty("command").GetString());
         var data = root.GetProperty("data");
         Assert.True(data.GetProperty("noPython").GetBoolean());
-        Assert.True(data.GetProperty("domesticNuGetSources").GetArrayLength() >= 1);
-        Assert.True(data.TryGetProperty("runtimeId", out var runtimeId));
-        Assert.False(string.IsNullOrWhiteSpace(runtimeId.GetString()));
-        Assert.True(data.TryGetProperty("runtimePackage", out var runtimePackage));
-        if (runtimePackage.ValueKind != JsonValueKind.Null)
-        {
-            Assert.StartsWith("Angri450.Nong.OcrRuntime.",
-                runtimePackage.GetProperty("id").GetString());
-            Assert.Equal(ReadOcrRuntimeVersion(), runtimePackage.GetProperty("version").GetString());
-        }
-        Assert.True(data.TryGetProperty("fallbackPackages", out var fallbackPackages));
-        Assert.Equal(JsonValueKind.Array, fallbackPackages.ValueKind);
-        Assert.True(data.TryGetProperty("allowUpstreamFallback", out var allowFallback));
-        Assert.False(allowFallback.GetBoolean());
-        Assert.Equal("disabled", data.GetProperty("upstreamFallbackDefault").GetString());
-        Assert.Contains("mirrors.huaweicloud.com", data.GetProperty("runtimeInstallCommand").GetString());
-        Assert.DoesNotContain("mirrors.cloud.tencent.com", json, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("mirrors.tuna.tsinghua.edu.cn", json, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("pp-ocrv6-medium", data.GetProperty("modelId").GetString());
+        Assert.Equal("medium", data.GetProperty("size").GetString());
+        Assert.Equal("pp-ocrv6-dotnet-sdcb", data.GetProperty("engine").GetString());
+        Assert.Equal("cdn-download-pir-model", data.GetProperty("deployment").GetString());
+        Assert.Contains("PP-OCRv6_medium_det_infer.tar", data.GetProperty("detUrl").GetString());
+        Assert.Contains("PP-OCRv6_medium_rec_infer.tar", data.GetProperty("recUrl").GetString());
+        Assert.Contains("No Python", data.GetProperty("note").GetString());
     }
 
     [Fact]
@@ -242,9 +210,9 @@ public class OcrCommandTests
 
         using var doc = Parse(json);
         var data = doc.RootElement.GetProperty("data");
-        Assert.True(data.GetProperty("allowUpstreamFallback").GetBoolean());
-        Assert.Equal("disabled", data.GetProperty("upstreamFallbackDefault").GetString());
-        Assert.Contains("--allow-upstream-fallback", data.GetProperty("upstreamFallbackCommand").GetString());
+        Assert.Equal("pp-ocrv6-medium", data.GetProperty("modelId").GetString());
+        Assert.Equal("cdn-download-pir-model", data.GetProperty("deployment").GetString());
+        Assert.True(data.GetProperty("noPython").GetBoolean());
     }
 
     // ===== Test 8: native extraction handles Windows/Linux/macOS files =====
@@ -280,7 +248,7 @@ public class OcrCommandTests
                 }
             }
 
-            var asm = Assembly.LoadFrom(NongDll);
+            var asm = Assembly.LoadFrom(OcrToolDll);
             var type = asm.GetType("Nong.Cli.Commands.OcrCommands", throwOnError: true)!;
             var method = type.GetMethod("ExtractNativeFiles", BindingFlags.NonPublic | BindingFlags.Static)!;
             var files = (List<string>)method.Invoke(null, new object[] { nupkg, "runtimes/linux-x64/native/", outputDir })!;

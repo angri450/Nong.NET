@@ -1,4 +1,5 @@
 using System.CommandLine;
+using DiagramCore;
 using Nong.Cli.Common;
 
 namespace Nong.Cli.Commands;

@@ -2,9 +2,10 @@ using System.CommandLine;
 using System.Text.Json;
 using System.IO.Compression;
 using System.Globalization;
+using MultiModalCore;
+using OpenCvSharp;
 using System.Drawing;
 using System.Drawing.Imaging;
-using MultiModalCore;
 using Nong.Cli.Common;
 
 namespace Nong.Cli.Commands
