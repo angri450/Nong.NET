@@ -35,27 +35,65 @@ public static class DocxPageEstimator
         int itemCount = 0;
         bool pageHasImage = false;
         bool pageHasTable = false;
+        int keepNextCount = 0;    // keepNext paragraphs on this page
+        int cantSplitCount = 0;   // cantSplit rows on this page
 
-        foreach (var el in bodyElements)
+        for (int idx = 0; idx < bodyElements.Count; idx++)
         {
+            var el = bodyElements[idx];
             long elH = EstimateElementHeight(el);
             bool isImage = el.Name.LocalName == "p" && el.Descendants()
                 .Any(e => e.Name.LocalName == "inline");
             bool isTable = el.Name.LocalName == "tbl";
 
-            if (accumulatedH + elH > textAreaH && accumulatedH > 0 && itemCount > 0)
+            // Detect keepNext on this paragraph
+            bool hasKeepNext = el.Name.LocalName == "p" && el.Elements()
+                .Where(e => e.Name.LocalName == "pPr")
+                .Any(pp => pp.Elements().Any(k => k.Name.LocalName == "keepNext"));
+            if (hasKeepNext) keepNextCount++;
+
+            // Detect cantSplit in table rows
+            if (el.Name.LocalName == "tbl")
+            {
+                cantSplitCount += el.Descendants()
+                    .Where(e => e.Name.LocalName == "trPr")
+                    .Count(trp => trp.Elements().Any(c => c.Name.LocalName == "cantSplit"));
+            }
+
+            bool wouldOverflow = accumulatedH + elH > textAreaH && accumulatedH > 0 && itemCount > 0;
+
+            // keepNext de-optimizes page break: if previous para has keepNext,
+            // don't break here — carry over to the next page
+            if (wouldOverflow && idx > 0)
+            {
+                var prevEl = bodyElements[idx - 1];
+                bool prevHasKeepNext = prevEl.Name.LocalName == "p" && prevEl.Elements()
+                    .Where(e => e.Name.LocalName == "pPr")
+                    .Any(pp => pp.Elements().Any(k => k.Name.LocalName == "keepNext"));
+
+                if (prevHasKeepNext)
+                {
+                    // Roll back the last item(s) with keepNext — they must stay together
+                    // Simple: if prev has keepNext, don't break — push current to next page
+                    wouldOverflow = false;
+                }
+            }
+
+            if (wouldOverflow)
             {
                 // Page break — flush current page
                 long wasteEmu = textAreaH - accumulatedH;
                 pages.Add(new PageInfo(pageNo, itemCount, accumulatedH, textAreaH,
                     wasteEmu, Math.Round((double)wasteEmu / textAreaH * 100, 1),
-                    pageHasImage, pageHasTable));
+                    pageHasImage, pageHasTable, keepNextCount, cantSplitCount));
 
                 pageNo++;
                 accumulatedH = 0;
                 itemCount = 0;
                 pageHasImage = false;
                 pageHasTable = false;
+                keepNextCount = 0;
+                cantSplitCount = 0;
             }
 
             accumulatedH += elH;
@@ -70,7 +108,7 @@ public static class DocxPageEstimator
             long wasteEmu = textAreaH - accumulatedH;
             pages.Add(new PageInfo(pageNo, itemCount, accumulatedH, textAreaH,
                 wasteEmu, Math.Round((double)wasteEmu / textAreaH * 100, 1),
-                pageHasImage, pageHasTable));
+                pageHasImage, pageHasTable, keepNextCount, cantSplitCount));
         }
 
         return new PageEstimateResult(pages.Count, pages.Sum(p => p.ItemCount),
@@ -177,7 +215,9 @@ public sealed record PageInfo(
     long WasteEmu,
     double WastePercent,
     bool HasImage,
-    bool HasTable)
+    bool HasTable,
+    int KeepNextCount,
+    int CantSplitCount)
 {
     public double ContentMm => Math.Round(ContentHeightEmu / 36000.0, 1);
     public double WasteMm => Math.Round(WasteEmu / 36000.0, 1);

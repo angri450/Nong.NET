@@ -6,7 +6,10 @@ namespace DocxCore;
 /// <summary>
 /// Compacts tables by removing fixed row heights, adjusting column widths,
 /// centering on the page, and letting cells flow to their natural content
-/// height. Pure OOXML manipulation — no COM, no SkiaSharp.
+/// height. Also preserves and applies OOXML pagination controls:
+/// keepNext (keep with next), keepLines (keep lines together),
+/// cantSplit (don't split row across pages).
+/// Pure OOXML manipulation — no COM, no SkiaSharp.
 /// </summary>
 public static class DocxTableCompactor
 {
@@ -146,8 +149,121 @@ public static class DocxTableCompactor
             changes.Add($"equalColumns:{maxCols}x{colWidth}dxa");
         }
 
+        // 6. Pagination control: preserve + enhance keepNext / cantSplit
+        var paginationChanges = ApplyPaginationControl(tbl, rows);
+        changes.AddRange(paginationChanges);
+
         rowsAfter = rows.Count;
         return new TableCompactInfo(index, rowsBefore, rowsAfter, changes);
+    }
+
+    /// <summary>
+    /// Preserves existing keepNext/keepLines on all cell paragraphs, and
+    /// adds keepNext to header-row cells so they stay glued to the next row.
+    /// Also marks fragile rows with cantSplit (don't split across pages).
+    /// </summary>
+    static List<string> ApplyPaginationControl(XElement tbl, List<XElement> rows)
+    {
+        var changes = new List<string>();
+        int keepNextExisting = 0, keepLinesExisting = 0;
+        int keepNextAdded = 0, cantSplitAdded = 0;
+
+        XNamespace w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+
+        for (int r = 0; r < rows.Count; r++)
+        {
+            var cells = rows[r].Elements().Where(e => e.Name.LocalName == "tc").ToList();
+
+            // Detect header rows: bold text in first cell, or table has <w:tblHeader/> repeat
+            bool isHeader = false;
+            if (r == 0 && tbl.Descendants().Any(e => e.Name.LocalName == "tblHeader"))
+                isHeader = true;
+
+            if (cells.Count > 0)
+            {
+                var firstCellText = string.Concat(
+                    cells[0].Descendants().Where(e => e.Name.LocalName == "t")
+                    .Select(t => t.Value));
+
+                var firstCellHasBold = cells[0].Descendants()
+                    .Any(e => e.Name.LocalName == "b");
+
+                if (firstCellHasBold && !string.IsNullOrWhiteSpace(firstCellText))
+                    isHeader = true;
+            }
+
+            // For each cell paragraph: preserve existing keepNext/keepLines
+            foreach (var tc in cells)
+            {
+                foreach (var para in tc.Elements().Where(e => e.Name.LocalName == "p"))
+                {
+                    var pPr = para.Elements().FirstOrDefault(e => e.Name.LocalName == "pPr");
+
+                    // Count existing
+                    if (pPr != null)
+                    {
+                        if (pPr.Elements().Any(e => e.Name.LocalName == "keepNext"))
+                            keepNextExisting++;
+                        if (pPr.Elements().Any(e => e.Name.LocalName == "keepLines"))
+                            keepLinesExisting++;
+                    }
+                }
+            }
+
+            // Add keepNext to header cells (glue header to next row)
+            if (isHeader && r < rows.Count - 1)
+            {
+                foreach (var tc in cells)
+                {
+                    foreach (var para in tc.Elements().Where(e => e.Name.LocalName == "p"))
+                    {
+                        var pPr = para.Elements().FirstOrDefault(e => e.Name.LocalName == "pPr");
+                        if (pPr == null)
+                        {
+                            pPr = new XElement(w + "pPr");
+                            para.AddFirst(pPr);
+                        }
+                        if (!pPr.Elements().Any(e => e.Name.LocalName == "keepNext"))
+                        {
+                            pPr.Add(new XElement(w + "keepNext"));
+                            keepNextAdded++;
+                        }
+                    }
+                }
+            }
+
+            // Add cantSplit to rows that are fragile (multi-line content in cells)
+            bool hasMultiLineCells = cells.Any(tc =>
+            {
+                var paraCount = tc.Elements().Where(e => e.Name.LocalName == "p").Count();
+                var textLength = string.Concat(
+                    tc.Descendants().Where(e => e.Name.LocalName == "t")
+                    .Select(t => t.Value)).Length;
+                return paraCount > 1 || textLength > 200;
+            });
+
+            if (hasMultiLineCells)
+            {
+                var trPr = rows[r].Elements().FirstOrDefault(e => e.Name.LocalName == "trPr");
+                if (trPr == null)
+                {
+                    trPr = new XElement(w + "trPr");
+                    rows[r].AddFirst(trPr);
+                }
+                if (!trPr.Elements().Any(e => e.Name.LocalName == "cantSplit"))
+                {
+                    trPr.Add(new XElement(w + "cantSplit"));
+                    cantSplitAdded++;
+                }
+            }
+        }
+
+        if (keepNextExisting > 0) changes.Add($"keepNext-preserved:{keepNextExisting}");
+        if (keepLinesExisting > 0) changes.Add($"keepLines-preserved:{keepLinesExisting}");
+        if (keepNextAdded > 0) changes.Add($"keepNext-added:{keepNextAdded}");
+        if (cantSplitAdded > 0) changes.Add($"cantSplit-added:{cantSplitAdded}");
+
+        return changes;
     }
 
     static long GetTextWidthTwips(XDocument doc)
