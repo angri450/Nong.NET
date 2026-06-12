@@ -28,13 +28,22 @@ class Program
             Console.WriteLine($"nong v{CliVersion.Current}");
         });
 
-        // === nong commands --json ===
+        // === nong commands --json / --format openai-tools ===
         var allOpt = new Option<bool>("--all", () => false, "Include stub commands");
-        var commandsCmd = new Command("commands", "List available commands") { allOpt };
-        commandsCmd.SetHandler((bool json, bool all) =>
+        var formatOpt = new Option<string>("--format", () => "default", "Output format: default, json, openai-tools");
+        var commandsCmd = new Command("commands", "List available commands") { allOpt, formatOpt };
+        commandsCmd.SetHandler((bool json, bool all, string format) =>
         {
             var manifest = Manifest.All();
             var filtered = all ? manifest : manifest.Where(c => c.Status == "implemented").ToList();
+
+            if (string.Equals(format, "openai-tools", StringComparison.OrdinalIgnoreCase))
+            {
+                var tools = filtered.Select(OpenAiToolSchema.FromCommand).ToList();
+                Console.WriteLine(JsonSerializer.Serialize(tools, CliHelpers.JsonOpts));
+                return;
+            }
+
             if (json)
             {
                 var output = JsonOutput.Ok("commands", $"{filtered.Count} commands available", filtered);
@@ -49,7 +58,7 @@ class Program
                     Console.WriteLine($"{c.Name,-35} {c.Description}{aliasStr}{stubTag}");
                 }
             }
-        }, jsonOpt, allOpt);
+        }, jsonOpt, allOpt, formatOpt);
         root.AddCommand(commandsCmd);
 
         // === Real command groups ===

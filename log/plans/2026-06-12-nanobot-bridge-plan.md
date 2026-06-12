@@ -1,7 +1,7 @@
 # NanoBot 桥接规划：工具自动注册 + Skill 路由
 
 日期: 2026-06-12
-状态: pending
+状态: done (Phase 1 CLI-side: `nong commands --format openai-tools` complete)
 
 ## 背景
 
