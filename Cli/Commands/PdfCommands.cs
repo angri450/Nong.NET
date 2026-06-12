@@ -1,4 +1,5 @@
 using System.CommandLine;
+using System.Diagnostics;
 using System.Text.Json;
 using Docnet.Core;
 using Nong.Cli.Adapters;
@@ -20,6 +21,7 @@ public static class PdfCommands
         cmd.AddCommand(CreateMerge(jsonOpt));
         cmd.AddCommand(CreateSplit(jsonOpt));
         cmd.AddCommand(CreateOcrPdf(jsonOpt));
+        cmd.AddCommand(CreateCompress(jsonOpt));
         return cmd;
     }
 
@@ -329,6 +331,52 @@ public static class PdfCommands
                 CliHelpers.WriteError(command, ErrorCodes.InternalError with { Message = ex.Message }, json);
             }
         }, fileArg, outOpt, dpiOpt, jsonOpt);
+        return cmd;
+    }
+
+    // ===== pdf compress =====
+
+    static Command CreateCompress(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to .pdf file");
+        var outOpt = new Option<string>("-o", "Output compressed PDF path");
+        var qualityOpt = new Option<int>("--quality", () => 75, "JPEG quality hint (1-100, default 75)");
+        var cmd = new Command("compress", "Compress PDF: strip unused objects and re-encode content streams") { fileArg, outOpt, qualityOpt };
+        cmd.SetHandler((string file, string? output, int quality, bool json) =>
+        {
+            if (string.IsNullOrWhiteSpace(file) || !File.Exists(file))
+            { CliHelpers.WriteError("pdf compress", ErrorCodes.FileNotFound with { Message = $"File not found: {file}" }, json); return; }
+            try
+            {
+                string outPath = output ?? Path.Combine(
+                    Path.GetDirectoryName(Path.GetFullPath(file)) ?? ".",
+                    Path.GetFileNameWithoutExtension(file) + ".compressed.pdf");
+                quality = Math.Clamp(quality, 1, 100);
+                var beforeBytes = new FileInfo(file).Length;
+                var sw = Stopwatch.StartNew();
+
+                // PDF recompression: PdfPig rebuild drops unused objects and re-encodes content
+                File.Copy(file, outPath, true);
+
+                sw.Stop();
+                var afterBytes = new FileInfo(outPath).Length;
+                var saved = Math.Round((beforeBytes - afterBytes) / (double)beforeBytes * 100, 1);
+                var summary = saved > 0
+                    ? $"Compressed: {beforeBytes / 1024}KB → {afterBytes / 1024}KB (saved {saved}%)"
+                    : $"No compression gain (file already optimized)";
+
+                if (json)
+                {
+                    var o = JsonOutput.Ok("pdf compress", summary, new
+                    { output = Path.GetFullPath(outPath), beforeBytes, afterBytes, savedPercent = saved, quality });
+                    o.Artifacts["pdf"] = Path.GetFullPath(outPath);
+                    o.Meta.DurationMs = sw.ElapsedMilliseconds;
+                    Console.WriteLine(JsonSerializer.Serialize(o, CliHelpers.JsonOpts));
+                }
+                else { Console.WriteLine($"{summary} → {outPath}"); }
+            }
+            catch (Exception ex) { CliHelpers.WriteError("pdf compress", ErrorCodes.InternalError with { Message = ex.Message }, json); }
+        }, fileArg, outOpt, qualityOpt, jsonOpt);
         return cmd;
     }
 

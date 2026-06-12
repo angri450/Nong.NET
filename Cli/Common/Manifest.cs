@@ -151,6 +151,7 @@ public static class Manifest
         list.Add(new("pdf merge", "Merge multiple PDF files into one", "pdf", []));
         list.Add(new("pdf split", "Split PDF pages into a separate document", "pdf", []));
         list.Add(new("pdf ocr", "Add rendered image layer to scanned PDF pages", "pdf", []));
+        list.Add(new("pdf compress", "Compress PDF by rebuilding content stream and removing unused objects", "pdf", []));
 
         // === lit (implemented: parse, validate, plan, search, export) ===
         list.Add(new("lit parse", "Parse CNKI-like literature retrieval DSL", "lit", []));

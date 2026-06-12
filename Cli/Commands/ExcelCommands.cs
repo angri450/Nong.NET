@@ -660,6 +660,53 @@ public static class ExcelCommands
                             }
                             rowCount++;
                         }
+
+                        // Apply column widths
+                        if (sheet.ColumnWidths != null)
+                        {
+                            for (int c = 0; c < sheet.ColumnWidths.Count && c < sheet.Headers.Count; c++)
+                            {
+                                if (sheet.ColumnWidths[c] > 0)
+                                    ws.Column(c + 1).Width = sheet.ColumnWidths[c];
+                            }
+                        }
+
+                        // Apply freeze panes
+                        if (sheet.FreezeRow.HasValue || sheet.FreezeCol.HasValue)
+                        {
+                            ws.SheetView.FreezeRows(sheet.FreezeRow ?? 0);
+                            ws.SheetView.FreezeColumns(sheet.FreezeCol ?? 0);
+                        }
+
+                        // Apply data validation
+                        if (sheet.Validations != null)
+                        {
+                            foreach (var v in sheet.Validations)
+                            {
+                                if (string.IsNullOrWhiteSpace(v.Range)) continue;
+                                var range = ws.Range(v.Range);
+                                var dv = range.CreateDataValidation();
+                                dv.IgnoreBlanks = true;
+                                dv.InCellDropdown = true;
+                                if (v.List != null && v.List.Count > 0)
+                                {
+                                    dv.List(string.Join(",", v.List));
+                                    dv.ErrorStyle = XLErrorStyle.Warning;
+                                }
+                                else if (v.Type == "whole" && v.Min.HasValue && v.Max.HasValue)
+                                {
+                                    dv.MinValue = v.Min.Value.ToString();
+                                    dv.MaxValue = v.Max.Value.ToString();
+                                    dv.AllowedValues = XLAllowedValues.WholeNumber;
+                                }
+                                else if (v.Type == "decimal" && v.Min.HasValue && v.Max.HasValue)
+                                {
+                                    dv.MinValue = v.Min.Value.ToString();
+                                    dv.MaxValue = v.Max.Value.ToString();
+                                    dv.AllowedValues = XLAllowedValues.Decimal;
+                                }
+                            }
+                        }
                     }
 
                     wb.SaveAs(output);
@@ -701,16 +748,34 @@ public static class ExcelCommands
 
 // === JSON spec model for excel create ===
 
-internal class ExcelCreateSpec
+public class ExcelCreateSpec
 {
     public List<ExcelSheetEntry> Sheets { get; set; } = new();
 }
 
-internal class ExcelSheetEntry
+public class ExcelSheetEntry
 {
     public string? Name { get; set; }
     public List<string?> Headers { get; set; } = new();
     public List<List<object?>> Rows { get; set; } = new();
+    public List<double>? ColumnWidths { get; set; }
+    public int? FreezeRow { get; set; }
+    public int? FreezeCol { get; set; }
+    public List<ExcelValidationRule>? Validations { get; set; }
+}
+
+public class ExcelValidationRule
+{
+    [System.Text.Json.Serialization.JsonPropertyName("range")]
+    public string? Range { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("type")]
+    public string? Type { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("list")]
+    public List<string> List { get; set; } = new();
+    [System.Text.Json.Serialization.JsonPropertyName("min")]
+    public double? Min { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("max")]
+    public double? Max { get; set; }
 }
 
 // === JSON spec model for excel style ===
