@@ -13,18 +13,6 @@
           "YamlDotNet": "16.3.0"
         }
       },
-      "Sdcb.PaddleOCR.Models.Local": {
-        "type": "Direct",
-        "requested": "[3.3.1, )",
-        "resolved": "3.3.1",
-        "contentHash": "PJUl3SGde5oybRiZc/CU4fkH3yeEiQ1AHuZW2UuhmY3yPxnB7Hjf/UTbWZlDvjQyBQB1hybYC2/YXPyay9UN/g==",
-        "dependencies": {
-          "Sdcb.PaddleOCR": "3.3.1",
-          "Sdcb.PaddleOCR.Models.LocalV5": "3.0.0",
-          "Sdcb.PaddleOCR.Models.Shared": "2.7.0.1",
-          "YamlDotNet": "16.3.0"
-        }
-      },
       "HarfBuzzSharp.NativeAssets.Linux": {
         "type": "Transitive",
         "resolved": "8.3.1.1",
@@ -74,16 +62,6 @@
         "dependencies": {
           "System.Runtime.InteropServices.RuntimeInformation": "4.3.0"
         }
-      },
-      "Sdcb.PaddleOCR.Models.LocalV5": {
-        "type": "Transitive",
-        "resolved": "3.0.0",
-        "contentHash": "1eOr6jFrPKbntiHtiEJ0R93d8ptzgOj8z6sV5xvVoQkKnAo1LP9avg6TAVDnpQidzEeYUjYYgO3G//QJBIbZ6w=="
-      },
-      "Sdcb.PaddleOCR.Models.Shared": {
-        "type": "Transitive",
-        "resolved": "2.7.0.1",
-        "contentHash": "b1h41loXb9w3sgcXRBMtsMPkYI1bN/r+eKpKkFrsopEdUpUQXNRhr2GZ0SqNq9SbN7YzMacVTE4H1O6hBZqx0A=="
       },
       "SkiaSharp.NativeAssets.Linux.NoDependencies": {
         "type": "Transitive",
@@ -294,9 +272,12 @@
       "Angri450.Nong.Docx": {
         "type": "Project",
         "dependencies": {
-          "Angri450.Nong.Pandoc": "[4.0.0, )",
-          "Angri450.Nong.ThirdParty": "[4.0.0, )"
+          "Angri450.Nong.Pandoc": "[4.1.0, )",
+          "Angri450.Nong.ThirdParty": "[4.1.0, )"
         }
+      },
+      "Angri450.Nong.OcrModels": {
+        "type": "Project"
       },
       "Angri450.Nong.Pandoc": {
         "type": "Project"

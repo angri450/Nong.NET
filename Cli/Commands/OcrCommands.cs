@@ -2,6 +2,8 @@ using System.CommandLine;
 using System.Text.Json;
 using System.IO.Compression;
 using System.Globalization;
+using System.Drawing;
+using System.Drawing.Imaging;
 using MultiModalCore;
 using Nong.Cli.Common;
 
@@ -20,6 +22,10 @@ public static class OcrCommands
         cmd.AddCommand(CreateAnalyzeImage(jsonOpt));
         cmd.AddCommand(CreateModels(jsonOpt));
         cmd.AddCommand(CreateInstallModel(jsonOpt));
+        cmd.AddCommand(CreateBatch(jsonOpt));
+        cmd.AddCommand(CreateVideo(jsonOpt));
+        cmd.AddCommand(CreateScreen(jsonOpt));
+        cmd.AddCommand(CreateCamera(jsonOpt));
         return cmd;
     }
 
@@ -252,7 +258,7 @@ public static class OcrCommands
                     return;
                 }
 
-                using var client = new PpOcrV5Client();
+                using var client = new PpOcrV6Client();
                 var (result, elapsed) = CliHelpers.Time(() =>
                     client.RecognizeAsync(image).GetAwaiter().GetResult());
                 var page = result.Pages.FirstOrDefault();
@@ -334,7 +340,7 @@ public static class OcrCommands
                     CliHelpers.WriteError("ocr local",
                         ErrorCodes.DependencyMissing with
                         {
-                            Message = $"Local PP-OCRv5 .NET runtime is unavailable: {ex.Message}. Update Angri450.Nong.Cli, then run 'nong ocr install-model pp-ocrv5-mobile --json'. No Python is required."
+                            Message = $"Local PP-OCRv6 .NET runtime is unavailable: {ex.Message}. Run 'nong ocr install-model pp-ocrv6-medium --json'. No Python is required."
                         }, json);
                 }
             }
@@ -351,7 +357,7 @@ public static class OcrCommands
                 CliHelpers.WriteError("ocr local",
                     ErrorCodes.DependencyMissing with
                     {
-                        Message = $"Local PP-OCRv5 .NET runtime is unavailable: {ex.Message}. Run 'nong ocr install-model pp-ocrv5-mobile --json'. No Python is required."
+                        Message = $"Local PP-OCRv6 .NET runtime is unavailable: {ex.Message}. Run 'nong ocr install-model pp-ocrv6-medium --json'. No Python is required."
                     }, json);
             }
             catch (Exception ex)
@@ -606,8 +612,12 @@ public static class OcrCommands
             else
                 modelStatus = "bundled";
 
-            var localDotNet = PpOcrV5Client.CheckEnvironment();
+            var localDotNet = PpOcrV6Client.CheckEnvironment();
             var localDotNetStatus = localDotNet.Available ? "ok" : "missing";
+
+            // v6 auto-detection
+            var (v6Available, v6Size, v6CachePath) = PpOcrV6ModelResolver.DetectInstalled();
+            var v6Status = v6Available ? "ok" : "missing";
 
             if (json)
             {
@@ -629,14 +639,28 @@ public static class OcrCommands
                         runtime = localDotNet.Runtime,
                         noPython = true,
                         message = localDotNet.Message
+                    },
+                    localDotNetPpOcrV6 = new
+                    {
+                        status = v6Status,
+                        engine = v6Available ? "pp-ocrv6-dotnet-sdcb" : "unavailable",
+                        modelId = v6Available ? $"pp-ocrv6-{v6Size}" : "pp-ocrv6-medium",
+                        modelSize = v6Available ? v6Size : null,
+                        modelCachePath = v6Available ? v6CachePath : null,
+                        noPython = true,
+                        isDefault = true,
+                        message = v6Available
+                            ? $"PP-OCRv6 {v6Size} is installed and ready."
+                            : "PP-OCRv6 model is not installed. Run nong ocr install-model pp-ocrv6-medium --json. No Python is required."
                     }
                 };
                 var output = JsonOutput.Ok("ocr check-env",
-                    $"imageAnalyzer={data.imageAnalyzer}, token={tokenStatus}, localDotNet={localDotNetStatus}",
+                    $"imageAnalyzer={data.imageAnalyzer}, token={tokenStatus}, v5={localDotNetStatus}, v6={v6Status}",
                     data);
                 output.Metrics["imageAnalyzer"] = imageAnalyzerOk ? 1 : 0;
                 output.Metrics["cloudToken"] = tokenStatus == "missing" ? 0 : 1;
                 output.Metrics["localDotNetPpOcrV5"] = localDotNet.Available ? 1 : 0;
+                output.Metrics["localDotNetPpOcrV6"] = v6Available ? 1 : 0;
 
                 if (tokenStatus == "deprecated")
                 {
@@ -656,6 +680,7 @@ public static class OcrCommands
                 Console.WriteLine($"Cloud token: {tokenStatus}");
                 Console.WriteLine($"PP-OCRv5 model: {modelStatus}");
                 Console.WriteLine($"Local .NET PP-OCRv5: {localDotNetStatus} ({localDotNet.Message})");
+                Console.WriteLine($"Local .NET PP-OCRv6: {v6Status}" + (v6Available ? $" ({v6Size})" : " (not installed)"));
             }
         }, jsonOpt);
 
@@ -768,8 +793,8 @@ public static class OcrCommands
         cmd.SetHandler((bool json) =>
         {
             var models = new List<object>();
-            var cachePath = PpOcrV5ModelResolver.GetCachePath();
-            var env = PpOcrV5Client.CheckEnvironment();
+            var cachePath = PpOcrV6ModelResolver.GetModelCachePath("medium");
+            var env = PpOcrV6Client.CheckEnvironment();
 
             models.Add(new
             {
@@ -822,10 +847,32 @@ public static class OcrCommands
                     checksum = checksum ?? "unknown"
                 });
             }
+            // v6 models
+            foreach (var size in PpOcrV6ModelResolver.SupportedSizes)
+            {
+                var v6Cache = PpOcrV6ModelResolver.GetModelCachePath(size);
+                var v6Available = PpOcrV6ModelResolver.ValidateModelCache(v6Cache);
+                models.Add(new
+                {
+                    id = $"pp-ocrv6-{size}",
+                    engine = "pp-ocrv6-dotnet-sdcb",
+                    modelSize = size,
+                    deployment = "cdn-download-pir-model",
+                    language = size == "tiny" ? "chinese-v6-tiny" : "chinese-v6-multilingual",
+                    available = v6Available,
+                    isDefault = size == "medium",
+                    noPython = true,
+                    installCommand = $"nong ocr install-model pp-ocrv6-{size} --json",
+                    modelCachePath = v6Cache,
+                    message = v6Available
+                        ? $"PP-OCRv6 {size} model is installed."
+                        : $"PP-OCRv6 {size} model is not installed. Run nong ocr install-model pp-ocrv6-{size} --json."
+                });
+            }
 
             if (json)
             {
-                var data = new { models };
+                var data = new { models, defaultModel = "pp-ocrv6-medium" };
                 var output = JsonOutput.Ok("ocr models",
                     $"Found {models.Count} model(s)", data);
                 output.Metrics["modelCount"] = models.Count;
@@ -835,7 +882,7 @@ public static class OcrCommands
             {
                 if (models.Count == 0)
                 {
-                    Console.WriteLine("No PP-OCRv5 models installed.");
+                    Console.WriteLine("No OCR models installed.");
                 }
                 else
                 {
@@ -852,7 +899,7 @@ public static class OcrCommands
 
     static Command CreateInstallModel(Option<bool> jsonOpt)
     {
-        var modelIdArg = new Argument<string>("model-id", "Model ID to install (e.g. pp-ocrv5-mobile)");
+        var modelIdArg = new Argument<string>("model-id", "Model ID: pp-ocrv6 (default=medium), pp-ocrv6-medium, pp-ocrv6-small, pp-ocrv6-tiny");
         var dryRunOpt = new Option<bool>("--dry-run", () => false, "Report the .NET native runtime deployment plan without changing the machine");
         var sourceOpt = new Option<string>("--source",
             () => "https://mirrors.huaweicloud.com/repository/nuget/v3/index.json",
@@ -869,16 +916,22 @@ public static class OcrCommands
 
         cmd.SetHandler((string modelId, bool dryRun, string source, bool allowUpstreamFallback, bool json) =>
         {
-            if (modelId != "pp-ocrv5-mobile")
+            if (!PpOcrV6ModelResolver.AllModelIds.Contains(modelId))
             {
                 CliHelpers.WriteError("ocr install-model",
-                    ErrorCodes.ValidationFailed with { Message = $"Unknown model ID: {modelId}. Supported: pp-ocrv5-mobile" }, json);
+                    ErrorCodes.ValidationFailed with { Message = $"Unknown model ID: {modelId}. Supported: {string.Join(", ", PpOcrV6ModelResolver.AllModelIds)}" }, json);
                 return;
             }
 
-            var cachePath = PpOcrV5ModelResolver.GetCachePath();
-            var env = PpOcrV5Client.CheckEnvironment();
-            var runtimeCache = PpOcrV5ModelResolver.GetNativeRuntimeCachePath();
+            if (PpOcrV6ModelResolver.IsV6ModelId(modelId))
+            {
+                InstallV6Model(modelId, dryRun, json);
+                return;
+            }
+
+            var cachePath = PpOcrV6ModelResolver.GetModelCachePath("medium");
+            var env = PpOcrV6Client.CheckEnvironment();
+            var runtimeCache = PpOcrV6ModelResolver.GetNativeRuntimeCachePath();
             var runtimePlan = GetNativeRuntimePlan();
             var domesticNuGetSources = new[]
             {
@@ -955,7 +1008,7 @@ public static class OcrCommands
                 var (installed, elapsed) = CliHelpers.Time(() =>
                     InstallNativeRuntime(runtimePlan, runtimeCache, source, allowUpstreamFallback));
 
-                var after = PpOcrV5Client.CheckEnvironment();
+                var after = PpOcrV6Client.CheckEnvironment();
                 if (!after.Available)
                 {
                     CliHelpers.WriteError("ocr install-model",
@@ -1008,7 +1061,186 @@ public static class OcrCommands
 
     // ===== helpers =====
 
-    static string GetPpOcrV5ModelCachePath() => PpOcrV5ModelResolver.GetCachePath();
+    // ===== v6 model install =====
+
+    static void InstallV6Model(string modelId, bool dryRun, bool json)
+    {
+        var (_, size) = PpOcrV6ModelResolver.ParseModelId(modelId);
+        var modelCachePath = PpOcrV6ModelResolver.GetModelCachePath(size);
+
+        if (dryRun)
+        {
+            var data = new
+            {
+                modelId = PpOcrV6ModelResolver.CanonicalModelId(modelId),
+                size,
+                engine = "pp-ocrv6-dotnet-sdcb",
+                deployment = "cdn-download-pir-model",
+                detUrl = PpOcrV6ModelResolver.DetDownloadUrl(size),
+                recUrl = PpOcrV6ModelResolver.RecDownloadUrl(size),
+                modelCachePath,
+                noPython = true,
+                note = "PP-OCRv6 models are downloaded from PaddleOCR CDN (PIR format, Paddle 3.0). No Python, pip, or NuGet model packages required. Native runtime DLLs come from the existing Nong.OcrRuntime NuGet install."
+            };
+            var output = JsonOutput.Ok("ocr install-model", $"Dry run: PP-OCRv6 {size} deployment plan", data);
+            Console.WriteLine(JsonSerializer.Serialize(output, CliHelpers.JsonOpts));
+            return;
+        }
+
+        // Check if already installed
+        if (PpOcrV6ModelResolver.ValidateModelCache(modelCachePath))
+        {
+            var output = JsonOutput.Ok("ocr install-model",
+                $"PP-OCRv6 {size} is already installed",
+                new
+                {
+                    modelId = PpOcrV6ModelResolver.CanonicalModelId(modelId),
+                    size,
+                    engine = "pp-ocrv6-dotnet-sdcb",
+                    modelCachePath,
+                    noPython = true
+                });
+            Console.WriteLine(JsonSerializer.Serialize(output, CliHelpers.JsonOpts));
+            return;
+        }
+
+        // Download + extract
+        try
+        {
+            var elapsed = CliHelpers.Time(() =>
+            {
+                DownloadAndExtractV6Model(size, modelCachePath);
+            });
+
+            // Verify after install
+            if (!PpOcrV6ModelResolver.ValidateModelCache(modelCachePath))
+            {
+                CliHelpers.WriteError("ocr install-model",
+                    ErrorCodes.DependencyMissing with
+                    {
+                        Message = $"Model files were downloaded but cache is still incomplete: {modelCachePath}"
+                    }, json);
+                return;
+            }
+
+            var output = JsonOutput.Ok("ocr install-model",
+                $"PP-OCRv6 {size} installed",
+                new
+                {
+                    modelId = PpOcrV6ModelResolver.CanonicalModelId(modelId),
+                    size,
+                    engine = "pp-ocrv6-dotnet-sdcb",
+                    modelCachePath,
+                    noPython = true
+                });
+            output.Artifacts["modelDir"] = modelCachePath;
+            output.Meta.DurationMs = elapsed;
+            Console.WriteLine(JsonSerializer.Serialize(output, CliHelpers.JsonOpts));
+        }
+        catch (Exception ex)
+        {
+            CliHelpers.WriteError("ocr install-model",
+                ErrorCodes.DependencyMissing with
+                {
+                    Message = $"Failed to install PP-OCRv6 {size}: {ex.Message}"
+                }, json);
+        }
+    }
+
+    static void DownloadAndExtractV6Model(string size, string modelCachePath)
+    {
+        var detUrl = PpOcrV6ModelResolver.DetDownloadUrl(size);
+        var recUrl = PpOcrV6ModelResolver.RecDownloadUrl(size);
+
+        var tmpDir = Path.Combine(Path.GetTempPath(), $"ppocrv6-{size}-{Guid.NewGuid():N}");
+        try
+        {
+            Directory.CreateDirectory(tmpDir);
+            Directory.CreateDirectory(modelCachePath);
+
+            using var http = new HttpClient();
+
+            // Download det
+            var detTar = Path.Combine(tmpDir, "det.tar");
+            Console.Error.WriteLine($"[ppocrv6] Downloading {detUrl}");
+            using (var detStream = http.GetStreamAsync(detUrl).GetAwaiter().GetResult())
+            using (var detFs = File.Create(detTar))
+                detStream.CopyTo(detFs);
+
+            // Download rec
+            var recTar = Path.Combine(tmpDir, "rec.tar");
+            Console.Error.WriteLine($"[ppocrv6] Downloading {recUrl}");
+            using (var recStream = http.GetStreamAsync(recUrl).GetAwaiter().GetResult())
+            using (var recFs = File.Create(recTar))
+                recStream.CopyTo(recFs);
+
+            // Extract det
+            var detDir = PpOcrV6ModelResolver.GetDetDir(modelCachePath);
+            Directory.CreateDirectory(detDir);
+            Console.Error.WriteLine($"[ppocrv6] Extracting det model to {detDir}");
+            ExtractTar(detTar, detDir);
+
+            // Extract rec
+            var recDir = PpOcrV6ModelResolver.GetRecDir(modelCachePath);
+            Directory.CreateDirectory(recDir);
+            Console.Error.WriteLine($"[ppocrv6] Extracting rec model to {recDir}");
+            ExtractTar(recTar, recDir);
+
+            // Extract dict from embedded resource
+            var dictPath = PpOcrV6ModelResolver.GetDictPath(modelCachePath);
+            Console.Error.WriteLine($"[ppocrv6] Extracting dict to {dictPath}");
+            PpOcrV6ModelResolver.ExtractDict(size, dictPath);
+
+            // Write manifest
+            var manifestPath = Path.Combine(modelCachePath, "manifest.json");
+            File.WriteAllText(manifestPath, JsonSerializer.Serialize(new
+            {
+                schemaVersion = "nong-ocr-model/v1",
+                modelId = $"pp-ocrv6-{size}",
+                engine = "pp-ocrv6-dotnet-sdcb",
+                size,
+                installedAt = DateTimeOffset.UtcNow,
+                detUrl,
+                recUrl,
+                noPython = true
+            }, CliHelpers.JsonOpts));
+        }
+        finally
+        {
+            try { Directory.Delete(tmpDir, recursive: true); } catch { }
+        }
+    }
+
+    static void ExtractTar(string tarPath, string destDir)
+    {
+        // Use System.Formats.Tar (available in .NET 7+)
+        // Tar entries are like "PP-OCRv6_tiny_det_infer/inference.json"
+        // We strip the top-level directory to extract directly into destDir.
+        using var fs = File.OpenRead(tarPath);
+        using var reader = new System.Formats.Tar.TarReader(fs);
+        while (reader.GetNextEntry() is { } entry)
+        {
+            var name = entry.Name.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+            // Strip leading directory (e.g. "PP-OCRv6_tiny_det_infer/")
+            var slash = name.IndexOf(Path.DirectorySeparatorChar);
+            var relativeName = slash >= 0 && slash < name.Length - 1
+                ? name[(slash + 1)..]
+                : name;
+
+            var outPath = Path.Combine(destDir, relativeName);
+            if (entry.EntryType == System.Formats.Tar.TarEntryType.Directory)
+            {
+                Directory.CreateDirectory(outPath);
+            }
+            else
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(outPath)!);
+                entry.ExtractToFile(outPath, overwrite: true);
+            }
+        }
+    }
+
+    static string GetPpOcrV6ModelCachePath() => PpOcrV6ModelResolver.GetModelCachePath("medium");
 
     sealed record NativeRuntimePackage(string Id, string Version, string NativePrefix);
     sealed record NativeRuntimePlan(string RuntimeId, NativeRuntimePackage? BundlePackage, IReadOnlyList<NativeRuntimePackage> FallbackPackages);
@@ -1016,7 +1248,7 @@ public static class OcrCommands
 
     static NativeRuntimePlan GetNativeRuntimePlan()
     {
-        var runtimeId = PpOcrV5ModelResolver.GetNativeRuntimeId();
+        var runtimeId = PpOcrV6ModelResolver.GetNativeRuntimeId();
         return runtimeId switch
         {
             "win-x64" => new NativeRuntimePlan(
@@ -1303,5 +1535,538 @@ public static class OcrCommands
             || lower.EndsWith(".so")
             || lower.Contains(".so.");
     }
+
+    // ===== ocr batch =====
+
+    static Command CreateBatch(Option<bool> jsonOpt)
+    {
+        var dirArg = new Argument<string>("dir", "Directory containing image files");
+        var patternOpt = new Option<string>("--pattern", () => "*.png", "File pattern (e.g. *.jpg)");
+        var recursiveOpt = new Option<bool>("--recursive", () => false, "Search subdirectories");
+        var cmd = new Command("batch", "Batch OCR on all images in a directory") { dirArg, patternOpt, recursiveOpt };
+
+        cmd.SetHandler((string dir, string pattern, bool recursive, bool json) =>
+        {
+            if (string.IsNullOrWhiteSpace(dir))
+            {
+                CliHelpers.WriteError("ocr batch", ErrorCodes.MissingArgument with { Message = "Directory path is required." }, json);
+                return;
+            }
+            if (!Directory.Exists(dir))
+            {
+                CliHelpers.WriteError("ocr batch", ErrorCodes.FileNotFound with { Message = $"Directory not found: {dir}" }, json);
+                return;
+            }
+
+            try
+            {
+                var searchOption = recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+                var files = Directory.EnumerateFiles(dir, pattern, searchOption)
+                    .Where(f => IsImageExtension(f))
+                    .OrderBy(f => f)
+                    .ToList();
+
+                if (files.Count == 0)
+                {
+                    var output = JsonOutput.Ok("ocr batch", "No matching image files found.",
+                        new { dir = Path.GetFullPath(dir), pattern, fileCount = 0 });
+                    Console.WriteLine(JsonSerializer.Serialize(output, CliHelpers.JsonOpts));
+                    return;
+                }
+
+                var (ocr, modelId) = CreateOcrClient();
+                using var client = ocr;
+                var results = new List<object>();
+                var totalElapsed = 0L;
+
+                foreach (var file in files)
+                {
+                    try
+                    {
+                        var (result, elapsed) = CliHelpers.Time(() =>
+                            InvokeRecognize(client, file));
+                        totalElapsed += elapsed;
+                        var page = result.Pages.FirstOrDefault();
+
+                        results.Add(new
+                        {
+                            file = Path.GetFullPath(file),
+                            fileName = Path.GetFileName(file),
+                            text = string.Join(" ", (page?.Blocks ?? new List<PpOcrV5Block>()).Select(b => b.Text)),
+                            confidence = page?.Blocks.FirstOrDefault()?.Confidence,
+                            blocks = page?.Blocks.Count ?? 0
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        results.Add(new
+                        {
+                            file = Path.GetFullPath(file),
+                            fileName = Path.GetFileName(file),
+                            error = ex.Message
+                        });
+                    }
+                }
+
+                var okCount = results.Count(r =>
+                {
+                    try { return ((dynamic)r).error == null; } catch { return true; }
+                });
+
+                if (json)
+                {
+                    var data = new
+                    {
+                        dir = Path.GetFullPath(dir),
+                        pattern,
+                        totalFiles = files.Count,
+                        successCount = okCount,
+                        results
+                    };
+                    var output = JsonOutput.Ok("ocr batch",
+                        $"Batch OCR: {okCount}/{files.Count} files", data);
+                    output.Metrics["totalFiles"] = files.Count;
+                    output.Metrics["successCount"] = okCount;
+                    output.Meta.DurationMs = totalElapsed;
+                    Console.WriteLine(JsonSerializer.Serialize(output, CliHelpers.JsonOpts));
+                }
+                else
+                {
+                    Console.WriteLine($"Batch: {okCount}/{files.Count}");
+                    foreach (dynamic r in results)
+                    {
+                        if (r.error != null)
+                            Console.WriteLine($"  FAIL {r.fileName}: {r.error}");
+                        else
+                            Console.WriteLine($"  OK   {r.fileName}: {r.text}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                CliHelpers.WriteError("ocr batch", ErrorCodes.InternalError with { Message = ex.Message }, json);
+            }
+        }, dirArg, patternOpt, recursiveOpt, jsonOpt);
+
+        return cmd;
+    }
+
+    // ===== ocr video =====
+
+    static Command CreateVideo(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to video file");
+        var outOpt = new Option<string>("-o", "Output directory (also writes .srt subtitle file)") { IsRequired = true };
+        var fpsOpt = new Option<double>("--fps", () => 1, "Frames per second to sample");
+        var thresholdOpt = new Option<int>("--dedup-threshold", () => 12, "dHash dedup threshold (0-64, lower=stricter)");
+        var cmd = new Command("video", "Extract and OCR text from video frames") { fileArg, outOpt, fpsOpt, thresholdOpt };
+
+        cmd.SetHandler((string file, string outputDir, double fps, int dedupThreshold, bool json) =>
+        {
+            if (string.IsNullOrWhiteSpace(file))
+            {
+                CliHelpers.WriteError("ocr video", ErrorCodes.MissingArgument with { Message = "Video path is required." }, json);
+                return;
+            }
+            if (!File.Exists(file))
+            {
+                CliHelpers.WriteError("ocr video", ErrorCodes.FileNotFound with { Message = $"Video not found: {file}" }, json);
+                return;
+            }
+
+            try
+            {
+                // Pre-load native runtime before VideoCapture (needs OpenCvSharpExtern + videoio DLLs)
+                PpOcrV6Client.CheckEnvironment();
+                using var cap = new OpenCvSharp.VideoCapture(file);
+                if (!cap.IsOpened())
+                {
+                    CliHelpers.WriteError("ocr video",
+                        ErrorCodes.DependencyMissing with { Message = $"Cannot open video: {file}. Ensure opencv_videoio_ffmpeg DLL is present in runtime directory." }, json);
+                    return;
+                }
+
+                var sourceFps = cap.Fps > 0 ? cap.Fps : 30;
+                var frameInterval = Math.Max(1, (int)(sourceFps / fps));
+
+                CliHelpers.EnsureParentDir(Path.Combine(outputDir, ".keep"));
+                var (ocr, modelId) = CreateOcrClient();
+                using var client = ocr;
+                using var frame = new OpenCvSharp.Mat();
+
+                var allFrames = new List<FrameOcrResult>();
+                var lastHash = 0UL;
+                var frameIdx = 0;
+                var processedIdx = 0;
+                var totalElapsed = 0L;
+
+                while (cap.Read(frame) && !frame.Empty())
+                {
+                    frameIdx++;
+                    if (frameIdx % frameInterval != 0) continue;
+
+                    var hash = ComputeDHash(frame);
+                    var dist = HammingDistance(lastHash, hash);
+                    if (processedIdx > 0 && dist < dedupThreshold)
+                    {
+                        lastHash = hash;
+                        continue;
+                    }
+                    lastHash = hash;
+
+                    var ocrResult = RecognizeOcrFrame(ocr, frame, out var elapsed);
+                    totalElapsed += elapsed;
+
+                    if (ocrResult != null)
+                    {
+                        processedIdx++;
+                        var ts = TimeSpan.FromSeconds(frameIdx / sourceFps);
+                        allFrames.Add(new FrameOcrResult
+                        {
+                            FrameIndex = frameIdx,
+                            Timestamp = ts,
+                            TimestampStr = $"{(int)ts.TotalHours:D2}:{ts.Minutes:D2}:{ts.Seconds:D2},{ts.Milliseconds:D3}",
+                            Text = ocrResult.Value.Text.Trim(),
+                            Confidence = ocrResult.Value.Confidence
+                        });
+                    }
+                }
+
+                var srtPath = Path.Combine(outputDir, "ocr.srt");
+                WriteSrt(srtPath, allFrames);
+                var framesPath = Path.Combine(outputDir, "frames.json");
+                File.WriteAllText(framesPath, JsonSerializer.Serialize(allFrames, CliHelpers.JsonOpts));
+
+                var textFrames = allFrames.Where(f => f.Text.Length > 0).ToList();
+
+                if (json)
+                {
+                    var data = new
+                    {
+                        video = Path.GetFullPath(file),
+                        sourceFps,
+                        sampleFps = fps,
+                        totalFrames = frameIdx,
+                        sampledFrames = processedIdx,
+                        textFrames = textFrames.Count,
+                        textLines = textFrames.Select(f => f.Text).ToList(),
+                        artifacts = new { srt = Path.GetFullPath(srtPath), framesJson = Path.GetFullPath(framesPath) }
+                    };
+                    var output = JsonOutput.Ok("ocr video",
+                        $"Video OCR: {textFrames.Count} frames with text (from {processedIdx} sampled, {frameIdx} total)", data);
+                    output.Artifacts["srt"] = Path.GetFullPath(srtPath);
+                    output.Artifacts["framesJson"] = Path.GetFullPath(framesPath);
+                    output.Metrics["totalFrames"] = frameIdx;
+                    output.Metrics["sampledFrames"] = processedIdx;
+                    output.Metrics["textFrames"] = textFrames.Count;
+                    output.Meta.DurationMs = totalElapsed;
+                    Console.WriteLine(JsonSerializer.Serialize(output, CliHelpers.JsonOpts));
+                }
+                else
+                {
+                    Console.WriteLine($"Video: {textFrames.Count} unique text frames (from {processedIdx} sampled, {frameIdx} total)");
+                    Console.WriteLine($"SRT: {srtPath}");
+                    Console.WriteLine($"Frames JSON: {framesPath}");
+                    foreach (var f in textFrames)
+                        Console.WriteLine($"  {f.TimestampStr}  {f.Text}");
+                }
+            }
+            catch (Exception ex) when (ex.Message.Contains("opencv_videoio") || ex is DllNotFoundException)
+            {
+                CliHelpers.WriteError("ocr video",
+                    ErrorCodes.DependencyMissing with { Message = $"Video decoding requires opencv_videoio_ffmpeg DLL. {ex.Message}" }, json);
+            }
+            catch (Exception ex)
+            {
+                CliHelpers.WriteError("ocr video", ErrorCodes.InternalError with { Message = ex.Message }, json);
+            }
+        }, fileArg, outOpt, fpsOpt, thresholdOpt, jsonOpt);
+
+        return cmd;
+    }
+
+    // ===== ocr screen =====
+
+    static Command CreateScreen(Option<bool> jsonOpt)
+    {
+        var regionOpt = new Option<string>("--region", "Screen region x,y,w,h (e.g. 100,100,800,600)");
+        var cmd = new Command("screen", "Capture and OCR a screen region (Windows)") { regionOpt };
+
+        cmd.SetHandler((string? region, bool json) =>
+        {
+            if (!OperatingSystem.IsWindows())
+            {
+                CliHelpers.WriteError("ocr screen",
+                    ErrorCodes.UnsupportedFormat with { Message = "ocr screen is Windows only." }, json);
+                return;
+            }
+
+            try
+            {
+                Rectangle rect;
+                if (!string.IsNullOrWhiteSpace(region))
+                {
+                    var parts = region.Split(',');
+                    if (parts.Length != 4 ||
+                        !int.TryParse(parts[0], out var x) || !int.TryParse(parts[1], out var y) ||
+                        !int.TryParse(parts[2], out var w) || !int.TryParse(parts[3], out var h))
+                    {
+                        CliHelpers.WriteError("ocr screen",
+                            ErrorCodes.ValidationFailed with { Message = $"Invalid region: {region}. Expected x,y,w,h (e.g. 100,100,800,600)" }, json);
+                        return;
+                    }
+                    rect = new Rectangle(x, y, w, h);
+                }
+                else
+                {
+                    rect = GetPrimaryScreenBounds();
+                }
+
+                using var bmp = new Bitmap(rect.Width, rect.Height, PixelFormat.Format24bppRgb);
+                using var g = Graphics.FromImage(bmp);
+                g.CopyFromScreen(rect.X, rect.Y, 0, 0, rect.Size);
+
+                var tmpPath = Path.Combine(Path.GetTempPath(), $"nong_screen_{Guid.NewGuid():N}.png");
+                bmp.Save(tmpPath, ImageFormat.Png);
+
+                var (ocr, _) = CreateOcrClient();
+                using var client = ocr;
+                var (result, elapsed) = CliHelpers.Time(() =>
+                    InvokeRecognize(client, tmpPath));
+
+                try { File.Delete(tmpPath); } catch { }
+
+                var page = result.Pages.FirstOrDefault();
+                var blocks = page?.Blocks ?? new List<PpOcrV5Block>();
+
+                if (json)
+                {
+                    var data = new
+                    {
+                        region = new { x = rect.X, y = rect.Y, width = rect.Width, height = rect.Height },
+                        text = string.Join("\n", blocks.Select(b => b.Text)),
+                        blocks = blocks.Select(b => new
+                        {
+                            text = b.Text,
+                            confidence = b.Confidence,
+                            bbox = b.Bbox
+                        })
+                    };
+                    var output = JsonOutput.Ok("ocr screen", $"Screen OCR: {blocks.Count} block(s)", data);
+                    output.Meta.DurationMs = elapsed;
+                    Console.WriteLine(JsonSerializer.Serialize(output, CliHelpers.JsonOpts));
+                }
+                else
+                {
+                    foreach (var b in blocks)
+                        Console.WriteLine($"  {b.Text}\t{FormatConfidence(b.Confidence)}");
+                }
+            }
+            catch (Exception ex)
+            {
+                CliHelpers.WriteError("ocr screen", ErrorCodes.InternalError with { Message = ex.Message }, json);
+            }
+        }, regionOpt, jsonOpt);
+
+        return cmd;
+    }
+
+    // ===== ocr camera =====
+
+    static Command CreateCamera(Option<bool> jsonOpt)
+    {
+        var deviceOpt = new Option<int>("--device", () => 0, "Camera device index");
+        var intervalOpt = new Option<int>("--interval", () => 2000, "Capture interval in milliseconds");
+        var countOpt = new Option<int>("--count", () => 5, "Number of captures (0 = unlimited)");
+        var cmd = new Command("camera", "Capture and OCR frames from camera (requires opencv_videoio)") { deviceOpt, intervalOpt, countOpt };
+
+        cmd.SetHandler((int device, int interval, int count, bool json) =>
+        {
+            // Pre-load native runtime before VideoCapture
+            PpOcrV6Client.CheckEnvironment();
+            using var cap = new OpenCvSharp.VideoCapture(device);
+            if (!cap.IsOpened())
+            {
+                CliHelpers.WriteError("ocr camera",
+                    ErrorCodes.DependencyMissing with { Message = $"Cannot open camera device {device}. Ensure a camera is connected and opencv_videoio_ffmpeg DLL is installed." }, json);
+                return;
+            }
+
+            try
+            {
+                var (ocr, modelId) = CreateOcrClient();
+                using var client = ocr;
+                using var frame = new OpenCvSharp.Mat();
+                var captures = new List<object>();
+                var capIdx = 0;
+                var totalElapsed = 0L;
+                var maxCaptures = count <= 0 ? int.MaxValue : count;
+
+                while (capIdx < maxCaptures)
+                {
+                    if (!cap.Read(frame) || frame.Empty())
+                    {
+                        if (capIdx == 0)
+                        {
+                            CliHelpers.WriteError("ocr camera",
+                                ErrorCodes.ReadFailed with { Message = $"Cannot read frames from camera device {device}." }, json);
+                            return;
+                        }
+                        break;
+                    }
+
+                    capIdx++;
+                    var ocrResult = RecognizeOcrFrame(ocr, frame, out var elapsed);
+                    totalElapsed += elapsed;
+                    var text = ocrResult?.Text.Trim() ?? "";
+                    var confidence = ocrResult?.Confidence;
+
+                    captures.Add(new { capture = capIdx, timestamp = DateTimeOffset.UtcNow, text, confidence });
+                    Console.Error.WriteLine($"[ocr camera] Capture {capIdx}: {Trunc(text, 50)}");
+
+                    if (capIdx < maxCaptures)
+                        Thread.Sleep(interval);
+                }
+
+                var allText = string.Join("\n", captures
+                    .Select(c => (string)((dynamic)c).text)
+                    .Where(t => t.Length > 0));
+
+                if (json)
+                {
+                    var data = new { device, intervalMs = interval, captures, text = allText };
+                    var output = JsonOutput.Ok("ocr camera", $"Camera OCR: {capIdx} capture(s)", data);
+                    output.Meta.DurationMs = totalElapsed;
+                    Console.WriteLine(JsonSerializer.Serialize(output, CliHelpers.JsonOpts));
+                }
+                else
+                {
+                    Console.WriteLine($"Camera: {capIdx} capture(s)");
+                    foreach (dynamic c in captures)
+                    {
+                        var label = c.confidence != null ? $"({c.confidence:F2}) " : "";
+                        Console.WriteLine($"  [{c.capture}] {label}{c.text}");
+                    }
+                    if (allText.Length > 0)
+                        Console.WriteLine($"\n---\n{allText}\n---");
+                }
+            }
+            catch (Exception ex) when (ex.Message.Contains("opencv_videoio") || ex is DllNotFoundException)
+            {
+                CliHelpers.WriteError("ocr camera",
+                    ErrorCodes.DependencyMissing with { Message = $"Camera capture requires opencv_videoio_ffmpeg DLL. {ex.Message}" }, json);
+            }
+            catch (Exception ex)
+            {
+                CliHelpers.WriteError("ocr camera", ErrorCodes.InternalError with { Message = ex.Message }, json);
+            }
+        }, deviceOpt, intervalOpt, countOpt, jsonOpt);
+
+        return cmd;
+    }
+
+    // ===== shared OCR client helpers =====
+
+    static (IDisposable Client, string ModelId) CreateOcrClient()
+    {
+        var (v6Avail, v6Sz, v6Path) = PpOcrV6ModelResolver.DetectInstalled();
+        if (v6Avail && v6Sz != null && v6Path != null)
+            return (new PpOcrV6Client(v6Sz, v6Path), $"pp-ocrv6-{v6Sz}");
+        return (new PpOcrV6Client(), "pp-ocrv6-medium");
+    }
+
+    static PpOcrV5Result InvokeRecognize(IDisposable client, string imagePath)
+    {
+        return ((PpOcrV6Client)client).RecognizeAsync(imagePath).GetAwaiter().GetResult();
+    }
+
+    static (string Text, double? Confidence)? RecognizeOcrFrame(IDisposable ocr, OpenCvSharp.Mat frame, out long elapsedMs)
+    {
+        elapsedMs = 0;
+        try
+        {
+            var tmp = Path.Combine(Path.GetTempPath(), $"nong_frame_{Guid.NewGuid():N}.png");
+            OpenCvSharp.Cv2.ImWrite(tmp, frame);
+            try
+            {
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                var result = InvokeRecognize(ocr, tmp);
+                sw.Stop();
+                elapsedMs = sw.ElapsedMilliseconds;
+                var page = result.Pages.FirstOrDefault();
+                var block = page?.Blocks.FirstOrDefault();
+                return (block?.Text ?? "", block?.Confidence);
+            }
+            finally { try { File.Delete(tmp); } catch { } }
+        }
+        catch { return null; }
+    }
+
+    static ulong ComputeDHash(OpenCvSharp.Mat frame)
+    {
+        using var gray = new OpenCvSharp.Mat();
+        OpenCvSharp.Cv2.CvtColor(frame, gray, OpenCvSharp.ColorConversionCodes.BGR2GRAY);
+        using var small = new OpenCvSharp.Mat();
+        OpenCvSharp.Cv2.Resize(gray, small, new OpenCvSharp.Size(9, 8));
+        ulong hash = 0;
+        for (int y = 0; y < 8; y++)
+            for (int x = 0; x < 8; x++)
+                if (small.At<byte>(y, x) > small.At<byte>(y, x + 1))
+                    hash |= 1UL << (y * 8 + x);
+        return hash;
+    }
+
+    static int HammingDistance(ulong a, ulong b)
+    {
+        ulong x = a ^ b;
+        int count = 0;
+        while (x != 0) { count += (int)(x & 1); x >>= 1; }
+        return count;
+    }
+
+    static void WriteSrt(string path, List<FrameOcrResult> frames)
+    {
+        using var w = new StreamWriter(path, false, System.Text.Encoding.UTF8);
+        int idx = 1;
+        foreach (var f in frames.Where(f => f.Text.Length > 0))
+        {
+            var end = f.Timestamp + TimeSpan.FromSeconds(3);
+            var endStr = $"{(int)end.TotalHours:D2}:{end.Minutes:D2}:{end.Seconds:D2},{end.Milliseconds:D3}";
+            w.WriteLine(idx);
+            w.WriteLine($"{f.TimestampStr} --> {endStr}");
+            w.WriteLine(f.Text);
+            w.WriteLine();
+            idx++;
+        }
+    }
+
+    static bool IsImageExtension(string path)
+    {
+        var ext = Path.GetExtension(path).ToLowerInvariant();
+        return ext is ".png" or ".jpg" or ".jpeg" or ".bmp" or ".tiff" or ".tif" or ".webp";
+    }
+
+    sealed record FrameOcrResult
+    {
+        public int FrameIndex { get; init; }
+        public TimeSpan Timestamp { get; init; }
+        public string TimestampStr { get; init; } = "";
+        public string Text { get; init; } = "";
+        public double? Confidence { get; init; }
+    }
+
+    static string Trunc(string s, int max) => s.Length <= max ? s : s[..max] + "...";
+
+    static Rectangle GetPrimaryScreenBounds()
+    {
+        // Use User32 P/Invoke to avoid System.Windows.Forms dependency
+        return new Rectangle(
+            0, 0,
+            GetSystemMetrics(0),  // SM_CXSCREEN
+            GetSystemMetrics(1)); // SM_CYSCREEN
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    static extern int GetSystemMetrics(int nIndex);
     }
 }

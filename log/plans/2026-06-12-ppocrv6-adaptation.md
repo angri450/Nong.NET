@@ -42,20 +42,13 @@ Test 5  End-to-end synthetic image OCR              PASS (置信度 1.00 / 0.98)
 
 ### 第一层：Nong.OcrRuntime (native 运行时仓库)
 
-**决策：本次不更新。**
+**决策：本次不动。**
 
-理由：
-- 测试证明 3.3.1.70 runtime 完全兼容 v6 模型
-- v6 模型使用的 PPLCNetV4、RepLKPAN、MultiHead、lightsvtr 等新算子全部在 native 层执行，C# 层不感知
-- 上游包版本暂时不变 (Sdcb.PaddleInference 3.3.1.70, OpenCvSharp4 不变)
+- runtime 版本号 4.0.0 不变
+- nupkg 不重新打包
+- nupkg 瘦身 (删冗余 DLL) 暂缓，先做功能开发
 
-**何时必须更新**：
-- PaddleInference 上游发新版，修复了 v6 模型的已知 bug
-- v6.x 模型引入了 PaddleInference 3.3.1.70 不支持的新算子
-- API 弃用 (PD_ConfigSetOnednnCacheCapacity) 从警告变成硬错误
-- 上游 OpenCvSharp4 或 PaddleInference 有安全漏洞修复
-
-更新时操作：`VERSION` -> 5.0.0，csproj 同步，pack-runtimes.ps1 重新打包，推送 5 个 nupkg。
+测试已证明 PaddleInference 3.3.1.70 完全兼容 v6 PIR 格式模型，无需更新。
 
 ### 第二层：Nong.Cli.Net (CLI + MultiModal)
 
@@ -107,38 +100,63 @@ ppocr/utils/dict/ppocrv6_tiny_dict.txt  → v6 tiny
 ppocr/utils/dict/ppocrv5_dict.txt       → v5 (保留)
 ```
 
+## 模型选择策略
+
+三种模型 ID：`pp-ocrv6-medium` (默认) / `pp-ocrv6-small` / `pp-ocrv6-tiny`。
+
+**默认选 medium，理由：**
+- 精度最高：检测 +4.6%、识别 +5.1% 超越 v5_server，超越主流 VLM
+- medium 参数量 34.5M，CPU 推理已够快 (v6 整体 5.2x CPU 加速)
+- 用户安装时不需要纠结"哪个好"——安装 medium，有充分理由才降级
+- 与云端 PaddleOCR-VL 的默认模型等级对标
+
+tiny / small 的使用场景：
+- tiny：嵌入式 / Android / iOS / 极低资源环境 (字典仅 6904 字符)
+- small：精度要求低于 medium 但高于 tiny 的中间态
+
 ## 使用体验目标
 
 用户最终看到的命令 (保持现有模式，只加 model-id)：
 
 ```powershell
-# 当前 v5
-nong ocr install-model pp-ocrv5-mobile --source <mirror> --json
-
-# v6 新增
+# v6 默认 install (medium)
 nong ocr install-model pp-ocrv6-medium --source <mirror> --json
+# 等价于
+nong ocr install-model pp-ocrv6 --source <mirror> --json
+
+# v6 轻量级
 nong ocr install-model pp-ocrv6-small --source <mirror> --json
 nong ocr install-model pp-ocrv6-tiny --source <mirror> --json
 
+# v5 保留
+nong ocr install-model pp-ocrv5-mobile --source <mirror> --json
+
 # 模型清单
 nong ocr models --json
-# 输出增加 v6 三层
+# 输出增加 v6 三层，default 标记在 medium 上
 
 # 环境检查
 nong ocr check-env --json
-# 输出增加 localDotNetPpOcrV6 状态
+# 输出增加 localDotNetPpOcrV6 状态，默认检测 medium
 
-# 本地识别 (engines 不变，按 install 的模型自动选)
+# 本地识别 (engines 不变，按已安装模型自动选，默认 medium)
 nong ocr local scan.png --json
 ```
 
-## 执行顺序
+## 施工状态
 
-1. **Nong.Cli.Net** — PpOcrV5ModelResolver 扩展 + PpOcrV6Client + OcrCommands 路由
-2. **Nong.OcrRuntime** — 暂不动；观察 PaddleInference 上游更新节奏
-3. **Nong.Toolkit.Net** — OCR skill 文档同步更新
-4. **打包测试** — 用 v6 模型目录跑实际图片识别
-5. **发布 CLI** — 小版本 bump (4.0.1 或 4.1.0)，不涉及 runtime 包重新打包
+### 第一层：Nong.OcrRuntime → 不动 ✓
+### 第二层：Nong.Cli.Net → 完成 ✓
+- [x] PpOcrV6ModelResolver — v6 模型路径、CDN URL、字典资源管理
+- [x] PpOcrV6Client — 目录模型加载 + 双引擎推理
+- [x] OcrCommands install-model — 支持 4 个 v6 model-ID
+- [x] OcrCommands models — 列出 v6 三层 + isDefault 标记
+- [x] OcrCommands check-env — 报告 v6 状态
+- [x] OcrCommands local — v6 优先自动检测
+- [x] 字典嵌入式资源 (ppocrv6_dict.txt / ppocrv6_tiny_dict.txt)
+- [x] 端到端实测通过 (v6 medium, 置信度 0.9998)
+
+### 第三层：Nong.Toolkit.Net OCR skill → 待施工
 
 ## 风险
 

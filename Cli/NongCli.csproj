@@ -9,7 +9,7 @@
     <PackageId>Angri450.Nong.Cli</PackageId>
     <ToolCommandName>nong</ToolCommandName>
     <PackAsTool>true</PackAsTool>
-    <Version>4.0.2</Version>
+    <Version>4.1.0</Version>
     <RollForward>LatestMajor</RollForward>
     <Authors>angri450</Authors>
     <Description>CLI toolkit for Nong.NET document generation and inspection. One binary for Word/Excel/PPT/PDF/Chart/Diagram/OCR operations.</Description>
@@ -22,6 +22,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+    <PackageReference Include="System.Drawing.Common" Version="9.0.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Docx\DocxCore.csproj" />
@@ -38,6 +39,7 @@
     <ProjectReference Include="..\Literature\LiteratureCore.csproj" />
     <ProjectReference Include="..\Pandoc\PandocCore.csproj" />
     <ProjectReference Include="..\Imaging\ImagingCore.csproj" />
+    <ProjectReference Include="..\OcrModels\OcrModels.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="/" />

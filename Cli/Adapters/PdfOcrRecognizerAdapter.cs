@@ -7,7 +7,7 @@ public sealed class PdfOcrRecognizerAdapter : IPdfOcrRecognizer
 {
     public PdfOcrRecognizeResult Recognize(string imagePath, int pageNumber)
     {
-        using var client = new PpOcrV5Client();
+        using var client = new PpOcrV6Client();
         var result = client.RecognizeAsync(imagePath).GetAwaiter().GetResult();
         var page = result.Pages.FirstOrDefault();
 

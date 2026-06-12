@@ -3,6 +3,8 @@
 > Agent 添加变更记录后同步更新此文件。格式：`- YYYY-MM-DD | 文件名 | 一句话摘要`
 
 ## 2026-06-12
+- 2026-06-12 | 2026-06-12-ocr-expansion.md | OCR 4 新命令：batch(批量)/video(视频帧+SRT)/screen(屏幕区域)/camera(摄像头)
+- 2026-06-12 | 2026-06-12-ppocrv6-adaptation.md | PP-OCRv6 全线适配：4 model-ID + CDN 下载 + 嵌入式字典 + v6 优先自动检测
 - 2026-06-12 | 2026-06-12-word-fit-images.md | nong word fit-images：inline 多图段落合并+缩放并排
 - 2026-06-12 | 2026-06-12-compaction-pipeline.md | 文档紧缩管线：compact-tables + regroup-images + estimate（25页→8页）
 - 2026-06-12 | 2026-06-12-keepnext-pagination.md | keepNext/cantSplit 分页控制升级：compact-tables 表头粘连 + 行保护

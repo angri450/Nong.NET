@@ -2,16 +2,17 @@ using OpenCvSharp;
 using System.Runtime.InteropServices;
 using Sdcb.PaddleInference;
 using Sdcb.PaddleOCR;
-using Sdcb.PaddleOCR.Models.Local;
+using Sdcb.PaddleOCR.Models;
+using Sdcb.PaddleOCR.Models.Details;
 
 namespace MultiModalCore;
 
 /// <summary>
-/// PP-OCRv5 本地 .NET 推理客户端。
-/// 使用 Sdcb.PaddleOCR + 本地 V5 中文模型 + 平台 native runtime，
+/// PP-OCRv6 本地 .NET 推理客户端。
+/// 使用 Sdcb.PaddleOCR FileDetectionModel/FileRecognizationModel 从缓存目录加载 v6 模型，
 /// 不依赖 Python、pip 或外部 OCR 可执行文件。
 /// </summary>
-public sealed class PpOcrV5Client : IDisposable
+public sealed class PpOcrV6Client : IDisposable
 {
     private static readonly object NativeRuntimeSync = new();
     private static bool _nativeRuntimeLoaded;
@@ -20,24 +21,26 @@ public sealed class PpOcrV5Client : IDisposable
     private readonly Lazy<PaddleOcrAll> _fastEngine;
     private readonly Lazy<PaddleOcrAll> _safeEngine;
     private bool _disposed;
+    private readonly string _size;
+    private readonly string _modelCachePath;
 
-    /// <summary>已解析的模型目录路径（兼容旧 manifest/cache 查询，打包模型时可能为 null）。</summary>
-    public string? ModelDir { get; }
-
-    /// <summary>模型是否可用。</summary>
+    public string Size => _size;
+    public string ModelCachePath => _modelCachePath;
+    public string ModelId => $"pp-ocrv6-{_size}";
     public bool IsAvailable => CheckEnvironment().Available;
 
-    /// <param name="modelDir">保留兼容参数。当前默认使用 NuGet 内置 LocalFullModels.ChineseV5。</param>
-    public PpOcrV5Client(string? modelDir = null)
+    public PpOcrV6Client(string? size = null) : this(size, modelCachePath: null) { }
+
+    public PpOcrV6Client(string? size, string? modelCachePath)
     {
-        ModelDir = PpOcrV5ModelResolver.Resolve(modelDir);
+        _size = size ?? PpOcrV6ModelResolver.DefaultSize;
+        _modelCachePath = modelCachePath ?? PpOcrV6ModelResolver.GetModelCachePath(_size);
+
         _fastEngine = new Lazy<PaddleOcrAll>(() => CreateEngine(PpOcrV5InferenceMode.Fast));
         _safeEngine = new Lazy<PaddleOcrAll>(() => CreateEngine(PpOcrV5InferenceMode.Safe));
     }
 
-    /// <summary>
-    /// 对单张图片执行 OCR 识别。
-    /// </summary>
+    /// <summary>对单张图片执行 OCR 识别。</summary>
     public Task<PpOcrV5Result> RecognizeAsync(string imagePath, CancellationToken cancel = default)
     {
         if (string.IsNullOrWhiteSpace(imagePath))
@@ -129,8 +132,8 @@ public sealed class PpOcrV5Client : IDisposable
 
         return new PpOcrV5Result
         {
-            Engine = "pp-ocrv5-dotnet-sdcb",
-            ModelId = "pp-ocrv5-mobile",
+            Engine = "pp-ocrv6-dotnet-sdcb",
+            ModelId = $"pp-ocrv6-medium",
             InferenceMode = mode == PpOcrV5InferenceMode.Fast ? "fast-cpu" : "safe-cpu-blas",
             Pages = new List<PpOcrV5Page> { page }
         };
@@ -141,27 +144,26 @@ public sealed class PpOcrV5Client : IDisposable
         try
         {
             var nativeDir = EnsureNativeRuntimeLoaded();
-            var runtimeId = PpOcrV5ModelResolver.GetNativeRuntimeId();
+            var runtimeId = PpOcrV6ModelResolver.GetNativeRuntimeId();
 
-            _ = LocalFullModels.ChineseV5;
             _ = typeof(PaddleOcrAll).Assembly.FullName;
             _ = typeof(PaddleConfig).Assembly.FullName;
 
             return new PpOcrV5EnvironmentStatus(
                 Available: true,
-                Engine: "pp-ocrv5-dotnet-sdcb",
-                ModelId: "pp-ocrv5-mobile",
+                Engine: "pp-ocrv6-dotnet-sdcb",
+                ModelId: "pp-ocrv6-medium",
                 Runtime: runtimeId,
-                Message: $"Pure .NET PP-OCRv5 runtime is available; no Python required. Native runtime: {nativeDir}");
+                Message: $"Pure .NET PP-OCRv6 runtime is available; no Python required. Native runtime: {nativeDir}");
         }
         catch (Exception ex)
         {
             return new PpOcrV5EnvironmentStatus(
                 Available: false,
-                Engine: "pp-ocrv5-dotnet-sdcb",
-                ModelId: "pp-ocrv5-mobile",
-                Runtime: PpOcrV5ModelResolver.GetNativeRuntimeId(),
-                Message: $"Pure .NET PP-OCRv5 runtime unavailable: {ex.Message}");
+                Engine: "pp-ocrv6-dotnet-sdcb",
+                ModelId: "pp-ocrv6-medium",
+                Runtime: PpOcrV6ModelResolver.GetNativeRuntimeId(),
+                Message: $"Pure .NET PP-OCRv6 runtime unavailable: {ex.Message}");
         }
     }
 
@@ -175,30 +177,49 @@ public sealed class PpOcrV5Client : IDisposable
         _disposed = true;
     }
 
-    private static PaddleOcrAll CreateEngine(PpOcrV5InferenceMode mode)
+    // ===== Engine creation (uses FileDetectionModel/FileRecognizationModel) =====
+
+    private PaddleOcrAll CreateEngine(PpOcrV5InferenceMode mode)
     {
         EnsureNativeRuntimeLoaded();
         ConfigureNativeLogEnvironment();
+
+        var detDir = PpOcrV6ModelResolver.GetDetDir(_modelCachePath);
+        var recDir = PpOcrV6ModelResolver.GetRecDir(_modelCachePath);
+        var dictPath = PpOcrV6ModelResolver.GetDictPath(_modelCachePath);
+
+        if (!Directory.Exists(detDir))
+            throw new PaddleOcrException($"v6 det model not found: {detDir}");
+        if (!Directory.Exists(recDir))
+            throw new PaddleOcrException($"v6 rec model not found: {recDir}");
+        if (!File.Exists(dictPath))
+            throw new PaddleOcrException($"v6 dict not found: {dictPath}");
+
+        var detModel = new FileDetectionModel(detDir, ModelVersion.V5);
+        var recModel = new FileRecognizationModel(recDir, dictPath, ModelVersion.V5);
+        var fullModel = new FullOcrModel(detModel, recModel);
 
         Action<PaddleConfig> configure = mode == PpOcrV5InferenceMode.Fast
             ? ConfigureFastCpuDevice
             : ConfigureSafeCpuDevice;
 
-        return new PaddleOcrAll(LocalFullModels.ChineseV5, configure)
+        return new PaddleOcrAll(fullModel, configure)
         {
             AllowRotateDetection = true,
             Enable180Classification = false,
         };
     }
 
+    // ===== Native runtime loading (shared pattern with PpOcrV5Client) =====
+
     private static string? ResolveNativeRuntimeDir()
     {
         var appNative = AppContext.BaseDirectory;
-        if (PpOcrV5ModelResolver.ValidateNativeRuntimeDir(appNative))
+        if (PpOcrV6ModelResolver.ValidateNativeRuntimeDir(appNative))
             return appNative;
 
-        var cacheNative = PpOcrV5ModelResolver.GetNativeRuntimeCachePath();
-        if (PpOcrV5ModelResolver.ValidateNativeRuntimeDir(cacheNative))
+        var cacheNative = PpOcrV6ModelResolver.GetNativeRuntimeCachePath();
+        if (PpOcrV6ModelResolver.ValidateNativeRuntimeDir(cacheNative))
             return cacheNative;
 
         return null;
@@ -213,11 +234,11 @@ public sealed class PpOcrV5Client : IDisposable
 
             var nativeDir = ResolveNativeRuntimeDir();
             if (nativeDir == null)
-                throw new PaddleOcrException($"Native OCR runtime not installed. Run 'nong ocr install-model pp-ocrv5-mobile --json'. Cache: {PpOcrV5ModelResolver.GetNativeRuntimeCachePath()}");
+                throw new PaddleOcrException($"Native OCR runtime not installed. Run 'nong ocr install-model pp-ocrv6-medium --json'. Cache: {PpOcrV6ModelResolver.GetNativeRuntimeCachePath()}");
 
             ConfigureNativeLogEnvironment();
             AddNativeDirectoryToPath(nativeDir);
-            foreach (var file in PpOcrV5ModelResolver.GetNativeRuntimeLoadFiles())
+            foreach (var file in PpOcrV6ModelResolver.GetNativeRuntimeLoadFiles())
                 LoadNativeLibrary(nativeDir, file);
 
             _nativeRuntimeDir = nativeDir;
@@ -285,6 +306,8 @@ public sealed class PpOcrV5Client : IDisposable
         }
     }
 
+    // ===== Numeric helpers =====
+
     private static float[] ToAxisAlignedBbox(Point2f[] points)
     {
         if (points.Length == 0) return Array.Empty<float>();
@@ -300,57 +323,4 @@ public sealed class PpOcrV5Client : IDisposable
 
     private static bool IsFinitePoint(Point2f point) =>
         float.IsFinite(point.X) && float.IsFinite(point.Y);
-}
-
-public sealed record PpOcrV5EnvironmentStatus(
-    bool Available,
-    string Engine,
-    string ModelId,
-    string Runtime,
-    string Message);
-
-public enum PpOcrV5InferenceMode
-{
-    Fast,
-    Safe
-}
-
-/// <summary>PP-OCRv5 识别结果。</summary>
-public sealed record PpOcrV5Result
-{
-    public string Engine { get; set; } = "PP-OCRv5";
-    public string ModelId { get; set; } = "pp-ocrv5-mobile";
-    public string InferenceMode { get; set; } = "fast-cpu";
-    public bool NumericFallbackAttempted { get; set; }
-    public bool NumericFallbackApplied { get; set; }
-    public string? NumericFallbackReason { get; set; }
-    public List<PpOcrV5Page> Pages { get; set; } = new();
-    public int InvalidConfidenceBlocks => Pages.Sum(p => p.Blocks.Count(b => !b.ConfidenceValid));
-    public int InvalidGeometryBlocks => Pages.Sum(p => p.Blocks.Count(b => !b.GeometryValid));
-    public int NumericIssueCount => InvalidConfidenceBlocks + InvalidGeometryBlocks;
-    public bool HasNumericIssues => NumericIssueCount > 0;
-    public int BlockCount => Pages.Sum(p => p.Blocks.Count);
-    public int TextLength => Pages.Sum(p => p.Blocks.Sum(b => b.Text.Length));
-}
-
-/// <summary>单页识别结果。</summary>
-public sealed record PpOcrV5Page
-{
-    public int Page { get; set; }
-    public int Width { get; set; }
-    public int Height { get; set; }
-    public List<PpOcrV5Block> Blocks { get; set; } = new();
-}
-
-/// <summary>单个文字块识别结果。</summary>
-public sealed record PpOcrV5Block
-{
-    public string Id { get; set; } = "";
-    public string Text { get; set; } = "";
-    public double? Confidence { get; set; }
-    public bool ConfidenceValid => Confidence.HasValue;
-    public bool GeometryValid { get; set; } = true;
-    public string? NumericIssue { get; set; }
-    public float[] Bbox { get; set; } = Array.Empty<float>();
-    public float[][]? Polygon { get; set; }
 }

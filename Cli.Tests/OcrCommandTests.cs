@@ -112,7 +112,7 @@ public class OcrCommandTests
         Assert.True(data.TryGetProperty("imageAnalyzer", out _));
         Assert.True(data.TryGetProperty("cloudToken", out _));
         Assert.True(data.TryGetProperty("localModel", out _));
-        Assert.True(data.TryGetProperty("localDotNetPpOcrV5", out var local));
+        Assert.True(data.TryGetProperty("localDotNetPpOcrV6", out var local));
         Assert.True(local.GetProperty("noPython").GetBoolean());
     }
 
@@ -139,7 +139,7 @@ public class OcrCommandTests
         Assert.True(File.Exists(MultiModalDll), $"MultiModal assembly not found: {MultiModalDll}");
 
         var asm = Assembly.LoadFrom(MultiModalDll);
-        var type = asm.GetType("MultiModalCore.PpOcrV5Client", throwOnError: true)!;
+        var type = asm.GetType("MultiModalCore.PpOcrV6Client", throwOnError: true)!;
         var method = type.GetMethod("ToFiniteConfidence", BindingFlags.NonPublic | BindingFlags.Static)!;
 
         Assert.Null(method.Invoke(null, new object[] { double.NaN }));
@@ -185,13 +185,13 @@ public class OcrCommandTests
         Assert.True(models[0].GetProperty("noPython").GetBoolean());
     }
 
-    // ===== Test 6: install-model pp-ocrv5-mobile dry-run returns OK =====
+    // ===== Test 6: install-model pp-ocrv6-medium dry-run returns OK =====
 
     [Fact]
-    public void InstallModel_PpOcrV5Mobile_DryRun_ReturnsOk()
+    public void InstallModel_PpOcrV6Medium_DryRun_ReturnsOk()
     {
         RequireCli();
-        var (json, exit) = Run("ocr", "install-model", "pp-ocrv5-mobile", "--dry-run", "--json");
+        var (json, exit) = Run("ocr", "install-model", "pp-ocrv6-medium", "--dry-run", "--json");
         Assert.Equal(0, exit);
 
         using var doc = Parse(json);
@@ -237,7 +237,7 @@ public class OcrCommandTests
     public void InstallModel_DryRun_ReportsExplicitUpstreamFallback()
     {
         RequireCli();
-        var (json, exit) = Run("ocr", "install-model", "pp-ocrv5-mobile", "--dry-run", "--allow-upstream-fallback", "--json");
+        var (json, exit) = Run("ocr", "install-model", "pp-ocrv6-medium", "--dry-run", "--allow-upstream-fallback", "--json");
         Assert.Equal(0, exit);
 
         using var doc = Parse(json);
@@ -322,7 +322,7 @@ public class OcrCommandTests
         {
             var (json, exit) = RunWithEnv(
                 new Dictionary<string, string> { ["NONG_OCR_RUNTIME_DIR"] = runtimeDir },
-                "ocr", "install-model", "pp-ocrv5-mobile", "--source", sourceDir, "--json");
+                "ocr", "install-model", "pp-ocrv6-medium", "--source", sourceDir, "--json");
 
             Assert.Equal(0, exit);
             using var doc = Parse(json);

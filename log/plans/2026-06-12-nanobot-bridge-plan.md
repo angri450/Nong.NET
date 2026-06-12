@@ -1,101 +1,74 @@
-# 2026-06-12 NanoBot bridge — 三项目完整对接规划
+# NanoBot 桥接规划：工具自动注册 + Skill 路由
 
 日期: 2026-06-12
-状态: pending（暂不进施工）
+状态: pending
 
 ## 背景
 
-Nong 三项目架构：Toolkit（Skill 层）→ CLI（执行层）→ NanoBot（Agent Runtime）。
+Nong 三项目架构：Toolkit (Skill) → CLI (执行) → NanoBot (Agent Runtime)。
 
-Toolkit 和 CLI 已完成 OOXML 全覆盖施工（51 属性全闭环，P0-P2 全清）。NanoBot 之前有过一轮基建（SkillLoader 二段渐进式、run_nong bridge、system status 端点），但真正的工具注入还没完成。
+Toolkit 有 17 个 skill，CLI 有 109 条命令。NanoBot 需要自动发现这些能力并暴露为 LLM function-calling 工具。
 
-## 当前 NanoBot 状态
+## 当前 NanoBot 已完成
 
-### 已完成
-
-| 组件 | 文件 | 状态 |
-|------|------|------|
-| SkillLoader 二段式 | `Nanobot.Core/Skills/SkillLoader.cs` | done — catalog→skill→reference |
-| run_nong bridge | `Nanobot.Core/Tools/Builtin/NongTool.cs` | done — workspace 边界、allowlist、timeout、结构化错误 |
-| nong capabilities 发现 | `NongTool.DiscoverCapabilitiesAsync()` | done — 调 `nong commands --json` |
-| skill tools | `Nanobot.Core/Tools/Builtin/SkillTools.cs` | done — get_catalog, load_skill, load_reference |
-| system status | `Nanobot.Web/Program.cs` /status 端点 | done — CLI/Toolkit/NanoBot 三态探测 |
-| AgentLoop 集成 | `AgentLoop.cs` | partial — 已接 catalog 但未接 tools |
-
-### 未完成
-
-| 组件 | 缺口 |
+| 组件 | 状态 |
 |------|------|
-| Tool registry | 14 条 word CLI 命令没有注册为 AgentLoop 工具 |
-| Skill trigger 匹配 | catalog 加载了但未被 AgentLoop 用于 skill 激活决策 |
-| 对话级工具注入 | `run_nong` 只在显式调用时有效，没有自动匹配 |
-| Chart/PDF/OCR/Diagram | 非 word 模块（图表、扫描、OCR）完全未接入 |
+| SkillLoader 二段式 (catalog → skill → reference) | done |
+| run_nong bridge (workspace, allowlist, timeout) | done |
+| nong commands --json 发现 | done |
+| system status 端点 (/status) | done |
 
-## 规划施工
+## 未完成
 
-### Phase 1: Tool auto-registration（P0）
+| 缺口 | 影响 |
+|------|------|
+| 109 条 CLI 命令未注册为 AgentLoop 工具 | 目前只能显式调 run_nong，不能自动匹配 |
+| Skill trigger 匹配未接入 AgentLoop | catalog 加载了但没用于 skill 激活 |
+| OCR/Chart/PDF/Diagram 模块未接入 | 只有 word 模块部分可用 |
+| 上下文窗口管理 | 17 个 skill 全量注入会超出 token 限制 |
 
-NanoBot 启动时，通过 `NongTool.DiscoverCapabilitiesAsync()` 获得完整命令面（`nong commands --json`），动态注册 14 个 word 模块命令为 agent 工具。Tool 的 description 从 Manifest.cs 的命令描述中提取。
+## 施工计划
 
-```csharp
-// Pseudocode for auto-registration
-var capabilities = await NongTool.DiscoverCapabilitiesAsync();
-foreach (var cmd in capabilities.Commands.Where(c => c.Module == "word"))
-{
-    var tool = new RunNongTool(cmd.Name, cmd.Description);
-    toolRegistry.Register(tool);
+### Phase 1: CLI → function-calling schema
+
+从 `nong commands --json` 自动生成 OpenAI 格式的 tools 数组：
+
+```
+name: "ocr_local"
+description: "Local PP-OCR recognition with pure .NET runtime"
+parameters: {
+  type: "object",
+  properties: {
+    image:  { type: "string", description: "Path to image file" },
+    force:  { type: "boolean", description: "Skip preflight check" },
+    json:   { type: "boolean" }
+  },
+  required: ["image"]
 }
 ```
 
-工作量：~200 行 C#（AgentLoop + ToolRegistry 扩展），0 个新类。
+实现：CLI 侧加 `nong commands --format openai-tools`，或者 NanoBot 侧解析 `--json` 输出转 schema。
 
-### Phase 2: Skill trigger routing（P1）
+### Phase 2: Skill 路由注入
 
-AgentLoop 每次接收到 user message 后，调用 `SkillLoader.MatchSkill(userMessage)`——根据 message 内容匹配对应的 Skill（word/pdf/chart 等）。匹配到的 skill 自动 `LoadSkill` 注入 context。
+每个 SKILL.md 的 route table → NanoBot 系统提示词片段。当用户说话时，AgentLoop 根据匹配度注入 1-2 个 skill prompt，保持上下文 <10K token。
 
-```
-User: "把这个表格紧缩一下"
-→ SkillLoader.MatchSkill("把这个表格紧缩一下")
-→ 匹配 word skill（触发词：表格、紧缩）
-→ LoadSkill("word") → 注入 word 指令到 agent context
-→ Agent 查看 context → 调用 nong word compact-tables
-```
+### Phase 3: 多模块接入
 
-工作量：~150 行 C#（SkillMatcher 类 + AgentLoop 集成），1 个新类。
+OCR (刚完成的 v6) / Chart / PDF / Diagram 四个模块的命令注册为 NanoBot 工具。
 
-### Phase 3: Post-tool skill injection（P1）
+### Phase 4: 确认机制
 
-Agent 调完工具后，根据返回的 JSON 结果自动注入对应的 skill reference——比如 `nong word estimate` 返回了 8 页、1 问题页，自动加载 `page-layout.md` 作为后续决策的参考。
+涉及下载大文件 (install-model) 或消耗 API token (ocr cloud) 的命令需要用户显式确认才执行。
 
-工作量：~100 行 C#，0 个新类。
+## 不做的事
 
-### Phase 4: Cross-module chat context（P2）
+- NanoBot 不做模型推理 — OCR native 渲染走 CLI worker 子进程
+- 不把 17 个 SKILL.md 全量塞进上下文 — 按需加载
 
-Chart/PDF/OCR/Diagram 模块接入。启动时注册所有 109 命令作为可用工具，根据对话内容在行进行动态 tool discovery。Web UI 面板展示当前已激活的 skills 和 tools。
+## 执行顺序
 
-工作量：~300 行 C#，1-2 个新类。
-
-## 工作估算
-
-| Phase | 新增 C# | 新类 | 优先级 |
-|-------|---------|------|--------|
-| Phase 1: Tool auto-reg | ~200 | 0 | P0 |
-| Phase 2: Skill routing | ~150 | 1 | P1 |
-| Phase 3: Post-tool injection | ~100 | 0 | P1 |
-| Phase 4: Cross-module | ~300 | 2 | P2 |
-| **Total** | **~750** | **3** | |
-
-## 依赖关系
-
-Phase 1 → Phase 2 → Phase 3（依赖链路）
-Phase 4 独立（可随时插入）
-
-## 施工时机
-
-Toolkit 和 CLI 当前处于稳定态（15 条 word 命令、51 OOXML 属性覆盖）。NanoBot 桥接是最自然的下一步——它让 Toolkit 的 skill 描述和 CLI 的命令能力直接注入 agent 决策环路。
-
-建议在完成以下前置条件后启动：
-- [x] CLI 4.0.2+ 所有 word 命令发布到 NuGet
-- [x] Toolkit SKILL.md 渐进式披露重构完毕
-- [x] OOXML 深挖全闭环
-- [ ] NanoBot 回归测试全部 102 条通过（上次未验证）
+1. `nong commands --format openai-tools` (CLI 侧 ~100 行)
+2. NanoBot AgentLoop 工具注册 + Skill 匹配 (~200 行)
+3. 上下文窗口管理 (~100 行)
+4. 确认机制 (~80 行)
