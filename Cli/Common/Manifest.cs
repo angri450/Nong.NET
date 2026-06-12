@@ -40,6 +40,10 @@ public static class Manifest
         list.Add(new("word compact-tables", "Compact tables: remove fixed row heights, equalize column widths, center on page", "word", ["word tables"]));
         list.Add(new("word regroup-images", "Merge orphan images across paragraphs for side-by-side layout, then scale to fit", "word", ["word pair-images"]));
         list.Add(new("word estimate", "Estimate page breaks and measure blank space on each page", "word", ["word pages"]));
+        list.Add(new("word page-setup", "Set page size, orientation, margins, columns, different first page", "word", ["word layout"]));
+        list.Add(new("word indent", "Set paragraph indentation: first-line, hanging, left, right, outline level", "word", []));
+        list.Add(new("word paragraph-control", "Set pagination controls: keepNext, keepLines, pageBreakBefore, widowControl", "word", []));
+        list.Add(new("word estimate", "Estimate page breaks and measure blank space on each page", "word", ["word pages"]));
         list.Add(new("word comments", "Read document comments", "word", []));
         list.Add(new("word revisions", "List tracked changes", "word", []));
         list.Add(new("word infer-format", "Infer OpenXML format from Chinese description", "word", []));

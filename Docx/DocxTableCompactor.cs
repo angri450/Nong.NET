@@ -13,7 +13,7 @@ namespace DocxCore;
 /// </summary>
 public static class DocxTableCompactor
 {
-    public static TableCompactResult Compact(string inputPath, string outputPath)
+    public static TableCompactResult Compact(string inputPath, string outputPath, bool autoHeight = false)
     {
         File.Copy(inputPath, outputPath, true);
 
@@ -35,7 +35,7 @@ public static class DocxTableCompactor
 
         foreach (var tbl in tables)
         {
-            var info = CompactTable(tbl, textWidthTwips, tIdx);
+            var info = CompactTable(tbl, textWidthTwips, tIdx, autoHeight);
             modified.Add(info);
             tIdx++;
         }
@@ -49,7 +49,7 @@ public static class DocxTableCompactor
         return new TableCompactResult(modified);
     }
 
-    static TableCompactInfo CompactTable(XElement tbl, long textWidthTwips, int index)
+    static TableCompactInfo CompactTable(XElement tbl, long textWidthTwips, int index, bool autoHeight)
     {
         var changes = new List<string>();
         int rowsBefore = 0, rowsAfter = 0;
@@ -103,18 +103,22 @@ public static class DocxTableCompactor
 
                     if (rule?.Value == "exact" || rule2?.Value == "exact")
                     {
-                        // Change from exact to atLeast
-                        if (rule != null) rule.Value = "atLeast";
-                        if (rule2 != null) rule2.Value = "atLeast";
-
-                        // Reduce height by half as a starting point
-                        var val = trHeight.Attribute(XName.Get("val",
-                            "http://schemas.openxmlformats.org/wordprocessingml/2006/main"));
-                        if (val != null && long.TryParse(val.Value, out long hv))
+                        if (rule != null) rule.Value = autoHeight ? "auto" : "atLeast";
+                        if (rule2 != null) rule2.Value = autoHeight ? "auto" : "atLeast";
+                        if (!autoHeight)
                         {
-                            hv = Math.Max(200, hv / 2); // at least 200 twips (~10pt)
-                            val.Value = hv.ToString();
+                            var val = trHeight.Attribute(XName.Get("val",
+                                "http://schemas.openxmlformats.org/wordprocessingml/2006/main"));
+                            if (val != null && long.TryParse(val.Value, out long hv))
+                            { hv = Math.Max(200, hv / 2); val.Value = hv.ToString(); }
                         }
+                        fixedRows++;
+                    }
+                    else if (autoHeight)
+                    {
+                        // atLeast → auto: remove height constraint entirely
+                        if (rule != null && rule.Value == "atLeast") rule.Value = "auto";
+                        if (rule2 != null && rule2.Value == "atLeast") rule2.Value = "auto";
                         fixedRows++;
                     }
                 }

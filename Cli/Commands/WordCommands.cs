@@ -1,4 +1,5 @@
 using System.CommandLine;
+using System.CommandLine.Invocation;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
@@ -49,6 +50,9 @@ public static class WordCommands
         cmd.AddCommand(CreateCompactTables(jsonOpt));
         cmd.AddCommand(CreateRegroupImages(jsonOpt));
         cmd.AddCommand(CreateEstimate(jsonOpt));
+        cmd.AddCommand(CreatePageSetup(jsonOpt));
+        cmd.AddCommand(CreateIndent(jsonOpt));
+        cmd.AddCommand(CreateParagraphControl(jsonOpt));
         cmd.AddCommand(CreateComments(jsonOpt));
         cmd.AddCommand(CreateRevisions(jsonOpt));
         cmd.AddCommand(CreateInferFormat(jsonOpt));
@@ -1654,9 +1658,10 @@ public static class WordCommands
     {
         var fileArg = new Argument<string>("file", "Path to .docx file");
         var outOpt = new Option<string>("-o", "Output DOCX path (default: <input>.compact.docx)");
-        var cmd = new Command("compact-tables", "Compact tables: remove fixed row heights, equalize column widths, center on page") { fileArg, outOpt };
+        var autoHOpt = new Option<bool>("--auto-height", "Remove all row height constraints (auto: let content dictate)");
+        var cmd = new Command("compact-tables", "Compact tables: remove fixed row heights, equalize column widths, center on page") { fileArg, outOpt, autoHOpt };
         cmd.AddAlias("tables");
-        cmd.SetHandler((string file, string? output, bool json) =>
+        cmd.SetHandler((string file, string? output, bool autoHeight, bool json) =>
         {
             var err = CliHelpers.ValidateDocxFile(file);
             if (err != null) { CliHelpers.WriteError("word compact-tables", err, json); return; }
@@ -1666,8 +1671,8 @@ public static class WordCommands
                     Path.GetDirectoryName(Path.GetFullPath(file)) ?? ".",
                     Path.GetFileNameWithoutExtension(file) + ".compact.docx");
 
-                var result = DocxTableCompactor.Compact(file, outPath);
-                string summary = $"{result.TablesModified} tables compacted (fixed rows freed: {result.FixedRowsTotal})";
+                var result = DocxTableCompactor.Compact(file, outPath, autoHeight);
+                string summary = $"{result.TablesModified} tables compacted (fixed rows freed: {result.FixedRowsTotal}){(autoHeight ? " → auto-height" : "")}";
 
                 if (json)
                 {
@@ -1694,7 +1699,7 @@ public static class WordCommands
                 }
             }
             catch (Exception ex) { CliHelpers.WriteError("word compact-tables", ErrorCodes.InternalError with { Message = ex.Message }, json); }
-        }, fileArg, outOpt, jsonOpt);
+        }, fileArg, outOpt, autoHOpt, jsonOpt);
         return cmd;
     }
 
@@ -1805,6 +1810,125 @@ public static class WordCommands
             }
             catch (Exception ex) { CliHelpers.WriteError("word estimate", ErrorCodes.InternalError with { Message = ex.Message }, json); }
         }, fileArg, jsonOpt);
+        return cmd;
+    }
+
+    // ===== Stage 15: word comments =====
+
+    // ===== word page-setup =====
+
+    static Command CreatePageSetup(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to .docx file");
+        var sizeOpt = new Option<string>("--size", "Page size: A4, A3, B5, Letter, or WxH mm");
+        var orientOpt = new Option<string>("--orient", "Orientation: portrait or landscape");
+        var marginTopOpt = new Option<double?>("--margin-top", "Top margin in mm");
+        var marginBottomOpt = new Option<double?>("--margin-bottom", "Bottom margin in mm");
+        var marginLeftOpt = new Option<double?>("--margin-left", "Left margin in mm");
+        var marginRightOpt = new Option<double?>("--margin-right", "Right margin in mm");
+        var columnsOpt = new Option<int?>("--columns", "Number of columns (>1 for multi-column)");
+        var columnGapOpt = new Option<double?>("--column-gap", "Gap between columns in mm");
+        var firstPageOpt = new Option<bool?>("--first-page-different", "Different first page header/footer");
+        var pageNumOpt = new Option<string>("--page-number", "Page number format: decimal, roman, romanUpper");
+        var sectionOpt = new Option<int?>("--section", "Target section index (default: all)");
+        var outOpt = new Option<string>("-o", "Output DOCX path");
+        var cmd = new Command("page-setup", "Set page size, orientation, margins, columns, different first page") {
+            fileArg, sizeOpt, orientOpt, marginTopOpt, marginBottomOpt, marginLeftOpt, marginRightOpt,
+            columnsOpt, columnGapOpt, firstPageOpt, pageNumOpt, sectionOpt, outOpt };
+        cmd.AddAlias("layout");
+        cmd.SetHandler((InvocationContext ctx) =>
+        {
+            var parseResult = ctx.ParseResult;
+            var file = parseResult.GetValueForArgument(fileArg);
+            var size = parseResult.GetValueForOption(sizeOpt);
+            var orient = parseResult.GetValueForOption(orientOpt);
+            var marginTop = parseResult.GetValueForOption(marginTopOpt);
+            var marginBottom = parseResult.GetValueForOption(marginBottomOpt);
+            var marginLeft = parseResult.GetValueForOption(marginLeftOpt);
+            var marginRight = parseResult.GetValueForOption(marginRightOpt);
+            var columns = parseResult.GetValueForOption(columnsOpt);
+            var columnGap = parseResult.GetValueForOption(columnGapOpt);
+            var firstPageDiff = parseResult.GetValueForOption(firstPageOpt);
+            var pageNum = parseResult.GetValueForOption(pageNumOpt);
+            var section = parseResult.GetValueForOption(sectionOpt);
+            var output = parseResult.GetValueForOption(outOpt);
+            var json = parseResult.GetValueForOption(jsonOpt);
+            var err = CliHelpers.ValidateDocxFile(file);
+            if (err != null) { CliHelpers.WriteError("word page-setup", err, json); return; }
+            try
+            {
+                string outPath = output ?? Path.Combine(
+                    Path.GetDirectoryName(Path.GetFullPath(file)) ?? ".",
+                    Path.GetFileNameWithoutExtension(file) + ".layout.docx");
+                var opts = new DocxPageSetup.PageSetupOptions { PageSize = size, Orient = orient, MarginTopMm = marginTop, MarginBottomMm = marginBottom, MarginLeftMm = marginLeft, MarginRightMm = marginRight, Columns = columns, ColumnGapMm = columnGap, DifferentFirstPage = firstPageDiff, PageNumberFormat = pageNum, SectionIndex = section };
+                var result = DocxPageSetup.Apply(file, outPath, opts);
+                var summary = $"{result.SectionsApplied} section(s) updated: {string.Join("; ", result.Changes)}";
+                if (json) { var o = JsonOutput.Ok("word page-setup", summary, new { output = Path.GetFullPath(outPath), sections = result.SectionsApplied, changes = result.Changes }); o.Artifacts["docx"] = Path.GetFullPath(outPath); Console.WriteLine(JsonSerializer.Serialize(o, CliHelpers.JsonOpts)); }
+                else Console.WriteLine($"{summary} → {outPath}");
+            }
+            catch (Exception ex) { CliHelpers.WriteError("word page-setup", ErrorCodes.InternalError with { Message = ex.Message }, json); }
+        });
+        return cmd;
+    }
+
+    // ===== word indent =====
+
+    static Command CreateIndent(Option<bool> jsonOpt)
+    {
+        var fa = new Argument<string>("file", "Path to .docx file");
+        var fl = new Option<double?>("--first-line", "First-line indent in mm");
+        var hg = new Option<double?>("--hanging", "Hanging indent in mm");
+        var lf = new Option<double?>("--left", "Left indent in mm");
+        var rt = new Option<double?>("--right", "Right indent in mm");
+        var ol = new Option<int?>("--outline-level", "Outline level (0-9)");
+        var rl = new Option<string>("--role", "Target role: heading, body, or all (default)");
+        var ot = new Option<string>("-o", "Output DOCX path");
+        var cmd = new Command("indent", "Set paragraph indentation: first-line, hanging, left, right, outline level") {
+            fa, fl, hg, lf, rt, ol, rl, ot };
+        cmd.SetHandler((InvocationContext ctx) =>
+        {
+            var r = ctx.ParseResult; var f = r.GetValueForArgument(fa); var j = r.GetValueForOption(jsonOpt);
+            var er = CliHelpers.ValidateDocxFile(f);
+            if (er != null) { CliHelpers.WriteError("word indent", er, j); return; }
+            try {
+                var o = r.GetValueForOption(ot) ?? Path.Combine(Path.GetDirectoryName(Path.GetFullPath(f))??".",Path.GetFileNameWithoutExtension(f)+".indent.docx");
+                var opt = new DocxIndenter.IndentOptions{FirstLineMm=r.GetValueForOption(fl),HangingMm=r.GetValueForOption(hg),LeftMm=r.GetValueForOption(lf),RightMm=r.GetValueForOption(rt),OutlineLevel=r.GetValueForOption(ol),Role=r.GetValueForOption(rl)??"all"};
+                var res = DocxIndenter.Apply(f,o,opt);
+                var s = $"{res.ParagraphsChanged} paragraphs: {string.Join("; ",res.Changes)}";
+                if (j) { var x=JsonOutput.Ok("word indent",s,new{output=Path.GetFullPath(o),pc=res.ParagraphsChanged,changes=res.Changes}); x.Artifacts["docx"]=Path.GetFullPath(o); Console.WriteLine(JsonSerializer.Serialize(x,CliHelpers.JsonOpts)); }
+                else Console.WriteLine($"{s} → {o}");
+            } catch (Exception ex) { CliHelpers.WriteError("word indent", ErrorCodes.InternalError with{Message=ex.Message}, j); }
+        });
+        return cmd;
+    }
+
+    // ===== word paragraph-control =====
+
+    static Command CreateParagraphControl(Option<bool> jsonOpt)
+    {
+        var fa = new Argument<string>("file", "Path to .docx file");
+        var kn = new Option<bool?>("--keep-next", "Keep with next paragraph");
+        var kl = new Option<bool?>("--keeplines", "Keep lines together");
+        var pb = new Option<bool?>("--page-break-before", "Force page break before");
+        var wc = new Option<bool?>("--widow-control", "Widow/orphan control");
+        var rl = new Option<string>("--role", "Target role: heading, body, or all");
+        var ot = new Option<string>("-o", "Output DOCX path");
+        var cmd = new Command("paragraph-control", "Set pagination controls: keepNext, keepLines, pageBreakBefore, widowControl") {
+            fa, kn, kl, pb, wc, rl, ot };
+        cmd.SetHandler((InvocationContext ctx) =>
+        {
+            var r = ctx.ParseResult; var f = r.GetValueForArgument(fa); var j = r.GetValueForOption(jsonOpt);
+            var er = CliHelpers.ValidateDocxFile(f);
+            if (er != null) { CliHelpers.WriteError("word paragraph-control", er, j); return; }
+            try {
+                var o = r.GetValueForOption(ot) ?? Path.Combine(Path.GetDirectoryName(Path.GetFullPath(f))??".",Path.GetFileNameWithoutExtension(f)+".paginate.docx");
+                var opt = new DocxParagraphControl.PaginationOptions{KeepNext=r.GetValueForOption(kn),KeepLines=r.GetValueForOption(kl),PageBreakBefore=r.GetValueForOption(pb),WidowControl=r.GetValueForOption(wc),Role=r.GetValueForOption(rl)??"all"};
+                var res = DocxParagraphControl.Apply(f,o,opt);
+                var s = $"{res.ParagraphsChanged} paragraphs: {string.Join("; ",res.Changes)}";
+                if (j) { var x=JsonOutput.Ok("word paragraph-control",s,new{output=Path.GetFullPath(o),pc=res.ParagraphsChanged,changes=res.Changes}); x.Artifacts["docx"]=Path.GetFullPath(o); Console.WriteLine(JsonSerializer.Serialize(x,CliHelpers.JsonOpts)); }
+                else Console.WriteLine($"{s} → {o}");
+            } catch (Exception ex) { CliHelpers.WriteError("word paragraph-control", ErrorCodes.InternalError with{Message=ex.Message}, j); }
+        });
         return cmd;
     }
 
