@@ -2,13 +2,14 @@ using ShapeCrawler;
 
 namespace PptxCore;
 
-public sealed class PresentationBuilder
+public sealed class PresentationBuilder : IDisposable
 {
     private readonly IPresentation _pres;
     private readonly List<string> _notes = new();
     private ThemePreset? _theme;
     private bool _showPageNumbers = true;
     private readonly Dictionary<int, List<ShapeStyle>> _pendingStyles = new();
+    private bool _disposed;
 
     internal record ShapeStyle(int ShapeId, int? RotationDegrees);
     internal void TrackShape(int slideIdx, int shapeId, int? rotation = null)
@@ -170,7 +171,10 @@ public sealed class PresentationBuilder
                 if (changed) { entry.Delete(); using var w = new System.IO.StreamWriter(zip.CreateEntry(entry.FullName).Open()); w.Write(doc.ToString(System.Xml.Linq.SaveOptions.DisableFormatting)); }
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            _notes.Add($"PostProcessOoxml: {ex.GetType().Name} — {ex.Message}");
+        }
     }
 
     private static void RemoveAllPlaceholders(IUserSlide slide)
@@ -234,6 +238,13 @@ public sealed class PresentationBuilder
             if (s.TextBox is { Paragraphs.Count: > 0 } tb && tb.Paragraphs[0].Portions.Count > 0) { var f = tb.Paragraphs[0].Portions[0].Font; f.Size = LayoutSystem.FontSizes.Caption; f.Color.Set("999999"); if (_theme != null) { f.LatinName = _theme.BodyFont; f.EastAsianName = _theme.BodyCJK; } }
         }
         catch { }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        try { _pres.Dispose(); } catch { /* best effort */ }
     }
 }
 

@@ -37,7 +37,8 @@ public static class ChartCombine
             // 标注
             if (hasLabels && labels![i] != null)
             {
-                using var font = new SKFont(SKTypeface.FromFamilyName(labelFont), labelFontSize);
+                using var labelTypeface = SKTypeface.FromFamilyName(labelFont);
+                using var font = new SKFont(labelTypeface ?? SKTypeface.Default, labelFontSize);
                 using var paint = new SKPaint { Color = SKColors.Black, IsAntialias = true };
                 float textWidth = font.MeasureText(labels[i]);
                 canvas.DrawText(labels[i], x + (labelW - textWidth) / 2, height / 2 + labelFontSize / 3, font, paint);

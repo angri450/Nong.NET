@@ -67,7 +67,7 @@ public class BioIconRenderer
         canvas.Translate(x, y);
         canvas.Scale(scaleX, scaleY);
 
-        var overrideSkColor = SKColor.Parse(overrideColor);
+        var overrideSkColor = ParseColor(overrideColor, SKColors.Black);
 
         foreach (var element in root.Elements())
         {
@@ -271,18 +271,19 @@ public class BioIconRenderer
         var categories = Bioicons.IconProvider.GetCategories();
         var renderer = new BioIconRenderer();
 
-        var bitmap = new SKBitmap(width, height);
+        using var bitmap = new SKBitmap(width, height);
         using var canvas = new SKCanvas(bitmap);
         canvas.Clear(SKColors.White);
 
-        var cjkFont = SKTypeface.FromFamilyName(FontHelper.GetCjkFamilyName());
+        using var cjkFont = SKTypeface.FromFamilyName(FontHelper.GetCjkFamilyName());
+        using var cjkFontBold = SKTypeface.FromFamilyName(FontHelper.GetCjkFamilyName(), SKFontStyle.Bold);
 
         using var titlePaint = new SKPaint
         {
             IsAntialias = true,
             TextSize = 24,
             Color = SKColor.Parse("#1A1A1A"),
-            Typeface = SKTypeface.FromFamilyName(FontHelper.GetCjkFamilyName(), SKFontStyle.Bold)
+            Typeface = cjkFontBold
         };
 
         using var categoryPaint = new SKPaint
@@ -352,5 +353,11 @@ public class BioIconRenderer
         using var data = image.Encode(SKEncodedImageFormat.Png, 100);
         using var stream = File.OpenWrite(outputPath);
         data.SaveTo(stream);
+    }
+
+    private static SKColor ParseColor(string hex, SKColor fallback)
+    {
+        if (SKColor.TryParse(hex, out var c)) return c;
+        return fallback;
     }
 }
