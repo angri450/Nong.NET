@@ -5,5 +5,5 @@
 - 2026-06-09 | 2026-06-09-progress-report-wrong-approach.md | progress-report skill 创建偏离架构：独立 .NET 项目而非 nong CLI 命令；nong 工具链状态误判；SKILL.md 调用链路不合理 | 待处理
 - 2026-06-09 | 2026-06-09-groundpa-vs-nong-comparison.md | Nong.Toolkit.Net vs Angri450.Nong 完整对比：10 个不对齐问题（版本、skill 归属、日志结构、skill-manager 位置等） | 待处理
 - 2026-06-09 | 2026-06-09-merge-assessment.md | 合并方案评估：Nong.Toolkit.Net → Nong.NanoBot.Net，结论是 skill 合并进 NanoBot、Nong 保持独立 | 参考
-- 2026-06-10 | 2026-06-10-skill-alignment-feedback.md | skill 对齐反馈：inspect write-paper 的 keywords 校验与 skill 文档不一致、content/body 不一致、word preview sections=0 | 待处理
+- 2026-06-13 | 2026-06-13-ocr-install-model-native-runtime-missing.md | install-model v6 装完本地 OCR 仍报 native runtime 缺失：libSkiaSharp 缺 native DLL + InstallV6Model 只下载模型不部署运行时 | 已修复 (4.1.4)
 - 2026-06-09 | 2026-06-09-repo-naming-design.md | 三仓库命名统一设计：Nong 不改名（NuGet 包已固定），NanoBot 可微调 | 参考

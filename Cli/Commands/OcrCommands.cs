@@ -926,7 +926,7 @@ public static class OcrCommands
 
             if (PpOcrV6ModelResolver.IsV6ModelId(modelId))
             {
-                InstallV6Model(modelId, dryRun, json);
+                InstallV6Model(modelId, dryRun, source, allowUpstreamFallback, json);
                 return;
             }
 
@@ -1064,10 +1064,12 @@ public static class OcrCommands
 
     // ===== v6 model install =====
 
-    static void InstallV6Model(string modelId, bool dryRun, bool json)
+    static void InstallV6Model(string modelId, bool dryRun, string source, bool allowUpstreamFallback, bool json)
     {
         var (_, size) = PpOcrV6ModelResolver.ParseModelId(modelId);
         var modelCachePath = PpOcrV6ModelResolver.GetModelCachePath(size);
+        var runtimeCache = PpOcrV6ModelResolver.GetNativeRuntimeCachePath();
+        var runtimePlan = GetNativeRuntimePlan();
 
         if (dryRun)
         {
@@ -1081,39 +1083,65 @@ public static class OcrCommands
                 recUrl = PpOcrV6ModelResolver.RecDownloadUrl(size),
                 modelCachePath,
                 noPython = true,
-                note = "PP-OCRv6 models are downloaded from PaddleOCR CDN (PIR format, Paddle 3.0). No Python, pip, or NuGet model packages required. Native runtime DLLs come from the existing Nong.OcrRuntime NuGet install."
+                runtime = new
+                {
+                    runtimeId = runtimePlan.RuntimeId,
+                    runtimeCache,
+                    bundlePackage = runtimePlan.BundlePackage,
+                    fallbackPackages = runtimePlan.FallbackPackages,
+                    allowUpstreamFallback,
+                    source,
+                },
+                note = "PP-OCRv6 models are downloaded from PaddleOCR CDN (PIR format, Paddle 3.0). Native runtime DLLs are deployed from the Nong.OcrRuntime NuGet package family. No Python, pip, or external OCR executable required."
             };
-            var output = JsonOutput.Ok("ocr install-model", $"Dry run: PP-OCRv6 {size} deployment plan", data);
+            var output = JsonOutput.Ok("ocr install-model", $"Dry run: PP-OCRv6 {size} + native runtime deployment plan", data);
             Console.WriteLine(JsonSerializer.Serialize(output, CliHelpers.JsonOpts));
             return;
         }
 
-        // Check if already installed
-        if (PpOcrV6ModelResolver.ValidateModelCache(modelCachePath))
+        bool modelOk = PpOcrV6ModelResolver.ValidateModelCache(modelCachePath);
+        bool runtimeOk = PpOcrV6ModelResolver.ValidateNativeRuntimeDir(runtimeCache);
+
+        // Both already installed
+        if (modelOk && runtimeOk)
         {
+            var env = PpOcrV6Client.CheckEnvironment();
+            var downloadCleanup = CleanupRuntimeDownloads(runtimeCache);
             var output = JsonOutput.Ok("ocr install-model",
-                $"PP-OCRv6 {size} is already installed",
+                $"PP-OCRv6 {size} is already installed and ready",
                 new
                 {
                     modelId = PpOcrV6ModelResolver.CanonicalModelId(modelId),
                     size,
-                    engine = "pp-ocrv6-dotnet-sdcb",
+                    engine = env.Engine,
+                    runtime = env.Runtime,
                     modelCachePath,
-                    noPython = true
+                    runtimeCache,
+                    downloadCleanup,
+                    noPython = true,
+                    message = env.Message
                 });
+            AddCleanupWarning(output, downloadCleanup);
             Console.WriteLine(JsonSerializer.Serialize(output, CliHelpers.JsonOpts));
             return;
         }
 
-        // Download + extract
+        // Model-only install (no runtime): used when model cache dir has files but runtime cache is empty
+        if (modelOk && !runtimeOk)
+        {
+            InstallV6NativeRuntime(size, modelCachePath, runtimeCache, runtimePlan, source, allowUpstreamFallback, json);
+            return;
+        }
+
+        // Full install: model + native runtime
         try
         {
-            var elapsed = CliHelpers.Time(() =>
+            // Step 1: download model from CDN
+            var modelElapsed = CliHelpers.Time(() =>
             {
                 DownloadAndExtractV6Model(size, modelCachePath);
             });
 
-            // Verify after install
             if (!PpOcrV6ModelResolver.ValidateModelCache(modelCachePath))
             {
                 CliHelpers.WriteError("ocr install-model",
@@ -1124,18 +1152,33 @@ public static class OcrCommands
                 return;
             }
 
+            // Step 2: deploy native runtime from NuGet
+            if (!runtimeOk)
+            {
+                InstallV6NativeRuntime(size, modelCachePath, runtimeCache, runtimePlan, source, allowUpstreamFallback, json);
+                return;
+            }
+
+            // runtime already OK, model only
+            var after = PpOcrV6Client.CheckEnvironment();
+            var downloadCleanup = CleanupRuntimeDownloads(runtimeCache);
             var output = JsonOutput.Ok("ocr install-model",
                 $"PP-OCRv6 {size} installed",
                 new
                 {
                     modelId = PpOcrV6ModelResolver.CanonicalModelId(modelId),
                     size,
-                    engine = "pp-ocrv6-dotnet-sdcb",
+                    engine = after.Engine,
+                    runtime = after.Runtime,
                     modelCachePath,
-                    noPython = true
+                    runtimeCache,
+                    downloadCleanup,
+                    noPython = true,
+                    message = after.Message
                 });
+            AddCleanupWarning(output, downloadCleanup);
             output.Artifacts["modelDir"] = modelCachePath;
-            output.Meta.DurationMs = elapsed;
+            output.Meta.DurationMs = modelElapsed;
             Console.WriteLine(JsonSerializer.Serialize(output, CliHelpers.JsonOpts));
         }
         catch (Exception ex)
@@ -1144,6 +1187,77 @@ public static class OcrCommands
                 ErrorCodes.DependencyMissing with
                 {
                     Message = $"Failed to install PP-OCRv6 {size}: {ex.Message}"
+                }, json);
+        }
+    }
+
+    /// <summary>
+    /// Install native runtime DLLs into the pp-ocrv6-{rid} cache directory.
+    /// Called from InstallV6Model when model is present but runtime is missing.
+    /// </summary>
+    static void InstallV6NativeRuntime(string size, string modelCachePath, string runtimeCache, NativeRuntimePlan runtimePlan, string source, bool allowUpstreamFallback, bool json)
+    {
+        if (runtimePlan.BundlePackage == null && runtimePlan.FallbackPackages.Count == 0)
+        {
+            CliHelpers.WriteError("ocr install-model",
+                ErrorCodes.DependencyMissing with
+                {
+                    Message = $"No native runtime package configured for this platform: {runtimePlan.RuntimeId}. PP-OCRv6 {size} model is installed but native inference DLLs are missing."
+                }, json);
+            return;
+        }
+
+        try
+        {
+            var (installed, runtimeElapsed) = CliHelpers.Time(() =>
+                InstallNativeRuntime(runtimePlan, runtimeCache, source, allowUpstreamFallback));
+
+            var after = PpOcrV6Client.CheckEnvironment();
+            if (!after.Available)
+            {
+                CliHelpers.WriteError("ocr install-model",
+                    ErrorCodes.DependencyMissing with
+                    {
+                        Message = $"PP-OCRv6 {size} model is installed but native runtime is still unavailable. Runtime cache: {runtimeCache}. Detail: {after.Message}"
+                    }, json);
+                return;
+            }
+
+            var downloadCleanup = CleanupRuntimeDownloads(runtimeCache);
+            var output = JsonOutput.Ok("ocr install-model",
+                $"PP-OCRv6 {size} + native runtime installed",
+                new
+                {
+                    modelId = $"pp-ocrv6-{size}",
+                    size,
+                    engine = after.Engine,
+                    runtime = after.Runtime,
+                    runtimeId = runtimePlan.RuntimeId,
+                    source,
+                    modelCachePath,
+                    runtimeCache,
+                    installed,
+                    downloadCleanup,
+                    allowUpstreamFallback,
+                    noPython = true,
+                    message = after.Message
+                });
+            AddCleanupWarning(output, downloadCleanup);
+            output.Artifacts["modelDir"] = modelCachePath;
+            output.Artifacts["runtimeDir"] = runtimeCache;
+            output.Meta.DurationMs = runtimeElapsed;
+            Console.WriteLine(JsonSerializer.Serialize(output, CliHelpers.JsonOpts));
+        }
+        catch (Exception ex)
+        {
+            var downloadCleanup = CleanupRuntimeDownloads(runtimeCache);
+            var cleanupMessage = downloadCleanup.Warning == null
+                ? ""
+                : $" Cleanup warning: {downloadCleanup.Warning}";
+            CliHelpers.WriteError("ocr install-model",
+                ErrorCodes.DependencyMissing with
+                {
+                    Message = $"PP-OCRv6 {size} model is installed but native runtime deployment failed from NuGet source '{source}': {ex.Message}{cleanupMessage}"
                 }, json);
         }
     }
