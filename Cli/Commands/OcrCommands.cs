@@ -323,6 +323,16 @@ public static class OcrCommands
                     output.Meta.DurationMs = elapsed;
 
                     AddLocalOcrNumericIssues(output, result, invalidConfidenceBlocks, invalidGeometryBlocks);
+                    // Preflight heuristic warning as JSON issue (already printed to stderr in text mode)
+                    if (!string.IsNullOrEmpty(preflight.Classification) && preflight.Classification != "text_candidate")
+                    {
+                        output.Issues.Add(new Issue
+                        {
+                            Id = "local_ocr_preflight_warning",
+                            Severity = "Warning",
+                            Message = $"Preflight classification: {preflight.Classification}. {preflight.Reason} {preflight.Recommendation}"
+                        });
+                    }
                     Console.WriteLine(JsonSerializer.Serialize(output, CliHelpers.JsonOpts));
                 }
                 else

@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.ComponentModel;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace DocxCore;
@@ -56,26 +57,32 @@ public static class DocxTemplate
 
     static void FillParts(WordprocessingDocument doc, Dictionary<string, object?> data)
     {
+        // Normalize System.Text.Json.JsonElement values to native .NET types.
+        // Without this, nested objects/arrays remain as JsonElement which does not
+        // implement IEnumerable, breaking foreach/tables/tag resolution downstream.
+        var normalized = (Dictionary<string, object?>)NormalizeJsonValue(data)!;
+
         var main = doc.MainDocumentPart!;
         if (main.Document.Body != null)
         {
             // 0. 检测 tables 顶层 key → 位置填充模式
-            if (data.TryGetValue("tables", out var tablesVal) && tablesVal is System.Collections.IEnumerable tableList)
+            if (normalized.TryGetValue("tables", out var tablesVal)
+                && tablesVal is System.Collections.IEnumerable tableList)
             {
                 FillTablesByPosition(main, tableList);
-                data.Remove("tables");
+                normalized.Remove("tables");
             }
 
-            ProcessElement(main.Document.Body, data, main);
+            ProcessElement(main.Document.Body, normalized, main);
         }
 
         foreach (var hp in main.HeaderParts)
             if (hp.Header != null)
-                ProcessElement(hp.Header, data, main);
+                ProcessElement(hp.Header, normalized, main);
 
         foreach (var fp in main.FooterParts)
             if (fp.Footer != null)
-                ProcessElement(fp.Footer, data, main);
+                ProcessElement(fp.Footer, normalized, main);
     }
 
     /// <summary>
@@ -578,6 +585,70 @@ public static class DocxTemplate
         foreach (PropertyDescriptor prop in TypeDescriptor.GetProperties(data))
             result[prop.Name] = prop.GetValue(data);
         return result;
+    }
+
+    // === JsonElement normalization ===
+    // System.Text.Json deserializes nested objects/arrays/numbers as JsonElement,
+    // which doesn't implement IEnumerable and breaks TypeDescriptor-based ToDictionary.
+    // NormalizeJsonValue recursively converts the JsonElement tree to native .NET types.
+
+    static object? NormalizeJsonValue(object? value)
+    {
+        if (value is JsonElement je)
+        {
+            return je.ValueKind switch
+            {
+                JsonValueKind.Object => NormalizeJsonObject(je),
+                JsonValueKind.Array  => NormalizeJsonArray(je),
+                JsonValueKind.String => je.GetString(),
+                JsonValueKind.Number => NormalizeJsonNumber(je),
+                JsonValueKind.True   => true,
+                JsonValueKind.False  => false,
+                JsonValueKind.Null   => null,
+                _ => null,
+            };
+        }
+
+        if (value is Dictionary<string, object?> dict)
+        {
+            var result = new Dictionary<string, object?>();
+            foreach (var kv in dict)
+                result[kv.Key] = NormalizeJsonValue(kv.Value);
+            return result;
+        }
+
+        if (value is System.Collections.IList list)
+        {
+            var result = new List<object?>();
+            foreach (var item in list)
+                result.Add(NormalizeJsonValue(item));
+            return result;
+        }
+
+        return value;  // string, bool, int, etc. already native — pass through
+    }
+
+    static Dictionary<string, object?> NormalizeJsonObject(JsonElement je)
+    {
+        var result = new Dictionary<string, object?>();
+        foreach (var prop in je.EnumerateObject())
+            result[prop.Name] = NormalizeJsonValue(prop.Value);
+        return result;
+    }
+
+    static List<object?> NormalizeJsonArray(JsonElement je)
+    {
+        var result = new List<object?>();
+        foreach (var item in je.EnumerateArray())
+            result.Add(NormalizeJsonValue(item));
+        return result;
+    }
+
+    static object NormalizeJsonNumber(JsonElement je)
+    {
+        if (je.TryGetInt32(out var i)) return i;
+        if (je.TryGetInt64(out var l)) return l;
+        return je.GetDouble();
     }
 }
 

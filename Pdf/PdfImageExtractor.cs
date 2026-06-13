@@ -154,9 +154,9 @@ public static class PdfImageExtractor
     }
 
     /// <summary>
-    /// Detect image format from raw bytes and save with the correct extension.
-    /// Handles JPEG (DCTDecode) which PdfPig can't decode natively but whose raw
-    /// bytes are directly usable as a .jpg file.
+    /// Detect image format from raw (compressed) bytes and save with the correct extension.
+    /// Uses RawMemory directly because TryGetBytesAsMemory returns false for unsupported
+    /// filters like DCTDecode/JPXDecode — but the raw bytes ARE the JPEG/JP2 data.
     /// </summary>
     static bool TrySaveRawImage(
         UglyToad.PdfPig.Content.IPdfImage image,
@@ -170,12 +170,12 @@ public static class PdfImageExtractor
         outPath = Path.Combine(outputDir, fileName);
         warning = "";
 
-        if (!image.TryGetBytesAsMemory(out var rawMemory) || rawMemory.Length < 3)
+        var rawMemory = image.RawBytes;
+        if (rawMemory.Length < 3)
             return false;
 
-        var span = rawMemory.Span;
         // JPEG magic: FF D8 FF
-        if (span[0] == 0xFF && span[1] == 0xD8 && span[2] == 0xFF)
+        if (rawMemory[0] == 0xFF && rawMemory[1] == 0xD8 && rawMemory[2] == 0xFF)
         {
             fileName = $"{id}.jpg";
             outPath = Path.Combine(outputDir, fileName);
@@ -185,8 +185,8 @@ public static class PdfImageExtractor
         }
 
         // JPEG 2000 magic: 00 00 00 0C 6A 50 20 20
-        if (span.Length >= 8 && span[0] == 0x00 && span[1] == 0x00 && span[2] == 0x00
-            && span[3] == 0x0C && span[4] == 0x6A && span[5] == 0x50 && span[6] == 0x20 && span[7] == 0x20)
+        if (rawMemory.Length >= 8 && rawMemory[0] == 0x00 && rawMemory[1] == 0x00 && rawMemory[2] == 0x00
+            && rawMemory[3] == 0x0C && rawMemory[4] == 0x6A && rawMemory[5] == 0x50 && rawMemory[6] == 0x20 && rawMemory[7] == 0x20)
         {
             fileName = $"{id}.jp2";
             outPath = Path.Combine(outputDir, fileName);

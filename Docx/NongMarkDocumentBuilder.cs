@@ -227,9 +227,11 @@ public sealed class NongMarkDocumentBuilder
                 ProcessLines(blockLines);
                 break;
             case "title":
+                ResetParagraphState();
                 AppendTitle(content);
                 break;
             case "heading":
+                ResetParagraphState();
                 AppendHeading(content, GetInt(attrs, "level", 1));
                 break;
             case "paragraph":
