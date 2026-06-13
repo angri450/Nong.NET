@@ -63,6 +63,7 @@ public sealed class PpOcrV6Client : IDisposable
             throw new PaddleOcrException($"Cannot decode image: {imagePath}");
 
         var result = RecognizeWithEngine(_fastEngine.Value, mat, PpOcrV5InferenceMode.Fast);
+        result.ModelId = ModelId;
         if (!result.HasNumericIssues)
             return Task.FromResult(result);
 
@@ -139,7 +140,7 @@ public sealed class PpOcrV6Client : IDisposable
         return new PpOcrV5Result
         {
             Engine = "pp-ocrv6-dotnet-sdcb",
-            ModelId = ModelId,
+            ModelId = $"pp-ocrv6-medium",  // static helper: reports default model
             InferenceMode = mode == PpOcrV5InferenceMode.Fast ? "fast-cpu" : "safe-cpu-blas",
             Pages = new List<PpOcrV5Page> { page }
         };
