@@ -3,6 +3,7 @@
 > Agent 添加变更记录后同步更新此文件。格式：`- YYYY-MM-DD | 文件名 | 一句话摘要`
 
 ## 2026-06-13
+- 2026-06-13 | 2026-06-13-4.1.2-new-publish.md | 4.1.2 新版本发布：版本同步、清理 nupkg、7 包本地安装验证、NuGet Created 并索引可见
 - 2026-06-13 | 2026-06-13-4.1.0-nupkg-refresh-nuget-push.md | 清理 root nupkg 并刷新 7 个 4.1.0 工具包；NuGet push 全部 duplicate skip，确认 4.1.0 已存在
 - 2026-06-13 | 2026-06-13-4.1.0-local-install-closure.md | 4.1.0 本地安装闭环：7 包 clean pack、本地 tool-path 安装、installed smoke、nupkg 策略收口
 - 2026-06-13 | 2026-06-13-4.1.0-release-doc-sync.md | 4.1.0 发布真相源同步：版本常量/csproj、README/Agent/能力表/checklist、126 命令合同、clean pack audit

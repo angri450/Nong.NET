@@ -12,7 +12,7 @@ Active plan/handoff:
 
 Current immediate objective:
 
-- 4.1.2 new publish pass is in progress because NuGet already contains all 7 current 4.1.0 packages, and `Angri450.Nong.Cli` / `Angri450.Nong.Tool.Pdf` also have 4.1.1.
+- 4.1.2 modular tool packages are published on NuGet. Root `nupkg/` contains exactly the 7 current 4.1.2 tool packages.
 
 Do not infer current work from older `log/plans/*` files unless this file or the active handoff links to them.
 
@@ -108,23 +108,23 @@ Native OCR runtime contract:
 
 These are active risks, not historical notes:
 
-- Root `nupkg/` is being refreshed for 4.1.2. Re-run pack audit before any publish.
+- Root `nupkg/` was refreshed on 2026-06-13 and currently contains only the 7 current `Angri450.Nong.Cli` / `Angri450.Nong.Tool.*` 4.1.2 packages. Re-run pack audit before any future publish.
 - Older handoffs, commit subjects, or changelog entries can mention `125` commands as historical evidence; current local discovery is `126`.
-- NuGet already contains 4.1.0 for all 7 current tool packages. `Angri450.Nong.Cli` and `Angri450.Nong.Tool.Pdf` also have 4.1.1, so the current new publish pass uses 4.1.2.
+- NuGet already contains 4.1.0, mixed 4.1.1 for CLI/PDF, and the current 4.1.2 release for all 7 current tool packages.
 
-## Current Release Candidate Status
+## Current Release Status
 
-4.1.0 local release-candidate checks passed on 2026-06-13:
+4.1.2 release checks passed on 2026-06-13:
 
 - `dotnet test Cli.Tests\Cli.Tests.csproj -c Release --no-restore` -> `155 passed, 0 failed, 0 skipped`
-- clean temp pack audit -> `status: ok`, `packageCount: 7`
-- fresh local `dotnet tool install --tool-path <temp>` from the clean source installed all 7 packages at `4.1.0`
-- installed `nong --version` -> `nong v4.1.0`
-- installed `nong commands --json` -> `126 commands available`, `meta.version = 4.1.0`
+- root `nupkg/` pack audit -> `status: ok`, `packageCount: 7`
+- fresh local `dotnet tool install --tool-path <temp>` from root `nupkg/` installed all 7 packages at `4.1.2`
+- installed `nong --version` -> `nong v4.1.2`
+- installed `nong commands --json` -> `126 commands available`, `meta.version = 4.1.2`
 - installed `nong commands --format openai-tools` -> 126 tool schemas
 - installed direct/routed chart and PDF missing-file JSON smokes returned structured `E001`
-- root `nupkg/` refresh -> 7 current 4.1.0 packages, pack audit `status: ok`
-- NuGet push with `--skip-duplicate` -> all 7 4.1.0 packages already existed; no package was overwritten
+- NuGet push with `--skip-duplicate` -> all 7 4.1.2 packages returned `Created`
+- NuGet flat-container index -> all 7 package IDs show 4.1.2 and latest = 4.1.2
 
 Do not publish or push without an explicit user request.
 
