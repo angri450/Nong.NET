@@ -3,6 +3,7 @@
 > Agent 添加变更记录后同步更新此文件。格式：`- YYYY-MM-DD | 文件名 | 一句话摘要`
 
 ## 2026-06-13
+- 2026-06-13 | 2026-06-13-4.1.0-nupkg-refresh-nuget-push.md | 清理 root nupkg 并刷新 7 个 4.1.0 工具包；NuGet push 全部 duplicate skip，确认 4.1.0 已存在
 - 2026-06-13 | 2026-06-13-4.1.0-local-install-closure.md | 4.1.0 本地安装闭环：7 包 clean pack、本地 tool-path 安装、installed smoke、nupkg 策略收口
 - 2026-06-13 | 2026-06-13-4.1.0-release-doc-sync.md | 4.1.0 发布真相源同步：版本常量/csproj、README/Agent/能力表/checklist、126 命令合同、clean pack audit
 - 2026-06-13 | 2026-06-13-builder-planner-prompts.md | 新增根目录提示词文件：施工窗口.md / 计划窗口.md，对应双窗口开发流程

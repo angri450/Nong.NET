@@ -57,7 +57,7 @@ public class CliContractTests
         var (text, exit) = Run("--version");
 
         Assert.Equal(0, exit);
-        Assert.Equal("nong v4.1.0", text.Trim());
+        Assert.Equal("nong v4.1.2", text.Trim());
     }
 
     [Fact]

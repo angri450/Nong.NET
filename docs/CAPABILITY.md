@@ -1,9 +1,9 @@
-# nong CLI 当前能力表 v4.1.0
+# nong CLI 当前能力表 v4.1.2
 
 日期：2026-06-13
 当前来源：`nong commands --json` / `nong commands --format openai-tools`
 命令数：126 implemented
-版本线：`CliVersion.Current == 4.1.0`
+版本线：`CliVersion.Current == 4.1.2`
 
 `PROJECT_STATE.md` 是当前真相源。本文件只记录当前能力口径；旧 4.0.0 / 93 命令能力表已经是历史信息。
 
@@ -11,7 +11,7 @@
 
 ## 架构
 
-4.1.0 采用模块化工具架构：
+4.1.x 采用模块化工具架构：
 
 - 主 `nong` 是轻路由器 + 纯 .NET 轻模块。
 - 重模块拆成独立 dotnet tool。
@@ -91,7 +91,7 @@ nong ocr local scan.png --json
   "artifacts": { "docx": "out.docx" },
   "metrics": {},
   "errors": [],
-  "meta": { "durationMs": 42, "version": "4.1.0" }
+  "meta": { "durationMs": 42, "version": "4.1.2" }
 }
 ```
 
@@ -113,7 +113,7 @@ nong ocr local scan.png --json
 
 ## 发布口径
 
-4.1.0 可发布工具包：
+4.1.2 可发布工具包：
 
 - `Angri450.Nong.Cli`
 - `Angri450.Nong.Tool.Chart`
@@ -125,4 +125,4 @@ nong ocr local scan.png --json
 
 发布前必须使用干净输出目录重新 pack 和 audit。根目录 `nupkg/` 可能包含历史产物，不能直接作为发布源。
 
-Chart / Diagram / Imaging 当前 4.1.0 工具包采用 Windows native assets 策略。Linux/macOS 需要源码构建或后续 native runtime 拆包方案。
+Chart / Diagram / Imaging 当前 4.1.2 工具包采用 Windows native assets 策略。Linux/macOS 需要源码构建或后续 native runtime 拆包方案。

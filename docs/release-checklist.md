@@ -1,15 +1,15 @@
-# Release Checklist - Nong.NET v4.1.0
+# Release Checklist - Nong.NET v4.1.2
 
 Date: 2026-06-13
 
-Use this checklist before publishing 4.1.0 packages. Do not publish to NuGet, GitHub, Gitee, or GitCode unless the user explicitly asks for that action.
+Use this checklist before publishing 4.1.2 packages. Do not publish to NuGet, GitHub, Gitee, or GitCode unless the user explicitly asks for that action.
 
 ## Build And Test
 
 - [ ] `dotnet test Cli.Tests\Cli.Tests.csproj -c Release --no-restore`
-- [ ] `.\Cli\bin\Release\net8.0\nong.exe --version` prints `nong v4.1.0`
+- [ ] `.\Cli\bin\Release\net8.0\nong.exe --version` prints `nong v4.1.2`
 - [ ] `.\Cli\bin\Release\net8.0\nong.exe commands --json` reports `126 commands available`
-- [ ] `commands --json` returns `meta.version = "4.1.0"`
+- [ ] `commands --json` returns `meta.version = "4.1.2"`
 - [ ] `.\Cli\bin\Release\net8.0\nong.exe commands --format openai-tools` emits 126 tool schemas
 
 Native image rendering tests remain opt-in. Do not add Chart/Diagram/OCR/PDF real PNG rendering paths back to the default `dotnet test` run.
@@ -65,30 +65,30 @@ $configPath = Join-Path $env:TEMP ("nong-local-source-" + [guid]::NewGuid().ToSt
   </packageSources>
 </configuration>
 "@ | Set-Content -LiteralPath $configPath -Encoding UTF8
-dotnet tool install Angri450.Nong.Cli --version 4.1.0 --tool-path $toolPath --configfile $configPath --ignore-failed-sources
-dotnet tool install Angri450.Nong.Tool.Chart --version 4.1.0 --tool-path $toolPath --configfile $configPath --ignore-failed-sources
-dotnet tool install Angri450.Nong.Tool.Diagram --version 4.1.0 --tool-path $toolPath --configfile $configPath --ignore-failed-sources
-dotnet tool install Angri450.Nong.Tool.Pdf --version 4.1.0 --tool-path $toolPath --configfile $configPath --ignore-failed-sources
-dotnet tool install Angri450.Nong.Tool.Pptx --version 4.1.0 --tool-path $toolPath --configfile $configPath --ignore-failed-sources
-dotnet tool install Angri450.Nong.Tool.Ocr --version 4.1.0 --tool-path $toolPath --configfile $configPath --ignore-failed-sources
-dotnet tool install Angri450.Nong.Tool.Imaging --version 4.1.0 --tool-path $toolPath --configfile $configPath --ignore-failed-sources
+dotnet tool install Angri450.Nong.Cli --version 4.1.2 --tool-path $toolPath --configfile $configPath --ignore-failed-sources
+dotnet tool install Angri450.Nong.Tool.Chart --version 4.1.2 --tool-path $toolPath --configfile $configPath --ignore-failed-sources
+dotnet tool install Angri450.Nong.Tool.Diagram --version 4.1.2 --tool-path $toolPath --configfile $configPath --ignore-failed-sources
+dotnet tool install Angri450.Nong.Tool.Pdf --version 4.1.2 --tool-path $toolPath --configfile $configPath --ignore-failed-sources
+dotnet tool install Angri450.Nong.Tool.Pptx --version 4.1.2 --tool-path $toolPath --configfile $configPath --ignore-failed-sources
+dotnet tool install Angri450.Nong.Tool.Ocr --version 4.1.2 --tool-path $toolPath --configfile $configPath --ignore-failed-sources
+dotnet tool install Angri450.Nong.Tool.Imaging --version 4.1.2 --tool-path $toolPath --configfile $configPath --ignore-failed-sources
 ```
 
 Installed smoke expectations:
 
-- [ ] `dotnet tool list --tool-path $toolPath` shows all 7 packages at `4.1.0`.
-- [ ] `$toolPath\nong.exe --version` prints `nong v4.1.0`.
-- [ ] `$toolPath\nong.exe commands --json` reports `126 commands available` and `meta.version = "4.1.0"`.
+- [ ] `dotnet tool list --tool-path $toolPath` shows all 7 packages at `4.1.2`.
+- [ ] `$toolPath\nong.exe --version` prints `nong v4.1.2`.
+- [ ] `$toolPath\nong.exe commands --json` reports `126 commands available` and `meta.version = "4.1.2"`.
 - [ ] `$toolPath\nong.exe commands --format openai-tools` emits 126 tool schemas.
 - [ ] Direct external tools start with `--help`: `nong-chart`, `nong-diagram`, `nong-pdf`, `nong-pptx`, `nong-ocr`, `nong-imaging`.
 - [ ] At least one direct and one routed external JSON error path returns structured `E001`, for example `nong-chart anova nonexistent.json --json` and `nong chart anova nonexistent.json --json`.
 
 ## Version Contract
 
-- [ ] Project package versions are `4.1.0`.
-- [ ] `Cli/Common/CliVersion.cs` reports `4.1.0`.
+- [ ] Project package versions are `4.1.2`.
+- [ ] `Cli/Common/CliVersion.cs` reports `4.1.2`.
 - [ ] `Cli/Common/OcrRuntimeVersion.cs` is not bumped unless sibling repo `Nong.OcrRuntime` published a new validated runtime.
-- [ ] `README.md`, `README.zh-CN.md`, `Cli/AGENT.md`, and `docs/CAPABILITY.md` document the 4.1.0 modular architecture.
+- [ ] `README.md`, `README.zh-CN.md`, `Cli/AGENT.md`, and `docs/CAPABILITY.md` document the 4.1.x modular architecture.
 - [ ] PP-OCRv6 is the default local OCR model line; `pp-ocrv5-mobile` is documented only as legacy compatibility.
 
 ## OCR Runtime Boundary
@@ -108,6 +108,6 @@ Installed smoke expectations:
 
 ## Known Limits
 
-- Chart, Diagram, and Imaging 4.1.0 packages currently use the Windows native asset strategy.
+- Chart, Diagram, and Imaging 4.1.2 packages currently use the Windows native asset strategy.
 - Linux/macOS native rendering needs source-build validation or a later native runtime packaging pass.
 - PDF scan-mode searchable text quality depends on local PP-OCRv6 model/runtime availability.

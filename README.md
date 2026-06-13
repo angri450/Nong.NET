@@ -32,9 +32,9 @@ nong commands --json</code></pre>
 
 <hr>
 
-<h2>4.1.0 Modular Line</h2>
+<h2>4.1.x Modular Line</h2>
 
-<p>Nong.Cli.Net 4.1.0 separates command routing from heavy native dependencies:</p>
+<p>Nong.Cli.Net 4.1.x separates command routing from heavy native dependencies:</p>
 
 <pre><code>nong (Angri450.Nong.Cli)
   built in: word / excel / inspect / lit / genre / icons / slice / skill / progress
@@ -129,7 +129,7 @@ nong lit export --input refs.json --format bibtex --out refs.bib --json</code></
   "artifacts": { "docx": "out.docx" },
   "metrics": {},
   "errors": [],
-  "meta": { "durationMs": 42, "version": "4.1.0" }
+  "meta": { "durationMs": 42, "version": "4.1.2" }
 }</code></pre>
 
 <p>Error codes <code>E001</code> through <code>E009</code> cover file-not-found, unsupported format, missing argument, internal error, dependency missing, validation failed, read failed, write failed, and not implemented.</p>
@@ -139,10 +139,10 @@ nong lit export --input refs.json --format bibtex --out refs.bib --json</code></
 <h2>Release Notes</h2>
 
 <ul>
-  <li>Publishable 4.1.0 tool packages are <code>Angri450.Nong.Cli</code> and the six <code>Angri450.Nong.Tool.*</code> packages listed above.</li>
+  <li>Publishable 4.1.2 tool packages are <code>Angri450.Nong.Cli</code> and the six <code>Angri450.Nong.Tool.*</code> packages listed above.</li>
   <li>Current pack audits must use a clean output directory. Do not publish from root <code>nupkg/</code> unless it has been refreshed from current project files.</li>
   <li><code>Cli/Common/OcrRuntimeVersion.cs</code> is intentionally independent from <code>CliVersion.Current</code>. Do not bump the OCR runtime version for routine CLI releases.</li>
-  <li>Chart, Diagram, and Imaging 4.1.0 packages currently use the Windows native asset strategy. Linux/macOS users should build from source or wait for a dedicated native runtime packaging pass.</li>
+  <li>Chart, Diagram, and Imaging 4.1.2 packages currently use the Windows native asset strategy. Linux/macOS users should build from source or wait for a dedicated native runtime packaging pass.</li>
 </ul>
 
 <hr>
@@ -151,7 +151,7 @@ nong lit export --input refs.json --format bibtex --out refs.bib --json</code></
 
 <ul>
   <li>.NET SDK 8.0 or later for development; installed tools can roll forward to current major runtimes.</li>
-  <li>Windows is the validated native-rendering path for Chart, Diagram, and Imaging 4.1.0 packages.</li>
+  <li>Windows is the validated native-rendering path for Chart, Diagram, and Imaging 4.1.2 packages.</li>
   <li>No JavaScript, npm, Python, pip, Graphviz, or Mermaid runtime is required for core local workflows.</li>
 </ul>
 

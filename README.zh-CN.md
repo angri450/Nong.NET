@@ -33,7 +33,7 @@ nong commands --json</code></pre>
 
 <h2>架构：CLI 路由 + 独立子工具</h2>
 
-<p>4.1.0 版本采用模块化架构。主 <code>nong</code> 是轻量路由器，不直接引用 SkiaSharp/PDFium/PaddleOCR 等重 native 依赖。重型模块各自打成独立 <code>dotnet tool</code>，按需下载安装：</p>
+<p>4.1.x 版本采用模块化架构。主 <code>nong</code> 是轻量路由器，不直接引用 SkiaSharp/PDFium/PaddleOCR 等重 native 依赖。重型模块各自打成独立 <code>dotnet tool</code>，按需下载安装：</p>
 
 <pre><code>nong (12MB，轻路由)
   ├── 内嵌轻模块（纯 .NET）：
@@ -284,7 +284,7 @@ nong lit search "drought tolerance maize" -o refs.json --json</code></pre>
 
 <hr>
 
-<h2>项目结构 — 4.1.0 发布包</h2>
+<h2>项目结构 — 4.1.2 发布包</h2>
 
 <table>
   <tr><th>PackageId</th><th>类型</th><th>大小</th><th>用途</th></tr>

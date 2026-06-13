@@ -32,7 +32,7 @@ Current local discovery returns:
 
 - `126 commands available`
 - 126 OpenAI tool schemas
-- `meta.version = "4.1.0"`
+- `meta.version = "4.1.2"`
 
 Current group counts:
 
@@ -108,7 +108,7 @@ Every command with `--json` returns:
   "artifacts": { "docx": "out.docx" },
   "metrics": {},
   "errors": [],
-  "meta": { "durationMs": 42, "version": "4.1.0" }
+  "meta": { "durationMs": 42, "version": "4.1.2" }
 }
 ```
 

@@ -20,4 +20,5 @@
 - 2026-06-10 | 2026-06-10-final-blueprint.md | 最终蓝图：三层结构、命名词典、命令组职责和 AI 可理解口径 | done
 - 2026-06-13 | 2026-06-13-4.1.0-release-handoff.md | 4.1.0 模块化发布口径收口交接：版本常量、README/Agent 文档、nupkg 产物、验证命令 | done
 - 2026-06-13 | 2026-06-13-4.1.0-local-install-release-candidate.md | 4.1.0 本地安装闭环：clean pack、tool-path 安装、installed smoke、nupkg 策略 | done
+- 2026-06-13 | 2026-06-13-4.1.2-new-publish.md | 4.1.2 新版本发布：避开 NuGet 已存在的 4.1.0/4.1.1，清理 nupkg、重打包、验证并发布 | in progress
 - 2026-06-13 | 2026-06-13-ai-context-map.md | AI 上下文入口重构：PROJECT_STATE 当前真相源、docs/wiki 稳定百科、log 归档策略、双窗口计划/施工流程 | done

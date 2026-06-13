@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <RootNamespace>MultiModalCore</RootNamespace>
     <IsPackable>false</IsPackable>
-    <Version>4.1.0</Version>
+    <Version>4.1.2</Version>
     <Authors>angri450</Authors>
     <Description>Pure .NET local PP-OCRv6 CPU OCR engine via Sdcb.PaddleOCR + PaddleInference. No Python, no pip, no external OCR executable.</Description>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
