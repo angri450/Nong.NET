@@ -3,6 +3,9 @@
 > Agent 添加变更记录后同步更新此文件。格式：`- YYYY-MM-DD | 文件名 | 一句话摘要`
 
 ## 2026-06-13
+- 2026-06-13 | 2026-06-13-4.1.0-local-install-closure.md | 4.1.0 本地安装闭环：7 包 clean pack、本地 tool-path 安装、installed smoke、nupkg 策略收口
+- 2026-06-13 | 2026-06-13-4.1.0-release-doc-sync.md | 4.1.0 发布真相源同步：版本常量/csproj、README/Agent/能力表/checklist、126 命令合同、clean pack audit
+- 2026-06-13 | 2026-06-13-builder-planner-prompts.md | 新增根目录提示词文件：施工窗口.md / 计划窗口.md，对应双窗口开发流程
 - 2026-06-13 | 2026-06-13-ai-context-map.md | AI 上下文入口重构：PROJECT_STATE 当前真相源、docs/wiki 项目百科、log 历史归档、双窗口计划/施工流程
 - 2026-06-13 | 2026-06-13-cli-gap-fill.md | CLI 功能缺口补全：PPTX create 验证 DONE / Word compare 验证 DONE / PDF ocr-pdf --with-ocr 真正 OCR 文本层 / 9/10 缺口 DONE
 - 2026-06-13 | 2026-06-13-modular-release-final-audit.md | 模块化发布最终审计：7 包全 GO、RID 瘦身 83→26MB、pack audit 闸门、OCR v6 文案统一、本地安装闭环

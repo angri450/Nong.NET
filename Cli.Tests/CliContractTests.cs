@@ -51,6 +51,16 @@ public class CliContractTests
     // ===== Manifest tests =====
 
     [Fact]
+    public void VersionOption_UsesCliVersionContract()
+    {
+        RequireCli();
+        var (text, exit) = Run("--version");
+
+        Assert.Equal(0, exit);
+        Assert.Equal("nong v4.1.0", text.Trim());
+    }
+
+    [Fact]
     public void Commands_Json_ReturnsOnlyImplemented()
     {
         RequireCli();

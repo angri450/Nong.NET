@@ -2,15 +2,15 @@
 
 <p align="center">
   <strong>纯 .NET CLI 农学文档与科研图表工具集</strong><br>
-  零 JavaScript。模块化架构：轻路由 + 6 个独立子工具。125 个命令。跨平台运行。
+  零 JavaScript。模块化架构：轻路由 + 6 个独立子工具。126 个命令。跨平台运行。
 </p>
 
 <p align="center">
   <a href="https://www.nuget.org/packages/Angri450.Nong.Cli/"><img src="https://img.shields.io/nuget/v/Angri450.Nong.Cli.svg?label=NuGet" alt="NuGet"></a>
-  <a href="https://github.com/angri450/Nong.Cli.Net/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License"></a>
+  <a href="https://github.com/angri450/Nong.Cli.Net/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License"></a>
   <a href="https://dotnet.microsoft.com/en-us/download"><img src="https://img.shields.io/badge/.NET-8.0-8A2BE2" alt=".NET 8.0"></a>
-  <img src="https://img.shields.io/badge/commands-125-green" alt="125 commands">
-  <img src="https://img.shields.io/badge/tests-154-blue" alt="154 tests">
+  <img src="https://img.shields.io/badge/commands-126-green" alt="126 commands">
+  <img src="https://img.shields.io/badge/tests-155-blue" alt="155 tests">
   <a href="README.md"><img src="https://img.shields.io/badge/English-README.md-blue" alt="English"></a>
 </p>
 
@@ -63,7 +63,7 @@ nong commands --json</code></pre>
 
 <hr>
 
-<h2>能力概览 — 全部 125 个命令</h2>
+<h2>能力概览 — 全部 126 个命令</h2>
 
 <h3>word — Word 文档引擎（39 个命令）</h3>
 

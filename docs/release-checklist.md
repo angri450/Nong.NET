@@ -1,64 +1,113 @@
-# Release Checklist - Nong.NET v4.0.0
+# Release Checklist - Nong.NET v4.1.0
 
-Date: 2026-06-08
+Date: 2026-06-13
+
+Use this checklist before publishing 4.1.0 packages. Do not publish to NuGet, GitHub, Gitee, or GitCode unless the user explicitly asks for that action.
 
 ## Build And Test
 
-- [x] `dotnet build .\Cli\NongCli.csproj -c Release` - 0 errors
-- [x] `dotnet test .\Cli.Tests\Cli.Tests.csproj -c Release` - 114 passed
-- [x] `dotnet test .\Tests\Tests.csproj -c Release` - 119 passed
-- [x] `nong commands --json` reports 93 commands and CLI version `4.0.0`
+- [ ] `dotnet test Cli.Tests\Cli.Tests.csproj -c Release --no-restore`
+- [ ] `.\Cli\bin\Release\net8.0\nong.exe --version` prints `nong v4.1.0`
+- [ ] `.\Cli\bin\Release\net8.0\nong.exe commands --json` reports `126 commands available`
+- [ ] `commands --json` returns `meta.version = "4.1.0"`
+- [ ] `.\Cli\bin\Release\net8.0\nong.exe commands --format openai-tools` emits 126 tool schemas
 
-Native image rendering tests remain opt-in with `NONG_RUN_NATIVE_IMAGE_TESTS=1` because Skia/ScottPlot native cleanup can crash `testhost.exe` on some Windows machines.
+Native image rendering tests remain opt-in. Do not add Chart/Diagram/OCR/PDF real PNG rendering paths back to the default `dotnet test` run.
 
-## Contract
+## Publishable Tool Packages
 
-- [x] All main Nong package versions are `4.0.0`.
-- [x] `Cli/Common/CliVersion.cs` reports `4.0.0`.
-- [x] README and README.zh-CN document the 4.0.0 release line.
-- [x] `Cli/AGENT.md` documents the `v4.0.x` agent contract.
-- [x] Word/PDF/Excel/PPT slices use `nong-pandoc/package/v1`.
-- [x] `word format-audit` exposes CI gates through `--fail-on-warning` and `--min-score`.
+Pack these 7 dotnet tool packages from current project files:
 
-## Mainline Packages
+- `Cli\NongCli.csproj` -> `Angri450.Nong.Cli`
+- `Chart\tools\nong-chart.csproj` -> `Angri450.Nong.Tool.Chart`
+- `Diagram\tools\nong-diagram.csproj` -> `Angri450.Nong.Tool.Diagram`
+- `Pdf\tools\nong-pdf.csproj` -> `Angri450.Nong.Tool.Pdf`
+- `Pptx\tools\nong-pptx.csproj` -> `Angri450.Nong.Tool.Pptx`
+- `MultiModal\tools\nong-ocr.csproj` -> `Angri450.Nong.Tool.Ocr`
+- `Imaging\tools\nong-imaging.csproj` -> `Angri450.Nong.Tool.Imaging`
 
-Publish these `4.0.0` packages:
+Use a clean output directory:
 
-- `Angri450.Nong.ThirdParty`
-- `Angri450.Nong.Bioicons`
-- `Angri450.Nong.Genre`
-- `Angri450.Nong.Pandoc`
-- `Angri450.Nong.Docx`
-- `Angri450.Nong.Excel`
-- `Angri450.Nong.Chart`
-- `Angri450.Nong.Diagram`
-- `Angri450.Nong.Pdf`
-- `Angri450.Nong.Pptx`
-- `Angri450.Nong.Literature`
-- `Angri450.Nong.MultiModal`
-- `Angri450.Nong.Inspect`
-- `Angri450.Nong.Cli`
+```powershell
+$out = Join-Path $env:TEMP ("nong-pack-audit-" + [guid]::NewGuid().ToString("N"))
+New-Item -ItemType Directory -Path $out | Out-Null
+dotnet pack Cli\NongCli.csproj -c Release --no-restore -o $out
+dotnet pack Chart\tools\nong-chart.csproj -c Release --no-restore -o $out
+dotnet pack Diagram\tools\nong-diagram.csproj -c Release --no-restore -o $out
+dotnet pack Pdf\tools\nong-pdf.csproj -c Release --no-restore -o $out
+dotnet pack Pptx\tools\nong-pptx.csproj -c Release --no-restore -o $out
+dotnet pack MultiModal\tools\nong-ocr.csproj -c Release --no-restore -o $out
+dotnet pack Imaging\tools\nong-imaging.csproj -c Release --no-restore -o $out
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\pack-audit.ps1 -Path $out -Json
+```
+
+Expected pack audit:
+
+- `status = ok`
+- `packageCount = 7`
+- Package IDs are `Angri450.Nong.Cli` or `Angri450.Nong.Tool.*`
+- No old tool package IDs such as `Angri450.Nong.Chart` are emitted by dotnet tool projects
+
+## Local Install Candidate Gate
+
+Before publishing, install the freshly packed packages into a clean temp `--tool-path` from the same clean pack directory. Use a temporary NuGet config with only the local pack source, so the smoke cannot accidentally consume public packages.
+
+```powershell
+$toolPath = Join-Path $env:TEMP ("nong-toolpath-" + [guid]::NewGuid().ToString("N"))
+New-Item -ItemType Directory -Path $toolPath | Out-Null
+$configPath = Join-Path $env:TEMP ("nong-local-source-" + [guid]::NewGuid().ToString("N") + ".config")
+@"
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <packageSources>
+    <clear />
+    <add key="local" value="$out" />
+  </packageSources>
+</configuration>
+"@ | Set-Content -LiteralPath $configPath -Encoding UTF8
+dotnet tool install Angri450.Nong.Cli --version 4.1.0 --tool-path $toolPath --configfile $configPath --ignore-failed-sources
+dotnet tool install Angri450.Nong.Tool.Chart --version 4.1.0 --tool-path $toolPath --configfile $configPath --ignore-failed-sources
+dotnet tool install Angri450.Nong.Tool.Diagram --version 4.1.0 --tool-path $toolPath --configfile $configPath --ignore-failed-sources
+dotnet tool install Angri450.Nong.Tool.Pdf --version 4.1.0 --tool-path $toolPath --configfile $configPath --ignore-failed-sources
+dotnet tool install Angri450.Nong.Tool.Pptx --version 4.1.0 --tool-path $toolPath --configfile $configPath --ignore-failed-sources
+dotnet tool install Angri450.Nong.Tool.Ocr --version 4.1.0 --tool-path $toolPath --configfile $configPath --ignore-failed-sources
+dotnet tool install Angri450.Nong.Tool.Imaging --version 4.1.0 --tool-path $toolPath --configfile $configPath --ignore-failed-sources
+```
+
+Installed smoke expectations:
+
+- [ ] `dotnet tool list --tool-path $toolPath` shows all 7 packages at `4.1.0`.
+- [ ] `$toolPath\nong.exe --version` prints `nong v4.1.0`.
+- [ ] `$toolPath\nong.exe commands --json` reports `126 commands available` and `meta.version = "4.1.0"`.
+- [ ] `$toolPath\nong.exe commands --format openai-tools` emits 126 tool schemas.
+- [ ] Direct external tools start with `--help`: `nong-chart`, `nong-diagram`, `nong-pdf`, `nong-pptx`, `nong-ocr`, `nong-imaging`.
+- [ ] At least one direct and one routed external JSON error path returns structured `E001`, for example `nong-chart anova nonexistent.json --json` and `nong chart anova nonexistent.json --json`.
+
+## Version Contract
+
+- [ ] Project package versions are `4.1.0`.
+- [ ] `Cli/Common/CliVersion.cs` reports `4.1.0`.
+- [ ] `Cli/Common/OcrRuntimeVersion.cs` is not bumped unless sibling repo `Nong.OcrRuntime` published a new validated runtime.
+- [ ] `README.md`, `README.zh-CN.md`, `Cli/AGENT.md`, and `docs/CAPABILITY.md` document the 4.1.0 modular architecture.
+- [ ] PP-OCRv6 is the default local OCR model line; `pp-ocrv5-mobile` is documented only as legacy compatibility.
 
 ## OCR Runtime Boundary
 
-- [ ] For routine CLI/Word/PDF/Excel/PPT patch releases, do not pack or push OCR runtime packages.
-- [ ] OCR runtime packages are maintained in sibling repo `Nong.OcrRuntime`, not in this repository.
-- [ ] Only update `Cli/Common/OcrRuntimeVersion.cs` when the sibling runtime repo has published a new validated runtime version.
-- [ ] The sibling runtime repo maintains WinX64, LinuxX64, LinuxArm64, OsxX64, and OsxArm64 package definitions.
-- [ ] After NuGet and mirror sync, verify:
-  `nong ocr install-model pp-ocrv5-mobile --source https://mirrors.huaweicloud.com/repository/nuget/v3/index.json --json`
+- [ ] Routine CLI/Word/PDF/Excel/PPT releases do not pack or push OCR runtime packages.
+- [ ] OCR runtime packages remain in sibling repo `Nong.OcrRuntime`.
+- [ ] Native runtime package prefix remains `Angri450.Nong.OcrRuntime.*`.
+- [ ] Verify `nong ocr install-model pp-ocrv6-medium --json` before claiming local OCR is ready on a target machine.
 
 ## Git And NuGet
 
-- [ ] Commit local release changes: `release: Nong.NET v4.0.0`
-- [ ] Push `master` to GitHub `origin`.
-- [ ] Push `master` to Gitee.
-- [ ] Push `master` to GitCode.
-- [ ] Pack only changed mainline packages into `nupkg/`.
-- [ ] Push only changed packages to NuGet with `--skip-duplicate`; OCR runtime is excluded unless its independent runtime version changed.
+- [ ] Use branch `main`.
+- [ ] Confirm local commits are intended before pushing.
+- [ ] Do not publish from root `nupkg/` unless stale package outputs have been cleared and current 7 packages were packed there.
+- [ ] Do not push NuGet packages unless explicitly requested.
+- [ ] Do not push GitHub/Gitee/GitCode unless explicitly requested.
 
 ## Known Limits
 
-- `word table-reflow` still uses explicit row/column thresholds and does not yet detect real Word pagination overflow.
-- Local OCR runtime stability is Windows x64 mainline; other platforms require target-machine smoke tests before stable claims.
-- PDF scan-mode quality depends on local OCR runtime availability.
+- Chart, Diagram, and Imaging 4.1.0 packages currently use the Windows native asset strategy.
+- Linux/macOS native rendering needs source-build validation or a later native runtime packaging pass.
+- PDF scan-mode searchable text quality depends on local PP-OCRv6 model/runtime availability.

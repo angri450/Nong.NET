@@ -1,208 +1,98 @@
-# Agent Contract for nong CLI v4.0.x
+# Agent Contract for nong CLI v4.1.x
 
 ## Quick Start
 
 ```bash
-dotnet tool install --global Angri450.Nong.Cli --add-source https://mirrors.huaweicloud.com/repository/nuget/v3/index.json
-nong commands --json       # discover all commands (93 implemented)
-nong word read file.docx   # extract text
+dotnet tool install --global Angri450.Nong.Cli
+nong commands --json                 # discover 126 implemented commands
+nong commands --format openai-tools  # emit 126 OpenAI tool schemas
+nong word read file.docx             # extract DOCX text
 ```
+
+Use `nong commands --json` first in any session. It is the canonical command and parameter contract.
+
+## Architecture
+
+The main `nong` tool is a light router plus pure .NET built-ins. Heavy native groups are external dotnet tools, but user command names stay stable.
+
+| User command | Tool command | PackageId |
+|--------------|--------------|-----------|
+| `nong chart ...` | `nong-chart` | `Angri450.Nong.Tool.Chart` |
+| `nong diagram ...` | `nong-diagram` | `Angri450.Nong.Tool.Diagram` |
+| `nong pdf ...` | `nong-pdf` | `Angri450.Nong.Tool.Pdf` |
+| `nong pptx ...` | `nong-pptx` | `Angri450.Nong.Tool.Pptx` |
+| `nong ocr ...` | `nong-ocr` | `Angri450.Nong.Tool.Ocr` |
+| `nong word images ...` / `nong word crop ...` | `nong-imaging` | `Angri450.Nong.Tool.Imaging` |
+
+Built-in groups stay in the main CLI: `word`, `excel`, `inspect`, `lit`, `genre`, `icons`, `slice`, `skill`, and `progress`.
 
 ## Command Discovery
 
-`nong commands --json` returns 93 implemented commands. `nong commands --all --json` includes all.
-Use this first in any session to know what's available.
+Current local discovery returns:
+
+- `126 commands available`
+- 126 OpenAI tool schemas
+- `meta.version = "4.1.0"`
+
+Current group counts:
+
+| Group | Count |
+|-------|------:|
+| `word` | 51 |
+| `inspect` | 12 |
+| `excel` | 8 |
+| `genre` | 2 |
+| `icons` | 2 |
+| `skill` | 4 |
+| `lit` | 5 |
+| `slice` | 4 |
+| `progress` | 1 |
+| `chart` | 11 |
+| `diagram` | 3 |
+| `ocr` | 11 |
+| `pdf` | 8 |
+| `pptx` | 4 |
+
+Do not hard-code command counts in agent logic. Parse `nong commands --json` when exact availability matters.
 
 ## Input Formats
 
-| Command | Expected Input |
-|---------|---------------|
-| `word check` | .doc or .docx preflight |
-| `word convert` | .doc or .docx input + output .docx (-o); .doc uses LibreOffice or Word COM boundary conversion |
-| `word create` | .nongmark/.nmk input + output .docx (-o) |
-| `word read/preview/rebuild/stats/fonts/styles/validate` | .docx |
-| `word dissect` | .docx; optional `-o <dir>` writes `nong-pandoc/package/v1` package |
-| `word fill` | template .docx + data .json |
-| `word extract` | .docx + output dir (-o) |
-| `word merge` | 2+ .docx + output path (-o) |
-| `word outline` | .docx |
-| `word images` | .docx + optional output dir (-o) |
-| `word comments` | .docx |
-| `word revisions` | .docx |
-| `word infer-format` | Chinese format text |
-| `word fix-order` | .docx + output .docx (-o); internal OOXML/structure repair only, not visible formatting completion |
-| `word academic-format` | .docx + output .docx (-o); visible academic formatting repair for headings/body/tables/fonts/spacing |
-| `word format-audit` | .docx; read-only visible formatting evidence for headings/body/tables/fonts/spacing; add `--fail-on-warning` and/or `--min-score <0-100>` for CI gates |
-| `word repair-plan` | N/A; machine-readable routing rules for choosing Word repair commands |
-| `word table-reflow` | .docx + output .docx (-o); explicit long/wide table continuation layout |
-| `word protect` | .docx + output .docx (-o) + optional --mode (readonly/comments/tracked/forms) + optional -p |
-| `word embed-font` | .docx + .ttf/.otf font + output .docx (-o) + optional --name |
-| `word add paragraph` | .docx + --spec JSON file or inline JSON + output .docx (-o) + optional --after |
-| `word add table` | .docx + --spec JSON file or inline JSON + output .docx (-o) + optional --after |
-| `word add footnote/endnote` | .docx + --text + output .docx (-o) + optional --after |
-| `word add image` | .docx + --src image + optional --caption + output .docx (-o) + optional --after |
-| `word add toc` | .docx + output .docx (-o) + optional --title/--after |
-| `word add xref` | .docx + --to bookmark + --text display + output .docx (-o) + optional --after |
-| `word add link` | .docx + --url + --text display + output .docx (-o) + optional --after |
-| `word add bookmark` | .docx + --name + output .docx (-o) + optional --after |
-| `word add comment` | .docx + --text + optional --author + output .docx (-o) + optional --after |
-| `word add math` | .docx + --latex formula + optional --display + output .docx (-o) + optional --after |
-| `inspect diagnose/refs/classify/structure/evidence/data-req/gap/varplan/semantics` | .txt |
-| `inspect write-paper` | spec .json + output .docx (-o) |
-| `chart analyze/anova/duncan/bar` | groups .json |
-| `chart bar/line/scatter/pie` | spec .json + output .png (-o) |
-| `excel sheets/read/to-groups` | .xlsx |
-| `excel create` | spec .json + output .xlsx (-o) |
-| `excel dissect` | .xlsx + output slice dir (-o); writes `nong-pandoc/package/v1` package |
-| `diagram flowchart/network` | spec .json + output .png (-o) |
-| `diagram tree` | Newick .nwk/.txt or .json + output .png (-o) |
-| `pptx read/slides` | .pptx |
-| `pptx dissect` | .pptx + output slice dir (-o); writes `nong-pandoc/package/v1` package |
-| `ocr cloud` | image/pdf + output dir (-o); requires PADDLEOCR_ACCESS_TOKEN |
-| `ocr local` | image file; local PP-OCRv5 through pure .NET runtime; no Python |
-| `ocr check-env` | N/A; returns imageAnalyzer, cloudToken, localModel, localDotNetPpOcrV5 status |
-| `ocr analyze-image` | image file + output dir (-o); no token required |
-| `ocr models` | N/A; returns available model list |
-| `ocr install-model` | model-id; installs/checks current-platform first-party `Angri450.Nong.OcrRuntime.*` PP-OCRv5 runtime bundle from Huawei NuGet/cache; `--dry-run` shows the plan; upstream fallback requires `--allow-upstream-fallback`; invalid IDs return E006 |
-| `ocr to-word` | image/pdf + output .docx (-o) + optional --pages; requires PADDLEOCR_ACCESS_TOKEN |
-| `lit parse/validate/plan` | CNKI-like query string via --query |
-| `lit search` | CNKI-like query string via --query; OpenAlex/Crossref metadata search; Unpaywall DOI/OA lookup requires configured email |
-| `lit export` | LiteratureSearchResult JSON or PaperRecord array via --input; --format json/markdown/bibtex |
-| `slice inspect` | NongPandoc slice directory; verifies package contract and reports AI read order; add `--strict` for provenance evidence checks |
-| `slice blocks` | NongPandoc slice directory; lists canonical `content.jsonl` blocks through the shared reader |
-| `slice block` | NongPandoc slice directory + block ID; reads unified content, structure, format, diagnostics, and asset evidence |
-| `slice assets` | NongPandoc slice directory; lists package assets through the shared reader |
-| `genre list/show` | N/A |
-| `icons list/search` | N/A |
-| `skill validate/scan/inventory/package` | directory path |
+| Command family | Expected input |
+|----------------|----------------|
+| `word check/convert` | `.doc` or `.docx`; `.doc` uses LibreOffice or Word COM only as a boundary converter |
+| `word create` | `.nongmark`, `.nmk`, or JSON document spec |
+| `word read/preview/rebuild/stats/fonts/styles/validate/dissect` | `.docx` |
+| `word add ...`, `word page-setup`, `word cell-format`, `word run-format` | `.docx` plus JSON/text options and an output `.docx` |
+| `inspect ...` | `.docx` or text input as reported by `nong commands --json` |
+| `excel ...` | `.xlsx` or JSON spec |
+| `chart ...` | CSV/JSON data; output is usually PNG or analysis JSON |
+| `diagram ...` | JSON diagram specs or Newick for `diagram tree` |
+| `pptx ...` | `.pptx` or JSON slide spec |
+| `pdf ...` | `.pdf`; `pdf ocr --with-ocr` routes through local PP-OCRv6 |
+| `ocr cloud/to-word` | image/PDF/URL plus `PADDLEOCR_ACCESS_TOKEN` |
+| `ocr local` | image file; local PP-OCRv6 through pure .NET runtime, no Python |
+| `ocr install-model` | `pp-ocrv6`, `pp-ocrv6-medium`, `pp-ocrv6-small`, `pp-ocrv6-tiny`, or legacy `pp-ocrv5-mobile` |
+| `lit ...` | CNKI-like query string via `--query`, or result JSON for export |
+| `slice ...` | `nong-pandoc/package/v1` directory |
+| `skill ...` | skill or plugin directory |
 
-**Note:** Use `nong skill` instead of the deprecated `skill-manager` global tool.
+## OCR Contract
 
-## Groups JSON Format
+Local OCR is PP-OCRv6-first.
 
-```json
-{
-  "GroupA": [1.2, 1.3, 1.1],
-  "GroupB": [2.0, 2.2, 2.1]
-}
-```
-
-This is the output of `nong excel to-groups`.
-
-## Chart Spec Formats
-
-Line chart:
-```json
-{"title":"Growth","xLabel":"Days","yLabel":"Height","series":[{"name":"A","x":[0,7,14],"y":[1,2,3]}]}
-```
-
-Scatter plot:
-```json
-{"title":"Correlation","xLabel":"pH","yLabel":"Yield","points":[{"x":6.1,"y":12.3,"group":"A"}],"trendline":true}
-```
-
-Pie chart:
-```json
-{"title":"Composition","values":[{"label":"A","value":30},{"label":"B","value":70}]}
-```
-
-## Excel Create Spec
-
-```json
-{"sheets":[{"name":"Data","headers":["A","B"],"rows":[[1,2],[3,4]]}]}
-```
-
-## OCR Commands
-
-### ocr cloud
-
-Converts image/PDF to structured text via PaddleOCR-VL-1.6. Requires `PADDLEOCR_ACCESS_TOKEN` from `https://aistudio.baidu.com/account/accessToken` (the old `PADDLEOCR_TOKEN` is deprecated).
-
-```bash
-nong ocr cloud scan.png -o out/ --json
-nong ocr cloud doc.pdf -o out/ --json
-```
-
-Response includes per-page block details with labels, content, and bounding boxes.
-
-### ocr check-env
-
-```bash
-nong ocr check-env --json
-```
-
-Returns:
-```json
-{
-  "data": {
-    "imageAnalyzer": "ok",
-    "cloudToken": "missing",
-    "localModel": {
-      "ppOcrV5Mobile": "bundled",
-      "deployment": "managed-model-bundled-native-runtime-cache"
-    },
-    "localDotNetPpOcrV5": {
-      "status": "ok",
-      "engine": "pp-ocrv5-dotnet-sdcb",
-      "noPython": true
-    }
-  }
-}
-```
-
-### ocr analyze-image
-
-Analyzes image structure (dimensions, whitespace ratio, content regions, ASCII map). No token required.
-
-```bash
-nong ocr analyze-image scan.png -o out/ --json
-```
-
-Generates `image-analysis.json` and `image.map.txt` in output directory.
-
-### ocr to-word
-
-Converts image/PDF to .docx via PaddleOCR-VL-1.6 cloud API. Requires `PADDLEOCR_ACCESS_TOKEN` from `https://aistudio.baidu.com/account/accessToken`.
-
-```bash
-nong ocr to-word scan.png -o out.docx --json
-nong ocr to-word doc.pdf -o out.docx --pages "1-5" --json
-```
-
-### ocr models
-
-Lists available OCR models for local installation.
+Use:
 
 ```bash
 nong ocr models --json
+nong ocr install-model pp-ocrv6-medium --json
+nong ocr local scan.png --json
 ```
 
-Returns `data.models` as an array. Local OCR uses managed PP-OCRv5 model metadata plus a NuGet-managed current-platform `Angri450.Nong.OcrRuntime.*` native runtime cache and reports `noPython: true`.
+Supported v6 install IDs are `pp-ocrv6`, `pp-ocrv6-medium`, `pp-ocrv6-small`, and `pp-ocrv6-tiny`. `pp-ocrv5-mobile` remains a legacy compatibility path for the first-party native runtime cache.
 
-### ocr install-model
+The native OCR runtime is maintained in the sibling `Nong.OcrRuntime` repository under the `Angri450.Nong.OcrRuntime.*` package prefix. `Cli/Common/OcrRuntimeVersion.cs` is intentionally independent from `Cli/Common/CliVersion.cs`; do not bump it unless the sibling runtime repo published a new validated native runtime.
 
-Installs/checks the pure .NET PP-OCRv5 first-party native runtime bundle for `pp-ocrv5-mobile` on the current platform. Use `--dry-run` to report the Huawei NuGet/cache deployment plan without changing the machine. Invalid model IDs return E006. The first-party runtime bundle version is maintained in the separate `Nong.OcrRuntime` repository and pinned here by `Cli/Common/OcrRuntimeVersion.cs`; it does not follow routine CLI/Word/PDF patch versions.
-
-```bash
-nong ocr install-model pp-ocrv5-mobile --source https://mirrors.huaweicloud.com/repository/nuget/v3/index.json --json
-nong ocr install-model pp-ocrv5-mobile --dry-run --json
-nong ocr install-model pp-ocrv5-mobile --source https://mirrors.huaweicloud.com/repository/nuget/v3/index.json --allow-upstream-fallback --json
-nong ocr install-model invalid-id --json
-```
-
-Default behavior installs only the first-party Nong runtime bundle for the current RID (`WinX64`, `LinuxX64`, `LinuxArm64`, `OsxX64`, or `OsxArm64`). Do not tell users to install Python, pip, `paddleocr`, or a local OCR executable. If the first-party package has not reached the mirror yet, report the mirror-sync/publish issue; use `--allow-upstream-fallback` only when the user explicitly accepts downloading upstream Sdcb/OpenCvSharp native packages.
-
-## Diagram Tree Input
-
-Newick text:
-```
-((A:0.1,B:0.2):0.3,C:0.4);
-```
-
-Or JSON:
-```json
-{"newick":"((A:0.1,B:0.2):0.3,C:0.4);","title":"Tree"}
-```
+Never tell users to install Python, pip, `paddleocr`, or a local OCR executable for local OCR core functionality.
 
 ## JSON Output Schema
 
@@ -210,161 +100,75 @@ Every command with `--json` returns:
 
 ```json
 {
-  "status": "ok" | "error",
+  "status": "ok",
   "command": "word read",
   "summary": "Extracted 29 paragraphs",
   "data": {},
   "issues": [],
   "artifacts": { "docx": "out.docx" },
-  "metrics": { "paragraphs": 29 },
+  "metrics": {},
   "errors": [],
-  "meta": { "durationMs": 42, "version": "4.0.0" }
+  "meta": { "durationMs": 42, "version": "4.1.0" }
 }
 ```
 
-## Error Codes
-
-| Code | Name | Meaning |
-|------|------|---------|
-| E001 | file_not_found | File does not exist |
-| E002 | unsupported_format | Wrong file extension |
-| E003 | missing_argument | Required argument missing |
-| E004 | internal_error | Unexpected error |
-| E005 | dependency_missing | Required tool/token not installed |
-| E006 | validation_failed | Content check failed |
-| E007 | read_failed | Could not read document |
-| E008 | write_failed | Could not write output |
-| E009 | not_implemented | Command is not yet implemented |
+Read `status` first. On failure, read `errors[0].code` and `errors[0].message`. Error codes are `E001` through `E009`: file not found, unsupported format, missing argument, internal error, dependency missing, validation failed, read failed, write failed, and not implemented.
 
 ## Common Workflows
 
-### Read a docx
-```
-nong word read paper.docx
-→ pure text to stdout
-```
+### Word Repair
 
-### Diagnose a paper (full or stepwise)
-```
-nong inspect diagnose paper.txt --json
-nong inspect classify paper.txt --json     # paper type only
-nong inspect gap paper.txt --json          # gap grade only
-→ Read: data.paperType, data.gapGrade, data.evidence[*].adequate
-```
-
-### Excel → Statistics → Chart
-```
-nong excel to-groups data.xlsx --group A --value B --raw > groups.json
-nong chart analyze groups.json --json
-nong chart bar groups.json -o fig.png --json
-nong excel dissect data.xlsx -o data.slice --json
-→ Read: artifacts.png for the generated chart
-```
-
-### Generate charts from specs
-```
-nong chart line line-spec.json -o line.png --json
-nong chart scatter scatter-spec.json -o scatter.png --json
-nong chart pie pie-spec.json -o pie.png --json
-```
-
-### Generate a paper from spec
-```
-nong word create document.nongmark -o paper.docx --json
-nong word validate paper.docx --json
-nong word dissect paper.docx -o paper.slice --json
-nong inspect write-paper spec.json -o paper.docx --json
-→ Read: artifacts.docx
-```
-
-### Audit a document
-```
-nong word stats paper.docx --json
-nong word fonts paper.docx --json
-nong word validate paper.docx --json
-nong word dissect paper.docx -o paper.slice --json
-```
-
-### Extract PPTX content
-```
-nong pptx read slides.pptx --json
-nong pptx slides slides.pptx --json
-nong pptx dissect slides.pptx -o slides.slice --json
-```
-
-`word dissect`, `pdf dissect`, `excel dissect`, and `pptx dissect` all write the same top-level NongPandoc package contract. Read `content.nongmark` first, then `structure.json`, `format.json`, and `diagnostics.json`. `manifest.json` uses `schemaVersion: "nong-pandoc/package/v1"`.
-
-### Word repair routing
-```
+```bash
 nong word repair-plan --json
 nong word fix-order input.docx -o input.ooxml-fixed.docx --json
 nong word academic-format input.docx -o input.academic-fixed.docx --json
-nong word format-audit input.academic-fixed.docx --json
 nong word format-audit input.academic-fixed.docx --fail-on-warning --min-score 95 --json
 ```
 
-Do not treat `word fix-order`, `word validate`, `word preview`, `word outline`, or `word dissect` as proof that a Word document is visibly repaired. `fix-order` is for internal OOXML/structure cleanup. For a user request like "make this Word document look better", use `word academic-format`, then verify with `word format-audit`, `word validate`, `word dissect`, `slice inspect --strict`, and `format.json.visualEvidence`. Output names should say what changed: use `.ooxml-fixed.docx` for internal repair and `.academic-fixed.docx` for visible academic formatting.
+`word fix-order` repairs internal OOXML ordering. It is not proof that visible formatting is fixed. For visible formatting requests, use `word academic-format`, then verify with `word format-audit`.
 
-`word format-audit` is read-only. Read `data.statusLevel`, `data.score`, `data.headings`, `data.body`, `data.tables`, `data.fonts`, `data.lineSpacing`, `data.latinNames`, and top-level `issues` before claiming visible formatting quality. Warnings mean the command ran successfully but found visible-format risks. Use `--fail-on-warning` and `--min-score` in regression/CI so typography, spacing, table, Latin-name, and chemistry evidence can fail the run with E006 while still returning full audit data.
+### Slice Inspection
 
-Inspect any slice before handing it to an AI:
-
-```
-nong slice inspect paper.slice --json
+```bash
+nong word dissect paper.docx -o paper.slice --json
 nong slice inspect paper.slice --strict --json
 nong slice blocks paper.slice --json
 nong slice block paper.slice p0001 --json
-nong slice assets paper.slice --json
 ```
 
-Read `data.aiReadOrder`, `data.streams`, `data.metrics`, `data.warnings`, `data.evidence`, and `data.artifacts`. `preview/content.txt` is a lossy preview; do not treat it as canonical content. For AI block-level reads, prefer `slice block <id>` over opening format-specific files directly.
+Read `content.nongmark` and `slice inspect` evidence before handing a slice to an AI. `preview/content.txt` is a lossy preview, not canonical content.
 
-### Skill lifecycle
-```
-nong skill validate ./word --json
-nong skill scan ./plugin --json
-nong skill package ./plugin --json
-```
+### Excel to Chart
 
-### OCR pipeline
-```
-nong ocr check-env --json
-nong ocr install-model pp-ocrv5-mobile --source https://mirrors.huaweicloud.com/repository/nuget/v3/index.json --json
-nong ocr cloud scan.png -o out/ --json
-nong ocr to-word scan.png -o out.docx --json
+```bash
+nong excel to-groups data.xlsx --group A --value B --raw > groups.json
+nong chart analyze groups.json --json
+nong chart bar groups.json -o fig.png --json
 ```
 
-### Image analysis
-```
-nong ocr analyze-image scan.png -o analysis/ --json
+### PDF
+
+```bash
+nong pdf check guide.pdf --json
+nong pdf dissect guide.pdf -o guide.slice --json
+nong pdf render guide.pdf -o pages --dpi 200 --json
+nong pdf ocr scan.pdf -o searchable.pdf --with-ocr --json
 ```
 
-### Literature retrieval
-```
+### Literature
+
+```bash
 nong lit parse --query "SU=('腐植酸'+'腐殖酸')*('稀土'+'微肥')" --json
-nong lit validate --query "AU=钱伟长 AND (AF=清华大学 OR AF=上海大学)" --json
 nong lit plan --query "SU=('腐植酸'+'腐殖酸')*('稀土'+'微肥')" --sources openalex,crossref,unpaywall --json
-nong lit search --query "DOI='10.1016/j.chemgeo.2007.05.018'" --sources openalex,crossref --limit 10 --json
 nong lit export --input refs.json --format bibtex --out refs.bib --json
 ```
 
-Stage19 implements only OpenAlex, Crossref, and Unpaywall. Unpaywall requires `NONG_LIT_UNPAYWALL_EMAIL` or `NONG_LIT_MAILTO`; missing credentials return machine-readable errors or warnings. The CLI does not scrape commercial databases, bypass paywalls, or auto-translate Chinese-English synonyms.
-
-### Document editing (add series)
-```
-nong word add paragraph doc.docx --spec paragraph.json -o out.docx
-nong word add table doc.docx --spec table.json -o out.docx
-nong word add image doc.docx --src chart.png -o out.docx
-nong word add math doc.docx --latex "E=mc^2" --display -o out.docx
-```
+Stage19 providers are OpenAlex, Crossref, and Unpaywall only. The CLI does not scrape commercial databases, bypass paywalls, or automatically translate Chinese-English synonyms.
 
 ## Failure Handling
 
-1. Check `status` field — "error" means the command failed.
-2. Read `errors[0].code` for the error code.
-3. Read `errors[0].message` for human-readable description.
-4. Common fixes:
-   - E001: Check file path, use absolute paths.
-   - E002: Ensure file extension matches expected format; for Word .doc, run word check/convert first.
-   - E005: Install missing tool/runtime/converter or set required token (e.g. PADDLEOCR_ACCESS_TOKEN).
-   - E009: Command is not yet implemented; stop that path and choose an implemented `nong commands --json` route.
+1. Check `status`.
+2. If `status` is `error`, read `errors[0].code`.
+3. For `E005`, install the missing tool/runtime/converter or set the required token.
+4. For local OCR, install `pp-ocrv6-medium` unless the user explicitly needs the legacy `pp-ocrv5-mobile` path.
+5. For external heavy modules, let `nong` auto-install the corresponding `Angri450.Nong.Tool.*` package unless the user requested a direct tool install.

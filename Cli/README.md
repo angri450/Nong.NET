@@ -1,6 +1,6 @@
 # Angri450.Nong.Cli (nong)
 
-nong 命令行工具 —— angri450 为 Nong.Cli.Net 构建的统一入口。Word / Excel / PPT / Chart / Diagram / OCR / Skill 全部操作在一个二进制文件里完成。
+nong 命令行工具 —— angri450 为 Nong.Cli.Net 构建的统一入口。主 `nong` 是轻路由器 + 纯 .NET 轻模块；Chart / Diagram / PDF / PPTX / OCR / Imaging 走独立 `Angri450.Nong.Tool.*` dotnet tool，用户命令入口保持不变。
 
 ## Install
 
@@ -10,13 +10,13 @@ dotnet tool install --global Angri450.Nong.Cli --add-source https://mirrors.huaw
 
 The tool targets `net8.0` and the packaged build enables major-version roll-forward. On .NET 10, update the tool if an older installation does not start, or set `DOTNET_ROLL_FORWARD=LatestMajor`.
 
-For local OCR, install/check the current-platform first-party native runtime bundle once:
+For local OCR, install the default PP-OCRv6 model once:
 
 ```bash
-nong ocr install-model pp-ocrv5-mobile --source https://mirrors.huaweicloud.com/repository/nuget/v3/index.json --json
+nong ocr install-model pp-ocrv6-medium --json
 ```
 
-The OCR runtime bundle is maintained in the separate `Nong.OcrRuntime` repository and pinned independently from the CLI version, so routine CLI/Word/PDF patch releases do not republish the large runtime package.
+The OCR runtime bundle is maintained in the separate `Nong.OcrRuntime` repository and pinned independently from the CLI version, so routine CLI/Word/PDF patch releases do not republish the large runtime package. `pp-ocrv5-mobile` remains available as a legacy compatibility path.
 
 ## Usage
 

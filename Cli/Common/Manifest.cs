@@ -183,6 +183,10 @@ public static class Manifest
         list.Add(new("word compare", "Compare two DOCX files paragraph-by-paragraph", "word", [],
             Parameters: [new("left", "string", "Path to first .docx file", Required: true),
                          new("right", "string", "Path to second .docx file", Required: true)]));
+        list.Add(new("word render-preview", "Render DOCX pages as PNGs via LibreOffice headless PDF conversion", "word", [],
+            Parameters: [new("file", "string", "Path to .docx file", Required: true),
+                         new("o", "string", "Output directory for PNGs", Required: true),
+                         new("dpi", "integer", "Render DPI (default 150)")]));
 
         // === inspect (12 commands) ===
         list.Add(new("inspect diagnose", "Full paper quality diagnosis", "inspect", [],

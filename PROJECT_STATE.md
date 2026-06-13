@@ -8,11 +8,11 @@ This file is the current truth source for agents. Read it before `CLAUDE.md`, `A
 
 Active plan/handoff:
 
-- `log/plans/2026-06-13-4.1.0-release-handoff.md`
+- `log/plans/2026-06-13-4.1.0-local-install-release-candidate.md`
 
 Current immediate objective:
 
-- Sync the 4.1.0 modular release truth sources: `CliVersion`, English README, agent docs, capability/release docs, and package output workflow.
+- 4.1.0 modular packages have passed clean pack, local dotnet-tool install, installed CLI smoke checks, and nupkg release-source policy. Next release action requires an explicit user decision to publish, push, or clean root `nupkg/`.
 
 Do not infer current work from older `log/plans/*` files unless this file or the active handoff links to them.
 
@@ -81,8 +81,10 @@ Current local command discovery:
 
 Expected command count:
 
-- `125 commands available`
-- `125` OpenAI tool schemas
+- `126 commands available`
+- `126` OpenAI tool schemas
+
+This count includes `progress report`, which is a real light command group owned by the main CLI.
 
 If command count or version metadata disagrees with this file, treat that as a current-state drift to investigate.
 
@@ -106,9 +108,22 @@ Native OCR runtime contract:
 
 These are active risks, not historical notes:
 
-- `Cli/Common/CliVersion.cs` still reports `4.0.0` while project files are `4.1.0`.
-- `README.md`, `CLAUDE.md`, `Cli/AGENT.md`, `docs/CAPABILITY.md`, and `docs/release-checklist.md` contain stale 4.0.0 / PP-OCRv5-only wording.
 - Root `nupkg/` contains stale package outputs and must not be used as a publish source until refreshed from current project files.
+- Older handoffs, commit subjects, or changelog entries can mention `125` commands as historical evidence; current local discovery is `126`.
+
+## Current Release Candidate Status
+
+4.1.0 local release-candidate checks passed on 2026-06-13:
+
+- `dotnet test Cli.Tests\Cli.Tests.csproj -c Release --no-restore` -> `155 passed, 0 failed, 0 skipped`
+- clean temp pack audit -> `status: ok`, `packageCount: 7`
+- fresh local `dotnet tool install --tool-path <temp>` from the clean source installed all 7 packages at `4.1.0`
+- installed `nong --version` -> `nong v4.1.0`
+- installed `nong commands --json` -> `126 commands available`, `meta.version = 4.1.0`
+- installed `nong commands --format openai-tools` -> 126 tool schemas
+- installed direct/routed chart and PDF missing-file JSON smokes returned structured `E001`
+
+Do not publish or push without an explicit user request.
 
 ## Information Sources
 
@@ -133,7 +148,7 @@ dotnet test Cli.Tests\Cli.Tests.csproj -c Release --no-restore
 Expected:
 
 ```text
-154 passed, 0 failed, 0 skipped
+155 passed, 0 failed, 0 skipped
 ```
 
 Current-project pack audit must use a clean output directory, not root `nupkg/`.

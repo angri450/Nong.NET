@@ -11,6 +11,12 @@ class Program
 {
     static async Task<int> Main(string[] args)
     {
+        if (args.Length == 1 && string.Equals(args[0], "--version", StringComparison.OrdinalIgnoreCase))
+        {
+            Console.WriteLine($"nong v{CliVersion.Current}");
+            return 0;
+        }
+
         if (TryDispatchExternal(args, out var externalExitCode))
             return externalExitCode;
 

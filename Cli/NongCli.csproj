@@ -12,7 +12,7 @@
     <Version>4.1.0</Version>
     <RollForward>LatestMajor</RollForward>
     <Authors>angri450</Authors>
-    <Description>CLI toolkit for Nong.NET document generation and inspection. One binary for Word/Excel/PPT/PDF/Chart/Diagram/OCR operations.</Description>
+    <Description>CLI toolkit for Nong.NET document generation and inspection. Light nong router plus pure .NET built-ins and external Angri450.Nong.Tool.* command groups.</Description>
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>

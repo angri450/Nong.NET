@@ -83,6 +83,7 @@ public static class WordCommands
         cmd.AddCommand(CreateAddComment(jsonOpt));
         cmd.AddCommand(CreateAddMath(jsonOpt));
         cmd.AddCommand(CreateCompare(jsonOpt));
+        cmd.AddCommand(CreateRenderPreview(jsonOpt));
 
         return cmd;
     }
@@ -2647,6 +2648,127 @@ public static class WordCommands
     sealed record ParagraphSnapshot(int Index, string Text, string? StyleId);
     sealed record CompareChange(int Index, string Kind, string Text, string? StyleId,
         string? previousText = null, string? previousStyleId = null);
+
+    // ===== word render-preview =====
+
+    static Command CreateRenderPreview(Option<bool> jsonOpt)
+    {
+        var fileArg = new Argument<string>("file", "Path to .docx file");
+        var outOpt = new Option<string>("-o", "Output directory for rendered page PNGs") { IsRequired = true };
+        var dpiOpt = new Option<int>("--dpi", () => 150, "Render DPI");
+        var cmd = new Command("render-preview", "Render DOCX pages as PNGs via LibreOffice headless PDF conversion") { fileArg, outOpt, dpiOpt };
+
+        cmd.SetHandler((string file, string output, int dpi, bool json) =>
+        {
+            const string command = "word render-preview";
+            try
+            {
+                if (!File.Exists(file))
+                { CliHelpers.WriteError(command, ErrorCodes.FileNotFound with { Message = $"File not found: {file}" }, json); return; }
+
+                // Step 1: DOCX → PDF via LibreOffice
+                var soffice = FindExecutable("soffice") ?? FindLibreOfficeOnWindows();
+                if (soffice == null)
+                {
+                    CliHelpers.WriteError(command,
+                        ErrorCodes.DependencyMissing with { Message = "LibreOffice is required for render-preview. Install LibreOffice (libreoffice.org) and ensure soffice is on PATH." }, json);
+                    return;
+                }
+
+                var tempDir = Path.Combine(Path.GetTempPath(), "nong-render-preview-" + Guid.NewGuid().ToString("N"));
+                Directory.CreateDirectory(tempDir);
+                var pdfPath = Path.Combine(tempDir, "preview.pdf");
+
+                try
+                {
+                    var psi = new ProcessStartInfo
+                    {
+                        FileName = soffice,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    };
+                    foreach (var arg in new[] { "--headless", "--convert-to", "pdf", "--outdir", tempDir, file })
+                        psi.ArgumentList.Add(arg);
+
+                    using var proc = Process.Start(psi)!;
+                    var soStdout = proc.StandardOutput.ReadToEnd();
+                    var soStderr = proc.StandardError.ReadToEnd();
+                    if (!proc.WaitForExit(120000))
+                    {
+                        try { proc.Kill(entireProcessTree: true); } catch { }
+                        throw new TimeoutException("LibreOffice conversion timed out (120s).");
+                    }
+                    if (proc.ExitCode != 0)
+                        throw new InvalidOperationException($"LibreOffice exit code {proc.ExitCode}: {soStderr}");
+
+                    // LibreOffice names output by replacing extension: paper.docx → paper.pdf
+                    var expectedName = Path.GetFileNameWithoutExtension(file) + ".pdf";
+                    var produced = Directory.GetFiles(tempDir, "*.pdf").FirstOrDefault();
+                    if (produced == null)
+                        throw new InvalidOperationException($"LibreOffice did not produce PDF. stdout: {soStdout}");
+
+                    // Step 2: PDF → PNG via nong-pdf render subprocess
+                    Directory.CreateDirectory(output);
+                    var (renderExit, renderOut, renderErr) = CliHelpers.RunToolCapture(
+                        "nong-pdf", ToolPackages.Pdf,
+                        new[] { "pdf", "render", produced, "-o", output, "--dpi", dpi.ToString(), "--json" });
+
+                    if (renderExit != 0)
+                        throw new InvalidOperationException($"nong-pdf render failed (exit {renderExit}): {renderErr}");
+
+                    // Parse render output for page count
+                    int pageCount = 0;
+                    var pageFiles = new List<string>();
+                    try
+                    {
+                        using var renderDoc = JsonDocument.Parse(renderOut);
+                        var rd = renderDoc.RootElement;
+                        if (rd.TryGetProperty("data", out var rdata))
+                        {
+                            if (rdata.TryGetProperty("pages", out var p) && p.TryGetInt32(out var pc))
+                                pageCount = pc;
+                        }
+                        // Enumerate produced PNGs
+                        pageFiles = Directory.GetFiles(output, "*.png").OrderBy(f => f).Select(Path.GetFullPath).ToList();
+                        if (pageFiles.Count == 0)
+                            pageFiles = Directory.GetFiles(output, "*.jpg").OrderBy(f => f).Select(Path.GetFullPath).ToList();
+                    }
+                    catch { /* best-effort parse */ }
+
+                    if (json)
+                    {
+                        var o = JsonOutput.Ok(command,
+                            $"Rendered {pageCount} page(s) at {dpi} DPI",
+                            new { pages = pageCount, dpi, pageFiles });
+                        o.Artifacts["dir"] = Path.GetFullPath(output);
+                        o.Metrics["pages"] = pageCount;
+                        o.Metrics["dpi"] = dpi;
+                        o.Issues.Add(new Issue { Id = "render_engine", Severity = "Info", Message = $"Rendered via LibreOffice (soffice) at {dpi} DPI. Layout fidelity depends on LibreOffice's DOCX import." });
+                        Console.WriteLine(JsonSerializer.Serialize(o, CliHelpers.JsonOpts));
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Rendered {pageCount} page(s) to {Path.GetFullPath(output)}");
+                        foreach (var pf in pageFiles)
+                            Console.WriteLine($"  {pf}");
+                    }
+                }
+                finally
+                {
+                    try { Directory.Delete(tempDir, true); } catch { }
+                }
+            }
+            catch (TimeoutException ex)
+            { CliHelpers.WriteError(command, ErrorCodes.InternalError with { Message = ex.Message }, json); }
+            catch (InvalidOperationException ex)
+            { CliHelpers.WriteError(command, ErrorCodes.DependencyMissing with { Message = ex.Message }, json); }
+            catch (Exception ex)
+            { CliHelpers.WriteError(command, ErrorCodes.InternalError with { Message = ex.Message }, json); }
+        }, fileArg, outOpt, dpiOpt, jsonOpt);
+        return cmd;
+    }
 
     // ===== Stage 15: add commands =====
 

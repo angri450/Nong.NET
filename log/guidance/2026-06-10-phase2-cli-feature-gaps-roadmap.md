@@ -115,7 +115,7 @@
 | 7 | Chart heatmap + radar | ScottPlot 已有，纯加命令面和参数 spec | **DONE** |
 | 8 | PDF ocr-pdf | PDFium 渲染 + PdfOcrRecognizerAdapter 调用 nong-ocr local 子进程嵌入 OCR 文本层 | **DONE** |
 | 9 | Excel pivot | ClosedXML 透视表 API 较复杂 | **DONE** |
-| 10 | Word render-preview | 复杂度最高，考虑替代方案 | 10-20h |
+| 10 | Word render-preview | LibreOffice DOCX→PDF→PNG pipeline, reuse existing soffice detection + nong-pdf render | **DONE** |
 
 ## 新增命令的标准流程
 
@@ -146,4 +146,4 @@
 
 ## 状态
 
-plan — 10 项缺口 9 项已完成。仅剩 Word render-preview (复杂度极高, 低优先级)。
+plan — 10 项缺口全部 DONE。
