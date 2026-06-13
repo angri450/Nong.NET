@@ -88,9 +88,13 @@ public static class PdfDocumentInspector
                     imageArea += Math.Min(pageArea, box.Area);
             }
         }
-        catch
+        catch (Exception ex) when (ex is not OutOfMemoryException)
         {
-            return page.NumberOfImages > 0 ? 1 : 0;
+            // PdfPig may throw for corrupted streams, unsupported filters, or
+            // missing resources. Fall back to a coarse per-image-count estimate
+            // rather than a silent 100% coverage that would misclassify the PDF.
+            var imgCount = page.NumberOfImages;
+            return imgCount > 0 ? Math.Clamp(imgCount * 0.02, 0.01, 0.50) : 0;
         }
 
         return Math.Clamp(imageArea / pageArea, 0, 1);

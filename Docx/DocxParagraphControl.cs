@@ -35,6 +35,7 @@ public static class DocxParagraphControl
 
         int changed = 0;
         var changes = new List<string>();
+        if (allParas.Count == 0) return new PaginationResult(0, changes);
         XNamespace w = allParas.First().Name.Namespace;
         // Same heading style detection as DocxIndenter
         var hIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase)

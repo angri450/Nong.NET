@@ -252,6 +252,8 @@ public static partial class NongMarkTextReader
 
         if (parts.Count == 0)
         {
+            if (index >= lines.Count)
+                return NongParagraphBlock.FromText("");
             parts.Add(lines[index].Trim());
             index++;
         }

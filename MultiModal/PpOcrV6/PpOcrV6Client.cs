@@ -139,7 +139,7 @@ public sealed class PpOcrV6Client : IDisposable
         return new PpOcrV5Result
         {
             Engine = "pp-ocrv6-dotnet-sdcb",
-            ModelId = $"pp-ocrv6-medium",
+            ModelId = ModelId,
             InferenceMode = mode == PpOcrV5InferenceMode.Fast ? "fast-cpu" : "safe-cpu-blas",
             Pages = new List<PpOcrV5Page> { page }
         };
