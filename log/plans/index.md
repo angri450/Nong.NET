@@ -18,3 +18,5 @@
 - 2026-06-12 | 2026-06-12-ppocrv6-adaptation.md | PP-OCRv6 全线适配：runtime 不动 / CLI 轻索引 / Toolkit skill 文档更新 | done
 - 2026-06-11 | 2026-06-11-nong-word-images-crop.md | nong word crop — 内容感知图片裁剪命令 + Angri450.Nong.Imaging 包 | done
 - 2026-06-10 | 2026-06-10-final-blueprint.md | 最终蓝图：三层结构、命名词典、命令组职责和 AI 可理解口径 | done
+- 2026-06-13 | 2026-06-13-4.1.0-release-handoff.md | 4.1.0 模块化发布口径收口交接：版本常量、README/Agent 文档、nupkg 产物、验证命令 | ready-for-construction
+- 2026-06-13 | 2026-06-13-ai-context-map.md | AI 上下文入口重构：PROJECT_STATE 当前真相源、docs/wiki 稳定百科、log 归档策略、双窗口计划/施工流程 | done

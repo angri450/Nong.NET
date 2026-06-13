@@ -3,7 +3,8 @@
 > Agent 添加变更记录后同步更新此文件。格式：`- YYYY-MM-DD | 文件名 | 一句话摘要`
 
 ## 2026-06-13
-- 2026-06-13 | 2026-06-13-ppocrv6-modular-split.md | PP-OCRv6 与 CLI 模块化拆分审计修复：主 CLI 12MB、外部工具路由、PDF/Chart worker 修复、154 测试通过
+- 2026-06-13 | 2026-06-13-ai-context-map.md | AI 上下文入口重构：PROJECT_STATE 当前真相源、docs/wiki 项目百科、log 历史归档、双窗口计划/施工流程
+- 2026-06-13 | 2026-06-13-cli-gap-fill.md | CLI 功能缺口补全：PPTX create 验证 DONE / Word compare 验证 DONE / PDF ocr-pdf --with-ocr 真正 OCR 文本层 / 9/10 缺口 DONE
 - 2026-06-13 | 2026-06-13-modular-release-final-audit.md | 模块化发布最终审计：7 包全 GO、RID 瘦身 83→26MB、pack audit 闸门、OCR v6 文案统一、本地安装闭环
 
 ## 2026-06-12

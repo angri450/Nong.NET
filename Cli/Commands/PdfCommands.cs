@@ -278,9 +278,10 @@ public static class PdfCommands
         var fileArg = new Argument<string>("file", "Path to source .pdf file (scan PDF)");
         var outOpt = new Option<string>(new[] { "-o", "--output" }, "Output PDF with image layer") { IsRequired = true };
         var dpiOpt = new Option<int>("--dpi", () => 200, "Render DPI");
-        var cmd = new Command("ocr", "Add searchable image layer to scanned PDF pages") { fileArg, outOpt, dpiOpt };
+        var withOcrOpt = new Option<bool>("--with-ocr", () => false, "Run local PP-OCRv6 on each page and embed recognized text as searchable text layer");
+        var cmd = new Command("ocr", "Add image layer to scanned PDF pages with optional OCR text") { fileArg, outOpt, dpiOpt, withOcrOpt };
 
-        cmd.SetHandler((string file, string output, int dpi, bool json) =>
+        cmd.SetHandler((string file, string output, int dpi, bool withOcr, bool json) =>
         {
             const string command = "pdf ocr";
             try
@@ -289,6 +290,9 @@ public static class PdfCommands
                 { CliHelpers.WriteError(command, ErrorCodes.FileNotFound with { Message = $"File not found: {file}" }, json); return; }
 
                 CliHelpers.EnsureParentDir(output);
+
+                IPdfOcrRecognizer? recognizer = withOcr ? new Nong.Cli.Adapters.PdfOcrRecognizerAdapter() : null;
+
                 var (result, elapsed) = CliHelpers.Time(() =>
                 {
                     var tempDir = Path.Combine(Path.GetTempPath(), "pdf-ocr-" + Guid.NewGuid().ToString("N")[..8]);
@@ -297,6 +301,7 @@ public static class PdfCommands
                     if (imageFiles.Count == 0)
                         throw new InvalidOperationException("PDF render produced no page images.");
 
+                    var totalTextBlocks = 0;
                     using var builder = new PdfDocumentBuilder();
                     var font = builder.AddStandard14Font(UglyToad.PdfPig.Fonts.Standard14Fonts.Standard14Font.Helvetica);
 
@@ -307,31 +312,75 @@ public static class PdfCommands
                         var ph = pages.Pages[i].Height > 0 ? pages.Pages[i].Height : 842;
                         var page = builder.AddPage(pw, ph);
                         page.AddJpeg(imgBytes, new UglyToad.PdfPig.Core.PdfRectangle(0, 0, pw, ph));
-                        page.AddText("[Page " + (i + 1) + " - OCR ready]", 6,
-                            new UglyToad.PdfPig.Core.PdfPoint(10, ph - 5), font);
+
+                        if (recognizer != null)
+                        {
+                            // Run local OCR on this page's rendered image
+                            var ocrResult = recognizer.Recognize(imageFiles[i], i + 1);
+                            foreach (var block in ocrResult.Blocks)
+                            {
+                                if (string.IsNullOrWhiteSpace(block.Text)) continue;
+
+                                // Convert bbox from image coords (0..w, 0..h) to PDF coords
+                                // PDF origin is bottom-left, OCR bbox is [x1,y1,x2,y2] from top-left
+                                var bbox = block.Bbox;
+                                double bx = 0, by = 0, bw = pw, bh = 12;
+                                if (bbox != null && bbox.Length >= 4)
+                                {
+                                    bx = bbox[0] / ocrResult.Width * pw;
+                                    bw = (bbox[2] - bbox[0]) / ocrResult.Width * pw;
+                                    by = ph - (bbox[3] / ocrResult.Height * ph); // flip y
+                                    bh = (bbox[3] - bbox[1]) / ocrResult.Height * ph;
+                                    if (bh < 6) bh = 10;
+                                }
+
+                                // Scale font size based on bbox height
+                                var fontSize = Math.Clamp(bh * 0.7, 5, 14);
+                                try
+                                {
+                                    page.AddText(block.Text, fontSize,
+                                        new UglyToad.PdfPig.Core.PdfPoint(bx + 2, by + 2), font);
+                                    totalTextBlocks++;
+                                }
+                                catch { /* skip blocks outside page bounds */ }
+                            }
+                        }
+                        else
+                        {
+                            page.AddText("[Page " + (i + 1) + " - OCR ready]", 6,
+                                new UglyToad.PdfPig.Core.PdfPoint(10, ph - 5), font);
+                        }
                     }
 
                     File.WriteAllBytes(output, builder.Build());
                     try { Directory.Delete(tempDir, true); } catch { }
-                    return imageFiles.Count;
+                    return (PageCount: imageFiles.Count, TextBlocks: totalTextBlocks);
                 });
 
                 var info = new FileInfo(output);
                 var o = JsonOutput.Ok(command,
-                    $"PDF with image layer: {Path.GetFileName(output)} ({info.Length} bytes, {result} page(s))",
-                    new { pages = result, outputBytes = info.Length, dpi });
+                    $"PDF with image layer: {Path.GetFileName(output)} ({info.Length} bytes, {result.PageCount} page(s))",
+                    new { pages = result.PageCount, outputBytes = info.Length, dpi, ocrEnabled = withOcr, ocrTextBlocks = result.TextBlocks });
                 o.Artifacts["pdf"] = output;
-                o.Metrics["pages"] = result;
+                o.Metrics["pages"] = result.PageCount;
                 o.Metrics["outputBytes"] = info.Length;
+                o.Metrics["ocrTextBlocks"] = result.TextBlocks;
                 o.Meta.DurationMs = elapsed;
-                o.Issues.Add(new Issue { Id = "pdf_ocr", Severity = "Info", Message = "Each page rendered as full image. For searchable text, run nong ocr cloud on the output PDF." });
+
+                if (!withOcr)
+                    o.Issues.Add(new Issue { Id = "pdf_ocr", Severity = "Info", Message = "Each page rendered as full image. For searchable text, run nong ocr cloud on the output PDF, or retry with --with-ocr for local PP-OCRv6 text layer." });
+                else if (result.TextBlocks == 0)
+                    o.Issues.Add(new Issue { Id = "pdf_ocr_empty", Severity = "Warning", Message = "OCR completed but returned no text blocks. The source PDF may be blank or the OCR runtime may need installation." });
+                else
+                    o.Issues.Add(new Issue { Id = "pdf_ocr_text", Severity = "Info", Message = $"{result.TextBlocks} OCR text block(s) embedded. Text layer quality depends on PP-OCRv6 accuracy. Verify with a PDF reader." });
+
                 Console.WriteLine(JsonSerializer.Serialize(o, CliHelpers.JsonOpts));
             }
             catch (Exception ex)
             {
                 CliHelpers.WriteError(command, ErrorCodes.InternalError with { Message = ex.Message }, json);
             }
-        }, fileArg, outOpt, dpiOpt, jsonOpt);
+        }, fileArg, outOpt, dpiOpt, withOcrOpt, jsonOpt);
         return cmd;
     }
 

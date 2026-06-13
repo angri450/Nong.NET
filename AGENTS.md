@@ -12,10 +12,13 @@ This file governs the whole repository.
 ## Required Loop
 
 1. Read guidance first.
-   - Start with `CLAUDE.md`.
-   - Check the latest relevant files in `log/guidance/`.
-   - Read module docs near the work area, such as `Docx/README.md`, `Pdf/README.md`, or `Cli/AGENT.md`.
-   - Do not bulk-read the whole repo when a targeted scan is enough.
+   - Start with `PROJECT_STATE.md`. It is the current truth source.
+   - Then read `CLAUDE.md` for repository workflow and constraints.
+   - Read only the active plan/handoff linked from `PROJECT_STATE.md`, unless the user asks for historical research.
+   - Read module docs near the work area, such as `Docx/README.md`, `Pdf/README.md`, `Cli/AGENT.md`, or `docs/wiki/`.
+   - Treat `log/` as historical archive. Do not bulk-read `log/` to infer current state.
+   - If an old log conflicts with `PROJECT_STATE.md`, trust `PROJECT_STATE.md` unless the user explicitly says otherwise.
+   - For two-window work, the planner window writes plans under `log/plans/` and updates `PROJECT_STATE.md`; the builder window reads only `PROJECT_STATE.md` plus the active linked plan.
 
 2. Build the change.
    - Follow existing project patterns.
@@ -39,3 +42,5 @@ This file governs the whole repository.
 - Pure .NET paths are preferred. Do not add JavaScript or Python for core functionality.
 - For Word/PDF repair and formatting, prefer OpenXML and Nong commands over COM or helper libraries unless the task explicitly calls for a boundary conversion.
 - Existing dirty worktree changes may belong to the user. Work with them; do not revert unrelated files.
+- Keep context-entry files short and current: `PROJECT_STATE.md` is for present truth, `docs/wiki/` is for stable knowledge, and `log/` is for history.
+- Development plans still live in `log/plans/`; the active one is the path named in `PROJECT_STATE.md`.

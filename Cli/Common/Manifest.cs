@@ -368,9 +368,11 @@ public static class Manifest
             Parameters: [new("file", "string", "Path to PDF file", Required: true),
                          new("o", "string", "Output directory", Required: true),
                          new("pages", "string", "Page range to extract (e.g. \"1-5\")", Required: true)]));
-        list.Add(new("pdf ocr", "Add rendered image layer to scanned PDF pages", "pdf", [],
+        list.Add(new("pdf ocr", "Add rendered image layer to scanned PDF pages with optional OCR text layer", "pdf", [],
             Parameters: [new("file", "string", "Path to scanned PDF file", Required: true),
-                         new("o", "string", "Output PDF path", Required: true)]));
+                         new("o", "string", "Output PDF path", Required: true),
+                         new("dpi", "integer", "Render DPI (default 200)"),
+                         new("with-ocr", "boolean", "Run local PP-OCRv6 on each page (requires nong-ocr installed)")]));
         list.Add(new("pdf compress", "Compress PDF by rebuilding content stream and removing unused objects", "pdf", [],
             Parameters: [new("file", "string", "Path to PDF file", Required: true),
                          new("o", "string", "Output compressed PDF path", Required: true)]));

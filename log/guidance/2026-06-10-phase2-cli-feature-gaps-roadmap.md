@@ -110,11 +110,11 @@
 | 2 | PDF merge + split | PdfPig/PDFium 已支持，实现直接 | **DONE** |
 | 3 | Excel style + formula | ClosedXML 已有，需要 CLI spec 设计 | **DONE** |
 | 4 | Inspect official-check | 贴近现有 inspect 管线 | **DONE** |
-| 5 | PPTX create | 命令面已注册，运行时需调试 | **PARTIAL** |
-| 6 | Word compare | diff 算法设计和实现 | 5-10h |
+| 5 | PPTX create | 命令面已注册，运行时已实现 BuildPptx | **DONE** |
+| 6 | Word compare | diff 算法设计和实现 | **DONE** |
 | 7 | Chart heatmap + radar | ScottPlot 已有，纯加命令面和参数 spec | **DONE** |
-| 8 | PDF ocr-pdf | 需要整合 MultiModal OCR 管线 | 5-8h |
-| 9 | Excel pivot | ClosedXML 透视表 API 较复杂 | 4-6h |
+| 8 | PDF ocr-pdf | PDFium 渲染 + PdfOcrRecognizerAdapter 调用 nong-ocr local 子进程嵌入 OCR 文本层 | **DONE** |
+| 9 | Excel pivot | ClosedXML 透视表 API 较复杂 | **DONE** |
 | 10 | Word render-preview | 复杂度最高，考虑替代方案 | 10-20h |
 
 ## 新增命令的标准流程
@@ -146,4 +146,4 @@
 
 ## 状态
 
-plan — 待拆分为独立模块 plan 后逐一开工。
+plan — 10 项缺口 9 项已完成。仅剩 Word render-preview (复杂度极高, 低优先级)。
