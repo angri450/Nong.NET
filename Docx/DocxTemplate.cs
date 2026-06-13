@@ -138,14 +138,46 @@ public static class DocxTemplate
         }
     }
 
-    /// <summary>Replace all text content in a table cell.</summary>
+    /// <summary>
+    /// Replace text content in a table cell, preserving the original cell,
+    /// paragraph, and run formatting. Only the text runs are replaced.
+    /// </summary>
     static void SetCellText(TableCell cell, string text)
     {
-        // Remove existing paragraphs and add a clean one with the text
-        var existingParas = cell.Elements<Paragraph>().ToList();
-        foreach (var p in existingParas)
-            p.Remove();
-        cell.Append(new Paragraph(new Run(new Text(text) { Space = SpaceProcessingModeValues.Preserve })));
+        // Find the first paragraph that has text content, or use the first paragraph
+        var firstPara = cell.Elements<Paragraph>().FirstOrDefault(p => p.InnerText.Length > 0)
+                        ?? cell.Elements<Paragraph>().FirstOrDefault();
+        if (firstPara == null)
+        {
+            // Cell has no paragraphs at all — create one with default formatting
+            cell.Append(new Paragraph(new Run(new Text(text) { Space = SpaceProcessingModeValues.Preserve })));
+            return;
+        }
+
+        // Remove all paragraphs EXCEPT the template one we'll reuse
+        var allParas = cell.Elements<Paragraph>().ToList();
+        foreach (var p in allParas)
+        {
+            if (p != firstPara)
+                p.Remove();
+        }
+
+        // Clear all existing runs from the template paragraph, preserve paragraph properties
+        var runs = firstPara.Elements<Run>().ToList();
+        foreach (var r in runs)
+            r.Remove();
+
+        // Add a single run with the new text. The paragraph keeps its original
+        // ParagraphProperties (alignment, spacing, etc.). We add minimal RunProperties
+        // so the text inherits from the paragraph/table style.
+        var runProps = new RunProperties();
+        // If the original first run had a font or size, carry it forward
+        if (runs.FirstOrDefault()?.RunProperties?.RunFonts is {} rf)
+            runProps.Append(new RunFonts { Ascii = rf.Ascii?.Value, HighAnsi = rf.HighAnsi?.Value, EastAsia = rf.EastAsia?.Value });
+        if (runs.FirstOrDefault()?.RunProperties?.FontSize is {} fs)
+            runProps.Append(new FontSize { Val = fs.Val?.Value });
+
+        firstPara.Append(new Run(runProps, new Text(text) { Space = SpaceProcessingModeValues.Preserve }));
     }
 
     static void ProcessElement(OpenXmlElement root, Dictionary<string, object?> data, MainDocumentPart main)

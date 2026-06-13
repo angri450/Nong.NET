@@ -38,7 +38,12 @@ public static class PdfImageExtractor
                     }
                     else
                     {
-                        if (TrySavePageCropFallback(pdfPath, outputDir, page, image.BoundingBox, id, outPath, out _))
+                        // JPEG in PDF: raw bytes ARE the JPEG — save with correct extension
+                        if (TrySaveRawImage(image, outputDir, id, out fileName, out outPath, out warning))
+                        {
+                            extractionMethod = "embeddedImageRaw";
+                        }
+                        else if (TrySavePageCropFallback(pdfPath, outputDir, page, image.BoundingBox, id, outPath, out _))
                         {
                             warning = "Image could not be decoded as PNG; page crop fallback saved.";
                             extractionMethod = "pageCrop";
@@ -146,5 +151,50 @@ public static class PdfImageExtractor
         {
             // Best-effort cleanup only; the warning above is the actionable signal.
         }
+    }
+
+    /// <summary>
+    /// Detect image format from raw bytes and save with the correct extension.
+    /// Handles JPEG (DCTDecode) which PdfPig can't decode natively but whose raw
+    /// bytes are directly usable as a .jpg file.
+    /// </summary>
+    static bool TrySaveRawImage(
+        UglyToad.PdfPig.Content.IPdfImage image,
+        string outputDir,
+        string id,
+        out string fileName,
+        out string outPath,
+        out string warning)
+    {
+        fileName = $"{id}.bin";
+        outPath = Path.Combine(outputDir, fileName);
+        warning = "";
+
+        if (!image.TryGetBytesAsMemory(out var rawMemory) || rawMemory.Length < 3)
+            return false;
+
+        var span = rawMemory.Span;
+        // JPEG magic: FF D8 FF
+        if (span[0] == 0xFF && span[1] == 0xD8 && span[2] == 0xFF)
+        {
+            fileName = $"{id}.jpg";
+            outPath = Path.Combine(outputDir, fileName);
+            File.WriteAllBytes(outPath, rawMemory.ToArray());
+            warning = "Image is JPEG (DCTDecode not decoded by PdfPig); raw JPEG bytes saved.";
+            return true;
+        }
+
+        // JPEG 2000 magic: 00 00 00 0C 6A 50 20 20
+        if (span.Length >= 8 && span[0] == 0x00 && span[1] == 0x00 && span[2] == 0x00
+            && span[3] == 0x0C && span[4] == 0x6A && span[5] == 0x50 && span[6] == 0x20 && span[7] == 0x20)
+        {
+            fileName = $"{id}.jp2";
+            outPath = Path.Combine(outputDir, fileName);
+            File.WriteAllBytes(outPath, rawMemory.ToArray());
+            warning = "Image is JPEG 2000 (JPXDecode not decoded by PdfPig); raw JP2 bytes saved.";
+            return true;
+        }
+
+        return false;
     }
 }
