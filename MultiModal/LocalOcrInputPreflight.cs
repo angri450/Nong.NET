@@ -72,21 +72,21 @@ public static class LocalOcrInputPreflight
             return result;
         }
 
+        // 启发式检测从 blocking 改为 warning：考试试卷等密集文字图像常被误判，
+        // 仅在结果中标记分类和建议，不阻断 OCR 推理。
         if (LooksLikeQrOrCodeGraphic(layout, largestRatio, graphicRatio, darkRatio, aspect))
         {
-            result.ShouldSkip = true;
             result.Classification = "qr_or_code_like_graphic";
-            result.Reason = "The image is dominated by one dense high-contrast graphic region, which is typical of QR/code images and not useful input for PP-OCR text recognition.";
-            result.Recommendation = "Use a QR/barcode decoder or inspect the image as an asset. Rerun with --force only if text OCR is explicitly required.";
+            result.Reason = "The image is dominated by one dense high-contrast graphic region, which is typical of QR/code images and may not be useful input for PP-OCR text recognition.";
+            result.Recommendation = "Local OCR will proceed, but results may be poor if the image is indeed a QR code or pure graphic. Use a QR/barcode decoder for codes, or ocr analyze-image for structure QA.";
             return result;
         }
 
         if (LooksLikeGraphicOnlyImage(layout, largestRatio, graphicRatio))
         {
-            result.ShouldSkip = true;
             result.Classification = "graphic_heavy_non_text";
-            result.Reason = "The image appears graphic-heavy with too few text-like regions for local text OCR.";
-            result.Recommendation = "Use ocr analyze-image for structure QA, a domain-specific decoder for codes/charts, or rerun with --force if text OCR is explicitly required.";
+            result.Reason = "The image appears graphic-heavy with few text-like regions for local text OCR.";
+            result.Recommendation = "Local OCR will proceed, but text yield may be low. Use ocr analyze-image for structure QA, or a domain-specific decoder for codes/charts.";
             return result;
         }
 
@@ -147,11 +147,11 @@ public static class LocalOcrInputPreflight
     static bool LooksLikeQrOrCodeGraphic(ImageLayout layout, double largestRatio, double graphicRatio, double darkRatio, double aspect)
     {
         var nonWhiteRatio = 1.0 - layout.WhitespaceRatio;
-        return layout.Regions.Count <= 12
-            && largestRatio >= 0.65
-            && (graphicRatio >= 0.60 || darkRatio >= 0.60)
-            && nonWhiteRatio >= 0.18
-            && layout.WhitespaceRatio <= 0.75
+        return layout.Regions.Count <= 8
+            && largestRatio >= 0.72
+            && (graphicRatio >= 0.70 || darkRatio >= 0.70)
+            && nonWhiteRatio >= 0.22
+            && layout.WhitespaceRatio <= 0.70
             && aspect is >= 0.45 and <= 2.2;
     }
 

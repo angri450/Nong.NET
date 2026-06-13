@@ -25,6 +25,10 @@ public sealed class NongMarkDocumentBuilder
     int _references;
     int _footnotes;
     int _endnotes;
+    // Per-paragraph font state, reset each paragraph
+    string _fontEastAsia = "宋体";
+    string _fontAscii = "Times New Roman";
+    string _fontSizeHalfPt = "21";   // 10.5pt = 五号, OOXML uses half-points
 
     static readonly Regex AttributeRegex = new(
         @"(?<key>[\w-]+)\s*=\s*(?:""(?<dq>[^""]*)""|'(?<sq>[^']*)'|(?<bare>[^\s}]+))",
@@ -229,7 +233,9 @@ public sealed class NongMarkDocumentBuilder
                 AppendHeading(content, GetInt(attrs, "level", 1));
                 break;
             case "paragraph":
+                ApplyParagraphAttrs(attrs);
                 AppendParagraph(JoinParagraphLines(blockLines), attrs.TryGetValue("style", out var style) ? style : "Normal");
+                ResetParagraphState();
                 break;
             case "table":
                 AppendTable(attrs.TryGetValue("caption", out var tableCaption) ? tableCaption : null, ParsePipeTable(blockLines));
@@ -700,10 +706,10 @@ public sealed class NongMarkDocumentBuilder
     static bool ContainsLatin(string text) =>
         text.Any(c => c is >= 'A' and <= 'Z' or >= 'a' and <= 'z');
 
-    static W.Run MakeRun(string text, bool bold, bool italic, bool hyperlink)
+    W.Run MakeRun(string text, bool bold, bool italic, bool hyperlink)
     {
         var props = new W.RunProperties(
-            new W.RunFonts { Ascii = "Times New Roman", HighAnsi = "Times New Roman", EastAsia = "宋体" });
+            new W.RunFonts { Ascii = _fontAscii, HighAnsi = _fontAscii, EastAsia = _fontEastAsia });
         if (bold) props.Append(new W.Bold());
         if (italic) props.Append(new W.Italic());
         if (hyperlink)
@@ -711,8 +717,27 @@ public sealed class NongMarkDocumentBuilder
             props.Append(new W.Color { Val = "0563C1" });
             props.Append(new W.Underline { Val = W.UnderlineValues.Single });
         }
-        props.Append(new W.FontSize { Val = "21" });
+        props.Append(new W.FontSize { Val = _fontSizeHalfPt });
         return new W.Run(props, new W.Text(text) { Space = SpaceProcessingModeValues.Preserve });
+    }
+
+    void ApplyParagraphAttrs(IReadOnlyDictionary<string, string> attrs)
+    {
+        if (attrs.TryGetValue("font", out var font))
+            _fontEastAsia = font;
+        if (attrs.TryGetValue("fontAscii", out var fontAscii))
+            _fontAscii = fontAscii;
+        if (attrs.TryGetValue("size", out var sizeStr) && double.TryParse(sizeStr, out var sizePt))
+            _fontSizeHalfPt = ((int)(sizePt * 2)).ToString();
+        if (attrs.TryGetValue("sizeHalfPt", out var shp))
+            _fontSizeHalfPt = shp;
+    }
+
+    void ResetParagraphState()
+    {
+        _fontEastAsia = "宋体";
+        _fontAscii = "Times New Roman";
+        _fontSizeHalfPt = "21";
     }
 
     string ResolvePath(string path) =>

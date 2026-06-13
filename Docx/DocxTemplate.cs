@@ -58,7 +58,16 @@ public static class DocxTemplate
     {
         var main = doc.MainDocumentPart!;
         if (main.Document.Body != null)
+        {
+            // 0. 检测 tables 顶层 key → 位置填充模式
+            if (data.TryGetValue("tables", out var tablesVal) && tablesVal is System.Collections.IEnumerable tableList)
+            {
+                FillTablesByPosition(main, tableList);
+                data.Remove("tables");
+            }
+
             ProcessElement(main.Document.Body, data, main);
+        }
 
         foreach (var hp in main.HeaderParts)
             if (hp.Header != null)
@@ -67,6 +76,76 @@ public static class DocxTemplate
         foreach (var fp in main.FooterParts)
             if (fp.Footer != null)
                 ProcessElement(fp.Footer, data, main);
+    }
+
+    /// <summary>
+    /// 按表格索引 + 行号 + 列号填入单元格内容。模板无需 {{tag}} 占位符。
+    /// data JSON 格式: { "tables": [ { "index": 0, "rows": [ { "cells": ["col0", "col1"] } ] } ] }
+    /// </summary>
+    static void FillTablesByPosition(MainDocumentPart main, System.Collections.IEnumerable tableList)
+    {
+        var tables = main.Document.Body!.Descendants<Table>().ToList();
+        foreach (var entry in tableList)
+        {
+            var entryDict = ToDictionary(entry ?? new());
+            if (!entryDict.TryGetValue("index", out var indexVal) || indexVal is not int index) continue;
+            if (index < 0 || index >= tables.Count) continue;
+            if (!entryDict.TryGetValue("rows", out var rowsVal) || rowsVal is not System.Collections.IEnumerable rows) continue;
+
+            var table = tables[index];
+            var tableRows = table.Elements<TableRow>().ToList();
+            int rowIdx = 0;
+            foreach (var rowData in rows)
+            {
+                var rowDict = ToDictionary(rowData ?? new());
+                if (!rowDict.TryGetValue("cells", out var cellsVal) || cellsVal is not System.Collections.IEnumerable cells) continue;
+
+                // Find or create target row
+                TableRow targetRow;
+                if (rowIdx < tableRows.Count)
+                {
+                    targetRow = tableRows[rowIdx];
+                }
+                else
+                {
+                    // Clone last row as template for new row style
+                    var templateRow = tableRows.Count > 0 ? tableRows[tableRows.Count - 1] : new TableRow();
+                    targetRow = (TableRow)templateRow.CloneNode(true);
+                    table.Append(targetRow);
+                }
+
+                var cellList = targetRow.Elements<TableCell>().ToList();
+                int colIdx = 0;
+                foreach (var cellVal in cells)
+                {
+                    var text = cellVal?.ToString() ?? "";
+                    if (colIdx < cellList.Count)
+                    {
+                        SetCellText(cellList[colIdx], text);
+                    }
+                    else
+                    {
+                        // Clone last cell for extra columns
+                        var templateCell = cellList.Count > 0 ? cellList[cellList.Count - 1] : new TableCell(new Paragraph());
+                        var newCell = (TableCell)templateCell.CloneNode(true);
+                        SetCellText(newCell, text);
+                        targetRow.Append(newCell);
+                    }
+                    colIdx++;
+                }
+                rowIdx++;
+            }
+        }
+    }
+
+    /// <summary>Replace all text content in a table cell.</summary>
+    static void SetCellText(TableCell cell, string text)
+    {
+        // Remove existing paragraphs and add a clean one with the text
+        var existingParas = cell.Elements<Paragraph>().ToList();
+        foreach (var p in existingParas)
+            p.Remove();
+        cell.Append(new Paragraph(new Run(new Text(text) { Space = SpaceProcessingModeValues.Preserve })));
     }
 
     static void ProcessElement(OpenXmlElement root, Dictionary<string, object?> data, MainDocumentPart main)

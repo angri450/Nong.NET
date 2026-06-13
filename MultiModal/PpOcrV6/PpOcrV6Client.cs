@@ -18,6 +18,12 @@ public sealed class PpOcrV6Client : IDisposable
     private static bool _nativeRuntimeLoaded;
     private static string? _nativeRuntimeDir;
 
+    // Suppress native log noise before any P/Invoke happens
+    static PpOcrV6Client()
+    {
+        ConfigureNativeLogEnvironment();
+    }
+
     private readonly Lazy<PaddleOcrAll> _fastEngine;
     private readonly Lazy<PaddleOcrAll> _safeEngine;
     private bool _disposed;
@@ -182,7 +188,6 @@ public sealed class PpOcrV6Client : IDisposable
     private PaddleOcrAll CreateEngine(PpOcrV5InferenceMode mode)
     {
         EnsureNativeRuntimeLoaded();
-        ConfigureNativeLogEnvironment();
 
         var detDir = PpOcrV6ModelResolver.GetDetDir(_modelCachePath);
         var recDir = PpOcrV6ModelResolver.GetRecDir(_modelCachePath);
@@ -236,7 +241,6 @@ public sealed class PpOcrV6Client : IDisposable
             if (nativeDir == null)
                 throw new PaddleOcrException($"Native OCR runtime not installed. Run 'nong ocr install-model pp-ocrv6-medium --json'. Cache: {PpOcrV6ModelResolver.GetNativeRuntimeCachePath()}");
 
-            ConfigureNativeLogEnvironment();
             AddNativeDirectoryToPath(nativeDir);
             foreach (var file in PpOcrV6ModelResolver.GetNativeRuntimeLoadFiles())
                 LoadNativeLibrary(nativeDir, file);
@@ -249,14 +253,19 @@ public sealed class PpOcrV6Client : IDisposable
 
     private static void ConfigureNativeLogEnvironment()
     {
+        // Suppress GLOG, PaddlePIR, and OneDNN diagnostic output.
+        // Must be called BEFORE any native library is loaded.
         Environment.SetEnvironmentVariable("GLOG_minloglevel", "3");
+        Environment.SetEnvironmentVariable("GLOG_v", "0");
         Environment.SetEnvironmentVariable("FLAGS_minloglevel", "3");
+        Environment.SetEnvironmentVariable("FLAGS_v", "0");
         Environment.SetEnvironmentVariable("FLAGS_logtostderr", "0");
         Environment.SetEnvironmentVariable("FLAGS_alsologtostderr", "0");
         Environment.SetEnvironmentVariable("FLAGS_stderrthreshold", "3");
         Environment.SetEnvironmentVariable("DNNL_VERBOSE", "0");
         Environment.SetEnvironmentVariable("ONEDNN_VERBOSE", "0");
         Environment.SetEnvironmentVariable("MKLDNN_VERBOSE", "0");
+        Environment.SetEnvironmentVariable("PADDLE_DISABLE_SIGNAL_HANDLER", "1");
     }
 
     private static void ConfigureFastCpuDevice(PaddleConfig config)

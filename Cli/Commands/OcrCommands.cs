@@ -253,10 +253,16 @@ public static class OcrCommands
             try
             {
                 var preflight = LocalOcrInputPreflight.Analyze(image);
+                // Barcode/QR decoded by ZXing → block (OCR won't help)
                 if (preflight.ShouldSkip && !force)
                 {
                     WriteLocalOcrPreflightSkip(image, preflight, json);
                     return;
+                }
+                // Heuristic warnings → show but continue (exam papers etc. often misflagged)
+                if (!string.IsNullOrEmpty(preflight.Classification) && preflight.Classification != "text_candidate")
+                {
+                    WriteLocalOcrPreflightWarning(preflight, json);
                 }
 
                 using var client = new PpOcrV6Client();
@@ -404,6 +410,15 @@ public static class OcrCommands
         output.Metrics["regionCount"] = preflight.RegionCount;
         output.Metrics["largestRegionRatio"] = preflight.LargestRegionRatio;
         Console.WriteLine(JsonSerializer.Serialize(output, CliHelpers.JsonOpts));
+    }
+
+    /// <summary>Print preflight heuristic warning without blocking OCR inference.</summary>
+    static void WriteLocalOcrPreflightWarning(LocalOcrInputPreflightResult preflight, bool json)
+    {
+        if (json) return; // JSON output includes preflight in data, warning is in issues
+
+        Console.Error.WriteLine($"[preflight] {preflight.Classification}: {preflight.Reason}");
+        Console.Error.WriteLine($"[preflight] {preflight.Recommendation}");
     }
 
     static void AddLocalOcrNumericIssues(JsonOutput output, PpOcrV5Result result, int invalidConfidenceBlocks, int invalidGeometryBlocks)
