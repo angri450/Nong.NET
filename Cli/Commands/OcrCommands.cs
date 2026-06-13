@@ -589,8 +589,8 @@ public static class OcrCommands
 
         cmd.SetHandler((bool json) =>
         {
-            // ImageAnalyzer: always available (pure .NET + SkiaSharp)
-            var imageAnalyzerOk = true;
+            // ImageAnalyzer probes SkiaSharp native DLL availability
+            var imageAnalyzerOk = IsImageAnalyzerAvailable();
 
             // Cloud token
             var accessToken = Environment.GetEnvironmentVariable("PADDLEOCR_ACCESS_TOKEN");
@@ -1242,6 +1242,22 @@ public static class OcrCommands
     }
 
     static string GetPpOcrV6ModelCachePath() => PpOcrV6ModelResolver.GetModelCachePath("medium");
+
+    static bool IsImageAnalyzerAvailable()
+    {
+        try
+        {
+            // 1x1 white PNG — minimal probe for SkiaSharp native DLL loading
+            var testPng = Convert.FromBase64String(
+                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==");
+            using var bmp = SkiaSharp.SKBitmap.Decode(testPng);
+            return bmp != null;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 
     sealed record NativeRuntimePackage(string Id, string Version, string NativePrefix);
     sealed record NativeRuntimePlan(string RuntimeId, NativeRuntimePackage? BundlePackage, IReadOnlyList<NativeRuntimePackage> FallbackPackages);
