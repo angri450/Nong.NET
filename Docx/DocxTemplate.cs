@@ -140,6 +140,12 @@ public static class DocxTemplate
                     }
                     colIdx++;
                 }
+                // Clear any remaining cells the JSON didn't cover — prevents ghost template text
+                while (colIdx < cellList.Count)
+                {
+                    SetCellText(cellList[colIdx], "");
+                    colIdx++;
+                }
                 rowIdx++;
             }
         }
@@ -148,21 +154,22 @@ public static class DocxTemplate
     /// <summary>
     /// Replace text content in a table cell, preserving the original cell,
     /// paragraph, and run formatting. Only the text runs are replaced.
+    /// When the cell contains multiple paragraphs (e.g. label/value pairs),
+    /// all but the first are removed to avoid template-ghost text leaking.
     /// </summary>
     static void SetCellText(TableCell cell, string text)
     {
         // Find the first paragraph that has text content, or use the first paragraph
-        var firstPara = cell.Elements<Paragraph>().FirstOrDefault(p => p.InnerText.Length > 0)
-                        ?? cell.Elements<Paragraph>().FirstOrDefault();
+        var allParas = cell.Elements<Paragraph>().ToList();
+        var firstPara = allParas.FirstOrDefault(p => p.InnerText.Length > 0)
+                        ?? allParas.FirstOrDefault();
         if (firstPara == null)
         {
-            // Cell has no paragraphs at all — create one with default formatting
             cell.Append(new Paragraph(new Run(new Text(text) { Space = SpaceProcessingModeValues.Preserve })));
             return;
         }
 
         // Remove all paragraphs EXCEPT the template one we'll reuse
-        var allParas = cell.Elements<Paragraph>().ToList();
         foreach (var p in allParas)
         {
             if (p != firstPara)
@@ -174,11 +181,8 @@ public static class DocxTemplate
         foreach (var r in runs)
             r.Remove();
 
-        // Add a single run with the new text. The paragraph keeps its original
-        // ParagraphProperties (alignment, spacing, etc.). We add minimal RunProperties
-        // so the text inherits from the paragraph/table style.
+        // Add a single run with the new text, carrying forward font/size from original
         var runProps = new RunProperties();
-        // If the original first run had a font or size, carry it forward
         if (runs.FirstOrDefault()?.RunProperties?.RunFonts is {} rf)
             runProps.Append(new RunFonts { Ascii = rf.Ascii?.Value, HighAnsi = rf.HighAnsi?.Value, EastAsia = rf.EastAsia?.Value });
         if (runs.FirstOrDefault()?.RunProperties?.FontSize is {} fs)
