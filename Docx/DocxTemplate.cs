@@ -58,20 +58,28 @@ public static class DocxTemplate
 
     static void FillParts(WordprocessingDocument doc, Dictionary<string, object?> data)
     {
-        // Normalize System.Text.Json.JsonElement values to native .NET types.
-        // Without this, nested objects/arrays remain as JsonElement which does not
-        // implement IEnumerable, breaking foreach/tables/tag resolution downstream.
         var normalized = (Dictionary<string, object?>)NormalizeJsonValue(data)!;
 
         var main = doc.MainDocumentPart!;
         if (main.Document.Body != null)
         {
-            // 0. 检测 tables 顶层 key → 位置填充模式
-            if (normalized.TryGetValue("tables", out var tablesVal)
-                && tablesVal is System.Collections.IEnumerable tableList)
+            // 0. cellReplace — key=template cell text, value=replacement
+            //    If the matched cell has a cell to its RIGHT, fills the right cell (label-value tables).
+            //    Otherwise fills THIS cell (description tables, single-cell tables).
+            if (normalized.TryGetValue("cellReplace", out var cellRepVal)
+                && cellRepVal is Dictionary<string, object?> cellRep)
             {
-                FillTablesByPosition(main, tableList);
-                normalized.Remove("tables");
+                ReplaceCellsByText(main, cellRep);
+                normalized.Remove("cellReplace");
+            }
+
+            // 1. tableRows — add data rows to tables with headers.
+            //    JSON: { "tableRows": { "match": [ ["col0","col1"], ... ] } }
+            if (normalized.TryGetValue("tableRows", out var tblVal)
+                && tblVal is Dictionary<string, object?> tblRows)
+            {
+                AppendTableDataRows(main, tblRows);
+                normalized.Remove("tableRows");
             }
 
             ProcessElement(main.Document.Body, normalized, main);
@@ -87,137 +95,147 @@ public static class DocxTemplate
     }
 
     /// <summary>
-    /// 按表格索引或表头文字匹配填入单元格内容。模板无需 {{tag}} 占位符。
-    /// data JSON 格式: { "tables": [ { "index": 0, "match": "项目名称", "rows": [...] } ] }
-    /// "match" 优先于 "index"——按第一行文本搜索表格，避免跳过嵌套表时索引偏移。
+    /// Walk every table cell, match its trimmed text against the keys in
+    /// cellReplace, and replace content. If the matched cell has a cell to its
+    /// right, the RIGHT cell is filled (label-value tables). Otherwise THIS cell
+    /// is filled (single-cell description tables).
+    /// Also removes fixed row heights so text reflow doesn't clip.
     /// </summary>
-    static void FillTablesByPosition(MainDocumentPart main, System.Collections.IEnumerable tableList)
+    static void ReplaceCellsByText(MainDocumentPart main, Dictionary<string, object?> cellRep)
     {
-        var tables = main.Document.Body!.Elements<Table>().ToList();
-        foreach (var entry in tableList)
+        foreach (var table in main.Document.Body!.Elements<Table>())
         {
-            var entryDict = ToDictionary(entry ?? new());
-            if (!entryDict.TryGetValue("rows", out var rowsVal) || rowsVal is not System.Collections.IEnumerable rows) continue;
-
-            Table? table = null;
-
-            // 1. match by header text (preferred — immune to index drift)
-            if (entryDict.TryGetValue("match", out var matchVal) && matchVal is string matchText && matchText.Length > 0)
+            // Remove fixed row heights so content can reflow
+            foreach (var tr in table.Elements<TableRow>())
             {
-                table = tables.FirstOrDefault(t => t.InnerText.Contains(matchText, StringComparison.Ordinal));
+                var trPr = tr.GetFirstChild<TableRowProperties>();
+                var trHeight = trPr?.GetFirstChild<TableRowHeight>();
+                if (trHeight != null)
+                    trHeight.Remove();
             }
-            // 2. fallback to numeric index
-            if (table == null && entryDict.TryGetValue("index", out var indexVal) && indexVal is int index
-                && index >= 0 && index < tables.Count)
-            {
-                table = tables[index];
-            }
-            if (table == null) continue;
-            var tableRows = table.Elements<TableRow>().ToList();
-            int rowIdx = 0;
-            foreach (var rowData in rows)
-            {
-                var rowDict = ToDictionary(rowData ?? new());
-                if (!rowDict.TryGetValue("cells", out var cellsVal) || cellsVal is not System.Collections.IEnumerable cells) continue;
 
-                // Find or create target row
-                TableRow targetRow;
-                if (rowIdx < tableRows.Count)
+            var rows = table.Elements<TableRow>().ToList();
+            for (int ri = 0; ri < rows.Count; ri++)
+            {
+                var cells = rows[ri].Elements<TableCell>().ToList();
+                for (int ci = 0; ci < cells.Count; ci++)
                 {
-                    targetRow = tableRows[rowIdx];
-                }
-                else
-                {
-                    // Clone last row as template for new row style
-                    var templateRow = tableRows.Count > 0 ? tableRows[tableRows.Count - 1] : new TableRow();
-                    targetRow = (TableRow)templateRow.CloneNode(true);
-                    table.Append(targetRow);
-                }
+                    var cellText = cells[ci].InnerText.Trim();
+                    if (cellText.Length == 0) continue;
 
-                var cellList = targetRow.Elements<TableCell>().ToList();
-                int colIdx = 0;
-                foreach (var cellVal in cells)
-                {
-                    var text = cellVal?.ToString() ?? "";
-                    if (colIdx < cellList.Count)
+                    foreach (var kv in cellRep)
                     {
-                        SetCellText(cellList[colIdx], text);
+                        if (cellText.StartsWith(kv.Key, StringComparison.Ordinal))
+                        {
+                            var newText = kv.Value?.ToString() ?? "";
+                            if (newText.Length == 0) break;
+
+                            // Label-value table: cell to the right exists → fill that
+                            if (ci + 1 < cells.Count)
+                                FillCellContent(cells[ci + 1], newText);
+                            else
+                                FillCellContent(cells[ci], newText);
+                            break;
+                        }
                     }
-                    else
-                    {
-                        var templateCell = cellList.Count > 0 ? cellList[cellList.Count - 1] : new TableCell(new Paragraph());
-                        var newCell = (TableCell)templateCell.CloneNode(true);
-                        SetCellText(newCell, text);
-                        targetRow.Append(newCell);
-                    }
-                    colIdx++;
                 }
-                // Clear any remaining cells the JSON didn't cover
-                while (colIdx < cellList.Count)
-                {
-                    ClearCell(cellList[colIdx]);
-                    colIdx++;
-                }
-                rowIdx++;
-            }
-            // Clear any remaining rows the JSON didn't cover
-            while (rowIdx < tableRows.Count)
-            {
-                foreach (var cell in tableRows[rowIdx].Elements<TableCell>())
-                    ClearCell(cell);
-                rowIdx++;
             }
         }
+    }
+
+    /// <summary>Fill a table cell with text, preserving original font and size.</summary>
+    static void FillCellContent(TableCell cell, string text)
+    {
+        // Extract font/size from first run BEFORE removing paragraphs
+        var allParas = cell.Elements<Paragraph>().ToList();
+        string? asciiFont = null, eaFont = null, sizeVal = null;
+        var firstRun = allParas.SelectMany(p => p.Elements<Run>()).FirstOrDefault();
+        if (firstRun?.RunProperties?.RunFonts is {} rf)
+        {
+            asciiFont = rf.Ascii?.Value ?? rf.HighAnsi?.Value;
+            eaFont = rf.EastAsia?.Value;
+        }
+        sizeVal = firstRun?.RunProperties?.FontSize?.Val?.Value;
+
+        // Remove all existing paragraphs
+        foreach (var p in allParas)
+            p.Remove();
+
+        // Build replacement paragraph(s) — split on \n for Word line breaks
+        var lines = text.Split('\n');
+        var para = new Paragraph();
+        for (int i = 0; i < lines.Length; i++)
+        {
+            if (i > 0)
+                para.Append(new Run(new Break()));
+
+            if (lines[i].Length > 0)
+            {
+                var rp = new RunProperties();
+                if (asciiFont != null || eaFont != null)
+                    rp.Append(new RunFonts { Ascii = asciiFont, HighAnsi = asciiFont, EastAsia = eaFont });
+                if (sizeVal != null)
+                    rp.Append(new FontSize { Val = sizeVal });
+                para.Append(new Run(rp, new Text(lines[i]) { Space = SpaceProcessingModeValues.Preserve }));
+            }
+        }
+        cell.Append(para);
     }
 
     /// <summary>
-    /// Replace text in a table cell. An empty string means "keep the original
-    /// cell content" — label columns can be preserved by passing "".
+    /// Append data rows to tables identified by header text.
+    /// JSON: { "tableRows": { "授权（登记": [ ["type","name","patent","date"] ] } }
+    /// Matches first table whose InnerText contains the key. Preserves header row.
     /// </summary>
-    static void SetCellText(TableCell cell, string text)
+    static void AppendTableDataRows(MainDocumentPart main, Dictionary<string, object?> spec)
     {
-        // Empty string = preserve original, don't touch
-        if (text.Length == 0)
-            return;
-        // Find the first paragraph that has text content, or use the first paragraph
-        var allParas = cell.Elements<Paragraph>().ToList();
-        var firstPara = allParas.FirstOrDefault(p => p.InnerText.Length > 0)
-                        ?? allParas.FirstOrDefault();
-        if (firstPara == null)
+        foreach (var table in main.Document.Body!.Elements<Table>())
         {
-            cell.Append(new Paragraph(new Run(new Text(text) { Space = SpaceProcessingModeValues.Preserve })));
-            return;
+            string tableText = table.InnerText;
+            foreach (var kv in spec)
+            {
+                if (!tableText.Contains(kv.Key, StringComparison.Ordinal)) continue;
+                if (kv.Value is not System.Collections.IEnumerable rowList) continue;
+
+                var rows = table.Elements<TableRow>().ToList();
+                if (rows.Count < 2) continue; // need at least header + 1 data row
+
+                var headerRow = rows[0];
+                var headerCells = headerRow.Elements<TableCell>().ToList();
+
+                // Remove existing data rows
+                for (int i = rows.Count - 1; i >= 1; i--)
+                    rows[i].Remove();
+
+                foreach (var rowData in rowList)
+                {
+                    var cells = (rowData as System.Collections.IEnumerable)?.Cast<object>().ToList()
+                                ?? new List<object>();
+                    var newRow = new TableRow();
+                    if (headerRow.GetFirstChild<TableRowProperties>() is {} hPr)
+                        newRow.Append((TableRowProperties)hPr.CloneNode(true));
+
+                    for (int c = 0; c < headerCells.Count; c++)
+                    {
+                        var newCell = (TableCell)headerCells[c].CloneNode(true);
+                        var text = c < cells.Count ? cells[c]?.ToString() ?? "" : "";
+                        foreach (var p in newCell.Elements<Paragraph>().ToList())
+                            p.Remove();
+                        var para = new Paragraph();
+                        if (text.Length > 0)
+                        {
+                            var hRun = headerCells[c].Elements<Run>().FirstOrDefault();
+                            var rp = hRun?.RunProperties?.CloneNode(true) as RunProperties ?? new RunProperties();
+                            para.Append(new Run(rp, new Text(text) { Space = SpaceProcessingModeValues.Preserve }));
+                        }
+                        newCell.Append(para);
+                        newRow.Append(newCell);
+                    }
+                    table.Append(newRow);
+                }
+                return; // one match = done
+            }
         }
-
-        // Remove all paragraphs EXCEPT the template one we'll reuse
-        foreach (var p in allParas)
-        {
-            if (p != firstPara)
-                p.Remove();
-        }
-
-        // Clear all existing runs from the template paragraph, preserve paragraph properties
-        var runs = firstPara.Elements<Run>().ToList();
-        foreach (var r in runs)
-            r.Remove();
-
-        // Add a single run with the new text, carrying forward font/size from original
-        var runProps = new RunProperties();
-        if (runs.FirstOrDefault()?.RunProperties?.RunFonts is {} rf)
-            runProps.Append(new RunFonts { Ascii = rf.Ascii?.Value, HighAnsi = rf.HighAnsi?.Value, EastAsia = rf.EastAsia?.Value });
-        if (runs.FirstOrDefault()?.RunProperties?.FontSize is {} fs)
-            runProps.Append(new FontSize { Val = fs.Val?.Value });
-
-        firstPara.Append(new Run(runProps, new Text(text) { Space = SpaceProcessingModeValues.Preserve }));
-    }
-
-    /// <summary>Wipe a cell clean — used for rows/columns beyond what the JSON covers.</summary>
-    static void ClearCell(TableCell cell)
-    {
-        var allParas = cell.Elements<Paragraph>().ToList();
-        foreach (var p in allParas)
-            p.Remove();
-        cell.Append(new Paragraph()); // empty paragraph keeps the cell structurally present
     }
 
     static void ProcessElement(OpenXmlElement root, Dictionary<string, object?> data, MainDocumentPart main)
