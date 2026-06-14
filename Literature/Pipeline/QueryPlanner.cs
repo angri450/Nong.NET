@@ -7,7 +7,7 @@ namespace Angri450.Nong.Literature.Pipeline;
 public sealed class QueryPlanner
 {
     public const int DefaultMaxRoughQueriesPerProvider = 20;
-    static readonly string[] DefaultProviders = { "openalex", "crossref", "aminer" };
+    static readonly string[] DefaultProviders = { "openalex", "crossref", "aminer", "metaso" };
 
     public SearchPlan CreatePlan(string queryText, IEnumerable<string>? providerNames = null, int maxQueriesPerProvider = DefaultMaxRoughQueriesPerProvider)
     {
@@ -185,6 +185,12 @@ public sealed class QueryPlanner
                 || !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("AMINER_API_KEY"));
         }
 
+        if (string.Equals(providerName, "metaso", StringComparison.OrdinalIgnoreCase))
+        {
+            return !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("NONG_LIT_METASO_KEY"))
+                || !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("METASO_API_KEY"));
+        }
+
         return true;
     }
 
@@ -196,6 +202,7 @@ public sealed class QueryPlanner
             "crossref" => new[] { "Rough metadata search; DOI lookup/enrichment is primary; CNKI DSL is filtered locally." },
             "unpaywall" => new[] { "DOI-only OA lookup; no general metadata search." },
             "aminer" => new[] { "Chinese academic KG search; keyword-based, CNKI DSL is filtered locally." },
+            "metaso" => new[] { "Chinese academic web search (秘塔); scholar scope, CNKI DSL is filtered locally." },
             _ => new[] { "Provider is not implemented in Stage19." }
         };
     }

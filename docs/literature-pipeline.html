@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nong Literature Pipeline — 文献检索管线详解</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --fg: #c9d1d9;
+    --border: #30363d;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --orange: #d2991d;
+    --red: #f85149;
+    --code-bg: #161b22;
+    --section-bg: #161b22;
+    --step-bg: #1c2128;
+    --muted: #8b949e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg); color: var(--fg); line-height: 1.7; padding: 2rem;
+    max-width: 1100px; margin: 0 auto;
+  }
+  h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: 0.5rem; margin-bottom: 1rem; color: #fff; }
+  h2 { font-size: 1.4rem; margin: 2.5rem 0 1rem; color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 0.3rem; }
+  h3 { font-size: 1.1rem; margin: 1.8rem 0 0.8rem; color: #fff; }
+  p { margin: 0.8rem 0; }
+  code {
+    background: var(--code-bg); padding: 0.15em 0.4em; border-radius: 4px;
+    font-family: "Cascadia Code", "Fira Code", Consolas, monospace; font-size: 0.9em;
+  }
+  pre {
+    background: var(--code-bg); border: 1px solid var(--border); border-radius: 6px;
+    padding: 1rem; overflow-x: auto; font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
+    font-size: 0.85em; line-height: 1.5; margin: 1rem 0;
+  }
+  pre .kw { color: var(--red); }
+  pre .str { color: var(--green); }
+  pre .cmt { color: var(--muted); font-style: italic; }
+  pre .num { color: var(--orange); }
+  table {
+    width: 100%; border-collapse: collapse; margin: 1.2rem 0;
+    border: 1px solid var(--border);
+  }
+  th, td { padding: 0.6rem 0.9rem; text-align: left; border: 1px solid var(--border); }
+  th { background: var(--section-bg); color: var(--accent); font-weight: 600; }
+  tr:nth-child(even) { background: var(--section-bg); }
+  .pipeline { position: relative; margin: 2rem 0; }
+  .step {
+    background: var(--step-bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 1rem 1.5rem; margin: 1rem 0; position: relative;
+  }
+  .step::before {
+    content: attr(data-num); position: absolute; left: -30px; top: 0.8rem;
+    background: var(--accent); color: #fff; width: 24px; height: 24px;
+    border-radius: 50%; text-align: center; line-height: 24px;
+    font-size: 0.8rem; font-weight: 700;
+  }
+  .step h4 { color: #fff; margin-bottom: 0.3rem; }
+  .step .arrow { position: absolute; left: -18px; bottom: -42px; color: var(--accent); font-size: 1.2rem; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
+  .stat {
+    background: var(--section-bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 1rem; text-align: center;
+  }
+  .stat .num { font-size: 2rem; font-weight: 700; color: var(--accent); }
+  .stat .label { font-size: 0.85rem; color: var(--muted); margin-top: 0.3rem; }
+  .badge {
+    display: inline-block; padding: 0.15em 0.5em; border-radius: 12px; font-size: 0.75rem;
+    font-weight: 600; margin: 0 0.2rem;
+  }
+  .badge-green { background: #1b3d1f; color: var(--green); }
+  .badge-orange { background: #3d2e0f; color: var(--orange); }
+  .badge-blue { background: #0f2d3d; color: var(--accent); }
+  .warning {
+    border-left: 3px solid var(--orange); background: #3d2e0f1a;
+    padding: 0.7rem 1rem; border-radius: 0 6px 6px 0; margin: 1rem 0;
+  }
+  .info {
+    border-left: 3px solid var(--accent); background: #0f2d3d1a;
+    padding: 0.7rem 1rem; border-radius: 0 6px 6px 0; margin: 1rem 0;
+  }
+  ul, ol { margin: 0.5rem 0 0.5rem 1.5rem; }
+  li { margin: 0.3rem 0; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<h1>Nong Literature Pipeline</h1>
+<p>纯 .NET 学术文献检索管线——零 Python、零 MCP、零 JavaScript。一条命令从研究课题到文献汇编。</p>
+
+<div class="stats">
+  <div class="stat"><div class="num">4</div><div class="label">检索源 Provider</div></div>
+  <div class="stat"><div class="num">6</div><div class="label">处理阶段</div></div>
+  <div class="stat"><div class="num">17</div><div class="label">DSL 字段</div></div>
+  <div class="stat"><div class="num">6</div><div class="label">CLI 命令</div></div>
+</div>
+
+<h2>1. 整体架构</h2>
+
+<pre><span class="cmt">用户输入 DSL</span>
+SU=('沸石'+'斜发沸石')*('缓释'+'控释')*('肥料'+'化肥')
+
+<span class="cmt">       ↓ lit parse     词法分析 → 语法树</span>
+<span class="cmt">       ↓ lit plan      为每个 Provider 生成粗糙查询</span>
+<span class="cmt">       ↓ lit search    并行调用 Provider → 本地过滤 → 去重 → 排序</span>
+<span class="cmt">       ↓ lit export    导出 JSON / Markdown / BibTeX</span>
+<span class="cmt">       ↓ lit batch     扫描目录 → 批量执行 → 生成报告</span></pre>
+
+<div class="pipeline">
+
+<div class="step" data-num="0">
+  <h4>Step 0: DSL 解析 (CNKI Parser)</h4>
+  <p>将类 CNKI 检索表达式解析为抽象语法树 (AST)。支持 AND / OR / NOT / BETWEEN / 字段限定 / 括号分组 / 短语引用。</p>
+  <pre><span class="str">"SU=('沸石'+'斜发沸石')*('缓释'+'控释')*('肥料')"</span>
+
+  AndNode
+  ├── OrNode (SU="沸石" | SU="斜发沸石")
+  ├── OrNode (SU="缓释" | SU="控释")
+  └── TermNode (SU="肥料")</pre>
+  <p>
+    <span class="badge badge-green">+</span> = OR (或者)
+    <span class="badge badge-orange">*</span> = AND (并且)
+    <span class="badge badge-blue">()</span> = 分组
+  </p>
+  <table>
+    <tr><th>操作符</th><th>含义</th><th>示例</th></tr>
+    <tr><td><code>+</code></td><td>OR (逻辑或)</td><td><code>SU='A'+'B'</code> → A 或 B</td></tr>
+    <tr><td><code>*</code></td><td>AND (逻辑且)</td><td><code>SU='A'*'B'</code> → A 且 B</td></tr>
+    <tr><td><code>-</code></td><td>AND NOT</td><td><code>SU='A'-'B'</code> → A 且不含 B</td></tr>
+    <tr><td><code>()</code></td><td>分组</td><td><code>SU=('A'+'B')*'C'</code> → (A或B)且C</td></tr>
+    <tr><td><code>'...'</code></td><td>短语</td><td><code>SU='machine learning'</code> → 精确短语</td></tr>
+    <tr><td><code>YE BETWEEN(2020,2024)</code></td><td>年份范围</td><td>2020-2024年间发表</td></tr>
+  </table>
+</div>
+
+<div class="step" data-num="1">
+  <h4>Step 1: 检索计划 (Query Planner)</h4>
+  <p>将 AST 转为 DNF (析取范式)，保留 AND 连接的概念组。去掉字段前缀（SU/TI/AB），将概念值按空格拼接为粗糙查询串。</p>
+  <pre><span class="cmt">AST:</span>
+  AndNode(OrNode("沸石","斜发沸石"), OrNode("缓释","控释"), TermNode("肥料"))
+      ↓ <span class="cmt">DNF 展开</span>
+  DNF: [ ["沸石","缓释","肥料"], ["沸石","控释","肥料"],
+         ["斜发沸石","缓释","肥料"], ["斜发沸石","控释","肥料"] ]
+      ↓ <span class="cmt">去字段前缀，空格拼接</span>
+  Rough Queries:
+    "沸石 缓释 肥料"          ← 发往 OpenAlex/Crossref/AMiner
+    "沸石 控释 肥料"
+    "斜发沸石 缓释 肥料"
+    "斜发沸石 控释 肥料"</pre>
+  <p>DNF 展开保证：如果 DSL 里写了多个 OR 组，管线会把所有组合都搜一遍，不丢信息。</p>
+</div>
+
+<div class="step" data-num="2">
+  <h4>Step 2: 候选 (Provider Search) — 粗搜</h4>
+  <p>并行调用各 Provider 的 REST API，拿回粗搜结果。每个 Provider 独立调用、独立返回，不互相依赖。</p>
+  <table>
+    <tr><th>Provider</th><th>API</th><th>语言</th><th>认证</th><th>速率</th></tr>
+    <tr>
+      <td><strong>OpenAlex</strong></td>
+      <td><code>api.openalex.org/works</code></td>
+      <td>EN 为主</td>
+      <td><code>NONG_LIT_OPENALEX_API_KEY</code> (推荐)</td>
+      <td>50 req/s (有 key)</td>
+    </tr>
+    <tr>
+      <td><strong>Crossref</strong></td>
+      <td><code>api.crossref.org/works</code></td>
+      <td>EN</td>
+      <td>无需认证 (<code>NONG_LIT_MAILTO</code> 可选)</td>
+      <td>10 req/s (polite pool)</td>
+    </tr>
+    <tr>
+      <td><strong>AMiner</strong></td>
+      <td><code>datacenter.aminer.cn</code></td>
+      <td>中英文</td>
+      <td><code>NONG_LIT_AMINER_KEY</code> (JWT)</td>
+      <td>免费层级</td>
+    </tr>
+    <tr>
+      <td><strong>Unpaywall</strong></td>
+      <td><code>api.unpaywall.org/v2</code></td>
+      <td>EN</td>
+      <td><code>NONG_LIT_MAILTO</code> (必填)</td>
+      <td>DOI 查询</td>
+    </tr>
+  </table>
+  <div class="info"><strong>注意</strong>: Provider 粗搜只看关键词匹配，不会做 DSL 级别的精确过滤。比如搜 "沸石 缓释 肥料"，Google/Crossref 会返回任何包含这些词的论文——哪怕那篇论文跟"沸石分子筛"没有任何关系。精确过滤在 Step 4 本地做。</div>
+  <div class="warning"><strong>关键设计</strong>: 所有 Provider 都是纯 C# <code>HttpClient</code> 直接调 REST API。没有 Python / MCP / SSE 中间层。AMiner 在 v4.2.2 中从 Python MCP 改为纯 C# REST Provider。</div>
+</div>
+
+<div class="step" data-num="3">
+  <h4>Step 3: 合并去重 (Paper Merger)</h4>
+  <p>三源回来的论文可能有重叠——同一篇论文 OpenAlex 有、Crossref 也有。Merger 负责去重。</p>
+  <table>
+    <tr><th>策略</th><th>优先级</th></tr>
+    <tr><td>DOI 匹配</td><td>最高 —— DOI 相同 → 同一篇</td></tr>
+    <tr><td>标题+年份+第一作者</td><td>备用 —— 无 DOI 时用。中文论文额外使用字符相似度</td></tr>
+  </table>
+  <p>去重后，字段合并：OpenAlex 的摘要 + Crossref 的引用数 + AMiner 的中文标题——信息最丰富的那份被保留。</p>
+</div>
+
+<div class="step" data-num="4">
+  <h4>Step 4: 本地过滤 (Local Boolean Filter)</h4>
+  <p><strong>这是管线最核心的区别点。</strong>Provider 粗搜返回的结果里有很多噪音。本地过滤器把原始 DSL 的字段约束逐条应用到每条论文。</p>
+  <pre><span class="cmt">DSL: SU=('沸石'+'缓释')*('肥料')</span>
+
+<span class="cmt">每条论文检查:</span>
+  "沸石" 或 "缓释" 是否在 Title/Abstract/Keywords/Concepts 中?  → YES/NO
+  AND
+  "肥料" 是否在 Title/Abstract/Keywords/Concepts 中?             → YES/NO
+  → 两者都 YES → 保留。任一 NO → 丢弃。</pre>
+  <table>
+    <tr><th>字段</th><th>搜索范围</th></tr>
+    <tr><td><code>SU</code> (Subject, 默认)</td><td>Title + Abstract + Keywords + Concepts + Topics</td></tr>
+    <tr><td><code>TI</code></td><td>Title only</td></tr>
+    <tr><td><code>AB</code></td><td>Abstract only</td></tr>
+    <tr><td><code>AU</code></td><td>Author names</td></tr>
+    <tr><td><code>KW</code></td><td>Keywords</td></tr>
+    <tr><td><code>JN</code></td><td>Journal/Venue name</td></tr>
+    <tr><td><code>YE</code></td><td>Publication year</td></tr>
+    <tr><td><code>CF</code></td><td>Citation count</td></tr>
+    <tr><td><code>DOI</code></td><td>DOI exact match</td></tr>
+    <tr><td><code>FI</code></td><td>First author</td></tr>
+    <tr><td><code>AF</code></td><td>Affiliations</td></tr>
+  </table>
+
+  <h4>两种过滤模式</h4>
+  <table>
+    <tr><th>模式</th><th>行为</th><th>适用场景</th></tr>
+    <tr>
+      <td><code>strict</code></td>
+      <td>严格校验。字段缺失或中文词无法匹配英文摘要 → 丢弃</td>
+      <td>英文文献精确检索</td>
+    </tr>
+    <tr>
+      <td><code>recall</code></td>
+      <td>宽松校验。CJK 检索词在英文摘要中找不到时保留论文(标记 recall-cjk-mismatch)。FT 字段缺失时也保留。</td>
+      <td>中文 DSL × 英文文献 (默认)</td>
+    </tr>
+  </table>
+  <p><code>lit batch</code> 自动使用 <strong>recall</strong> 模式。</p>
+</div>
+
+<div class="step" data-num="5">
+  <h4>Step 5: 排序 (Literature Ranker)</h4>
+  <p>多因子加权打分，得分靠前的排在前面。</p>
+  <table>
+    <tr><th>因子</th><th>权重</th><th>说明</th></tr>
+    <tr><td>概念覆盖度</td><td>40%</td><td>DSL 查询词在论文中命中的比例（越高越好）</td></tr>
+    <tr><td>引用数归一化</td><td>25%</td><td>论文被引次数 / 年份归一化（越老允许越少引用）</td></tr>
+    <tr><td>时效性</td><td>20%</td><td>越新越高，25 年跨度衰减</td></tr>
+    <tr><td>来源质量</td><td>15%</td><td>AMiner > OpenAlex > Crossref（中文覆盖 + 数据质量）</td></tr>
+  </table>
+  <p>排名配置文件（<code>--profile</code>）：</p>
+  <table>
+    <tr><th>Profile</th><th>倾向</th></tr>
+    <tr><td><code>balanced</code> (默认)</td><td>综合平衡</td></tr>
+    <tr><td><code>classic</code></td><td>偏向高引用经典文献</td></tr>
+    <tr><td><code>recent</code></td><td>偏向最新文献</td></tr>
+  </table>
+  <p>排序后截取 Top N（<code>--limit</code> 控制），返回给用户。</p>
+</div>
+
+</div>
+
+<h2>2. 支持的全部 DSL 字段</h2>
+<table>
+  <tr><th>字段</th><th>全称</th><th>Provider 行为</th><th>本地过滤匹配到</th></tr>
+  <tr><td><code>SU</code></td><td>Subject (默认)</td><td class="badge-green">拼入 rough query</td><td>Title + Abstract + Keywords + Concepts + Topics</td></tr>
+  <tr><td><code>TI</code></td><td>Title</td><td class="badge-green">拼入 rough query</td><td>Title only</td></tr>
+  <tr><td><code>AB</code></td><td>Abstract</td><td class="badge-green">拼入 rough query</td><td>Abstract only</td></tr>
+  <tr><td><code>KW</code></td><td>Keywords</td><td class="badge-green">拼入 rough query</td><td>Keywords</td></tr>
+  <tr><td><code>AU</code></td><td>Author</td><td class="badge-green">拼入 rough query</td><td>Authors</td></tr>
+  <tr><td><code>JN</code></td><td>Journal Name</td><td class="badge-green">拼入 rough query</td><td>Venue / Journal</td></tr>
+  <tr><td><code>FI</code></td><td>First Author</td><td class="badge-green">拼入 rough query</td><td>FirstAuthor</td></tr>
+  <tr><td><code>AF</code></td><td>Affiliation</td><td class="badge-green">拼入 rough query</td><td>Affiliations</td></tr>
+  <tr><td><code>FT</code></td><td>Full Text</td><td class="badge-orange">不发 Provider</td><td>FullText (recall 模式宽松)</td></tr>
+  <tr><td><code>DOI</code></td><td>Digital Object Identifier</td><td class="badge-orange">精确查询 (Unpaywall)</td><td>DOI exact match</td></tr>
+  <tr><td><code>YE</code></td><td>Year</td><td class="badge-orange">不发 Provider</td><td>Year == 值 或 <code>YE BETWEEN(s,e)</code></td></tr>
+  <tr><td><code>CF</code></td><td>Citation Count</td><td class="badge-orange">不发 Provider</td><td>CitationCount >= 值</td></tr>
+  <tr><td><code>RF</code></td><td>References</td><td class="badge-orange">不发 Provider</td><td>References</td></tr>
+  <tr><td><code>SN</code></td><td>ISSN</td><td class="badge-orange">不发 Provider</td><td>ISSN</td></tr>
+  <tr><td><code>CN</code></td><td>CN (中国期刊号)</td><td class="badge-orange">不发 Provider</td><td>CN</td></tr>
+  <tr><td><code>CLC</code></td><td>CLC 分类号</td><td class="badge-orange">不发 Provider</td><td>CLC</td></tr>
+  <tr><td><code>FU</code></td><td>Funder</td><td class="badge-orange">不发 Provider</td><td>Funders</td></tr>
+</table>
+
+<h2>3. 全部 CLI 命令</h2>
+
+<table>
+  <tr><th>命令</th><th>用途</th><th>示例</th></tr>
+  <tr>
+    <td><code>nong lit parse</code></td>
+    <td>解析 DSL 语法，验证合法性</td>
+    <td><code>nong lit parse --query "SU='艾草'*'种植'" --json</code></td>
+  </tr>
+  <tr>
+    <td><code>nong lit plan</code></td>
+    <td>展示每个 Provider 生成的粗糙查询计划</td>
+    <td><code>nong lit plan --query "SU=..." --json</code></td>
+  </tr>
+  <tr>
+    <td><code>nong lit search</code></td>
+    <td>执行检索，返回文献列表</td>
+    <td><code>nong lit search --query "SU=..." --limit 10 --json</code></td>
+  </tr>
+  <tr>
+    <td><code>nong lit export</code></td>
+    <td>将搜索结果导出为 JSON/Markdown/BibTeX</td>
+    <td><code>nong lit export --input result.json --format markdown -o refs.md</code></td>
+  </tr>
+  <tr>
+    <td><code>nong lit batch</code></td>
+    <td>批量扫描目录中所有 .txt 的 DSL 行 → 自动搜索 → 生成汇编报告</td>
+    <td><code>nong lit batch 搜索文献/ -o report.md --limit 10</code></td>
+  </tr>
+</table>
+
+<h3>环境变量</h3>
+<table>
+  <tr><th>变量</th><th>说明</th><th>必填</th></tr>
+  <tr><td><code>NONG_LIT_OPENALEX_API_KEY</code></td><td>OpenAlex API Key (也可用 <code>NONG_LIT_OPENALEX_KEY</code>)</td><td>推荐</td></tr>
+  <tr><td><code>NONG_LIT_AMINER_KEY</code></td><td>AMiner JWT Token (也可用 <code>AMINER_API_KEY</code>)</td><td>推荐</td></tr>
+  <tr><td><code>NONG_LIT_MAILTO</code></td><td>邮箱地址 (Crossref polite pool + Unpaywall)</td><td>推荐</td></tr>
+  <tr><td><code>NONG_LIT_UNPAYWALL_EMAIL</code></td><td>Unpaywall 邮箱 (也可用 <code>NONG_LIT_MAILTO</code>)</td><td>仅 Unpaywall 需要</td></tr>
+</table>
+
+<h2>4. lit batch 工作流</h2>
+
+<pre><span class="cmt">目录结构:</span>
+搜索文献的东西/
+  ├── 矿物基复合材料...txt   ← 含 2 条 DSL
+  ├── 土传病害...txt         ← 含 2 条 DSL
+  ├── 环境安全性...txt       ← 含 1 条 DSL
+  ├── 采前处理...txt         ← 含 1 条 DSL
+  └── 草案.txt               ← 跳过 (无 DSL)
+
+<span class="cmt">一条命令:</span>
+nong lit batch 搜索文献的东西/ -o report.md --limit 5
+
+<span class="cmt">输出:</span>
+report.md
+  ├── ## 矿物基复合材料
+  │   ├── ### 沸石缓释体系
+  │   │   • DSL: SU=('沸石'...)*('缓释'...)*('肥料'...)
+  │   │   • 候选 99 → 去重 6 → 返回 5
+  │   │   • 论文1: Zeolite slow-release...
+  │   │   • 论文2: ...
+  │   └── ### 腐植酸-稀土体系
+  │       ...
+  ├── ## 土传病害
+  │   ├── ### 病原菌抑制
+  │   └── ### 根际微生态
+  ├── ## 环境安全性
+  ├── ## 采前处理
+  └── (自动汇总)</pre>
+
+<div class="info"><strong>批量检索的完整流程</strong>: 写 DSL 在 .txt 里 → 跑 <code>nong lit batch</code> → 打开 report.md → 筛选你想要的文献 → 粘回 txt 整理引用列表。从数天的手工检索变成一条命令。</div>
+
+<h2>5. 真实数字 (2026-06-14 沸石项目)</h2>
+
+<table>
+  <tr><th>检索方向</th><th>DSL 概念数</th><th>候选</th><th>去重</th><th>返回</th></tr>
+  <tr><td>采前处理→果品保鲜</td><td>3</td><td>119</td><td>12</td><td>3</td></tr>
+  <tr><td>重金属钝化</td><td>3</td><td>110</td><td>27</td><td>3</td></tr>
+  <tr><td>沸石缓释肥料</td><td>3</td><td>99</td><td>6</td><td>3</td></tr>
+  <tr><td>腐植酸-稀土</td><td>3</td><td>83</td><td>8</td><td>3</td></tr>
+  <tr><td>土传病害抑菌</td><td>3</td><td>85</td><td>35</td><td>3</td></tr>
+  <tr><td>根际微生态</td><td>3</td><td>173</td><td>66</td><td>3</td></tr>
+  <tr><td colspan="2" style="text-align:right"><strong>合计</strong></td><td><strong>669</strong></td><td><strong>154</strong></td><td><strong>18</strong></td></tr>
+</table>
+
+<p>669 篇候选 → 去重后 154 篇 → 本地过滤排序后返回 18 篇（--limit=3）。<code>--limit 10</code> 则返回 60 篇。</p>
+
+<div class="warning"><strong>关于 limit</strong>: Provider 端限制为 <code>min(limit, maxProviderPageSize)</code>。OpenAlex 上限 200，Crossref 上限 1000，AMiner 上限 20。如果你设 <code>--limit 50</code>，AMiner 最多贡献 20 篇，OpenAlex/Crossref 各贡献 50 篇。</div>
+
+<h2>6. 代码结构</h2>
+
+<pre>Literature/
+  Dsl/
+    CnkiParser.cs          ← 递归下降 DSL 解析器
+    CnkiLexer.cs           ← 词法分析器
+    CnkiAst.cs             ← AST 节点 (And/Or/Not/Term)
+    CnkiDslValidator.cs    ← DSL 校验规则
+    CnkiQueryNormalizer.cs ← 查询归一化 + 概念提取
+  Pipeline/
+    LiteratureSearchPipeline.cs ← 管线主入口
+    QueryPlanner.cs             ← DSL → rough query
+    LocalBooleanFilter.cs       ← 本地精确过滤
+    PaperRecordMerger.cs        ← DOI/标题去重
+    LiteratureRanker.cs         ← 多因子排序
+    CitationFormatter.cs        ← BibTeX/GB/T 7714 格式化
+  Providers/
+    OpenAlexProvider.cs    ← api.openalex.org REST
+    CrossrefProvider.cs    ← api.crossref.org REST
+    AminerRestProvider.cs  ← datacenter.aminer.cn REST
+    UnpaywallProvider.cs   ← api.unpaywall.org REST
+    ProviderRegistry.cs    ← Provider 工厂注册
+    ProviderHttpClientFactory.cs ← HTTP 重试/UA 管理
+  Models/
+    PaperRecord.cs              ← 文献记录模型
+    LiteratureSearchRequest.cs  ← 检索请求
+    LiteratureSearchResult.cs   ← 检索结果
+    SearchPlan.cs               ← 检索计划
+  Export/
+    JsonLiteratureExporter.cs   ← JSON 导出
+    MarkdownLiteratureExporter.cs ← Markdown 导出
+    BibTeXExporter.cs           ← BibTeX 导出
+Cli/Commands/
+    LitCommands.cs         ← lit parse/plan/search/export/batch</pre>
+
+<h2>7. 设计原则</h2>
+
+<ol>
+  <li><strong>Provider 粗搜 + 本地精滤</strong>: Provider 的 API 搜素能力有限（多数只支持简单关键词），不做 DSL 级别的过滤。管线先让 Provider 宽搜，再用本地过滤器按 DSL 语义精确筛选。</li>
+  <li><strong>纯 C#，零外部依赖</strong>: 所有 Provider 都是 <code>HttpClient</code> 直接调 REST API。没有任何 Python 脚本、MCP 协议、Node.js 进程。</li>
+  <li><strong>DNF 展开保证完整性</strong>: OR 组在发往 Provider 之前展开为所有组合，确保搜索不丢信息。</li>
+  <li><strong>recall 模式处理中英混杂</strong>: 中文 DSL 检索英文文献时，provider 粗搜返回的论文里未必有中文关键词，本地精确匹配会失败。recall 模式在 CJK 查询词与纯英文摘要不匹配时保留论文。</li>
+  <li><strong>去重优先 DOI，降级标题+作者</strong>: DOI 是唯一标识符，无 DOI 时用标题+年份+第一作者去重。</li>
+</ol>
+
+<p style="margin-top:3rem; color:var(--muted); font-size:0.85rem; text-align:center;">
+  Nong.Cli.Net v4.2.2 — Literature Pipeline — 2026-06-14
+</p>
+
+</body>
+</html>

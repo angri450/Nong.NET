@@ -133,14 +133,6 @@ public static class LitCommands
         {
             try
             {
-                var parsed = CnkiParser.Parse(query);
-                var validation = CnkiDslValidator.Validate(parsed);
-                if (!validation.IsValid)
-                {
-                    CliHelpers.WriteError("lit search", ErrorCodes.ValidationFailed with { Message = string.Join(" ", validation.Issues.Select(i => i.Message)) }, json);
-                    return;
-                }
-
                 if (!TryParseProfile(profile, out var rankProfile))
                 {
                     CliHelpers.WriteError("lit search", ErrorCodes.ValidationFailed with { Message = $"Unknown rank profile: {profile}" }, json);
@@ -150,11 +142,10 @@ public static class LitCommands
                 var request = new LiteratureSearchRequest
                 {
                     Query = query,
-                    ParsedQuery = parsed,
                     Sources = ParseSources(sources),
                     Limit = limit,
                     Profile = rankProfile,
-                    FilterMode = mode
+                    FilterMode = string.Equals(mode, "recall", StringComparison.OrdinalIgnoreCase) ? "recall" : "strict",
                 };
 
                 var (result, elapsed) = CliHelpers.Time(() =>
@@ -296,7 +287,7 @@ public static class LitCommands
 
     static Option<string> QueryOption() => new("--query", "CNKI-like literature query") { IsRequired = true };
 
-    static Option<string> SourcesOption() => new("--sources", () => "openalex,crossref,aminer", "Comma-separated sources: openalex,crossref,aminer,unpaywall");
+    static Option<string> SourcesOption() => new("--sources", () => "openalex,crossref,aminer,metaso", "Comma-separated sources: openalex,crossref,aminer,metaso,unpaywall");
 
     static IReadOnlyList<string> ParseSources(string sources)
     {

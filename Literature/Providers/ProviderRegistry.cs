@@ -18,7 +18,8 @@ public sealed class ProviderRegistry
             ["openalex"] = () => new OpenAlexProvider(),
             ["crossref"] = () => new CrossrefProvider(),
             ["unpaywall"] = () => new UnpaywallProvider(),
-            ["aminer"] = () => new AminerRestProvider()
+            ["aminer"] = () => new AminerRestProvider(),
+            ["metaso"] = () => new MetasoProvider()
         });
     }
 
