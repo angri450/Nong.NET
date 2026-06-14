@@ -85,7 +85,7 @@ public sealed class CrossrefProvider : ILiteratureProvider
         var request = new HttpRequestMessage(HttpMethod.Get, url);
         var mailto = _getEnvironmentVariable("NONG_LIT_MAILTO");
         request.Headers.UserAgent.Clear();
-        request.Headers.UserAgent.ParseAdd("Nong-Literature/4.0.0");
+        request.Headers.UserAgent.ParseAdd($"Nong-Literature/{ProviderHttpClientFactory.LiteratureVersion}");
         if (!string.IsNullOrWhiteSpace(mailto))
             request.Headers.UserAgent.ParseAdd("(mailto-configured)");
         return request;

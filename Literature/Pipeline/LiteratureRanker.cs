@@ -5,7 +5,7 @@ namespace Angri450.Nong.Literature.Pipeline;
 
 public sealed class LiteratureRanker
 {
-    const int ReferenceYear = 2026;
+    static int ReferenceYear => DateTime.UtcNow.Year;
 
     public double Score(string queryText, PaperRecord record, RankProfile profile)
     {

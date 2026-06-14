@@ -4,6 +4,13 @@ namespace Angri450.Nong.Literature.Providers;
 
 public static class ProviderHttpClientFactory
 {
+    /// <summary>User-Agent version for all Nong Literature HTTP requests.
+    /// Bump when the Literature module's API contract changes.</summary>
+    public static string LiteratureVersion { get; set; } = "4.1.9";
+
+    private static string UserAgentProduct(string providerName)
+        => $"Nong-Literature/{LiteratureVersion} ({providerName})";
+
     public static HttpClient Create(string providerName)
     {
         return Create(providerName, handler: null, baseAddress: null, timeout: null);
@@ -21,7 +28,7 @@ public static class ProviderHttpClientFactory
 
         client.Timeout = timeout ?? TimeSpan.FromSeconds(20);
         client.BaseAddress = baseAddress;
-        client.DefaultRequestHeaders.UserAgent.ParseAdd($"Nong-Literature/4.0.0 ({providerName})");
+        client.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgentProduct(providerName));
         return client;
     }
 
@@ -33,7 +40,7 @@ public static class ProviderHttpClientFactory
         {
             Timeout = timeout
         };
-        client.DefaultRequestHeaders.UserAgent.ParseAdd($"Nong-Literature/4.0.0 ({providerName})");
+        client.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgentProduct(providerName));
         return client;
     }
 
