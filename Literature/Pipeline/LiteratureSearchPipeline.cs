@@ -44,7 +44,7 @@ public sealed class LiteratureSearchPipeline
             };
         }
 
-        var sources = request.Sources.Count == 0 ? new[] { "openalex", "crossref" } : request.Sources;
+        var sources = request.Sources.Count == 0 ? new[] { "openalex", "crossref", "aminer" } : request.Sources;
         var plan = _planner.Plan(query, sources);
         var issues = new List<LiteratureIssue>(plan.Issues);
         if (plan.Issues.Any(i => string.Equals(i.Severity, "Error", StringComparison.OrdinalIgnoreCase)))

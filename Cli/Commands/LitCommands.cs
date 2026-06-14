@@ -18,7 +18,6 @@ public static class LitCommands
         cmd.AddCommand(CreatePlan(jsonOpt));
         cmd.AddCommand(CreateSearch(jsonOpt));
         cmd.AddCommand(CreateExport(jsonOpt));
-        cmd.AddCommand(CreateAminer(jsonOpt));
         return cmd;
     }
 
@@ -331,97 +330,5 @@ public static class LitCommands
                 Message = issue.Message
             });
         }
-    }
-
-    // === lit aminer ===
-
-    static Command CreateAminer(Option<bool> jsonOpt)
-    {
-        var queryOpt = QueryOption();
-        var limitOpt = new Option<int>("--limit", () => 10, "Max results");
-        var subOpt = new Option<string>("--sub", () => "paper-search", "Sub-command: paper-search, person-search, patent-search");
-        var authorOpt = new Option<string?>("--author", () => null, "Filter by author");
-        var venueOpt = new Option<string?>("--venue", () => null, "Filter by venue");
-
-        var cmd = new Command("aminer", "Search via AMiner MCP (requires AMINER_API_KEY env var)")
-        {
-            queryOpt, limitOpt, subOpt, authorOpt, venueOpt
-        };
-
-        cmd.SetHandler((string query, int limit, string sub, string? author, string? venue, bool json) =>
-        {
-            try
-            {
-                var apiKey = Environment.GetEnvironmentVariable("AMINER_API_KEY");
-                if (string.IsNullOrWhiteSpace(apiKey))
-                {
-                    CliHelpers.WriteError("lit aminer",
-                        ErrorCodes.DependencyMissing with { Message = "AMINER_API_KEY not set. Get a key from https://open.aminer.cn" }, json);
-                    return;
-                }
-
-                var script = "C:\\Users\\Administrator\\.claude\\skills\\aminer-search\\scripts\\aminer_api.py";
-                if (!File.Exists(script))
-                    script = "C:\\Users\\Administrator\\Documents\\aminer-search\\scripts\\aminer_api.py";
-                if (!File.Exists(script))
-                {
-                    CliHelpers.WriteError("lit aminer",
-                        ErrorCodes.DependencyMissing with { Message = $"AMiner script not found. Expected at: {script}" }, json);
-                    return;
-                }
-
-                var argName = sub == "person-search" ? "--name" : "--keyword";
-                var args = new List<string> { script, sub, argName, query, "--size", limit.ToString() };
-                if (!string.IsNullOrWhiteSpace(author)) { args.Add("--author"); args.Add(author); }
-                if (!string.IsNullOrWhiteSpace(venue)) { args.Add("--venue"); args.Add(venue); }
-
-                var psi = new System.Diagnostics.ProcessStartInfo("python", string.Join(" ", args))
-                {
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    EnvironmentVariables = { ["AMINER_API_KEY"] = apiKey }
-                };
-
-                using var proc = System.Diagnostics.Process.Start(psi)!;
-                var stdout = proc.StandardOutput.ReadToEnd();
-                var stderr = proc.StandardError.ReadToEnd();
-                proc.WaitForExit(30000);
-
-                if (proc.ExitCode != 0 || string.IsNullOrWhiteSpace(stdout))
-                {
-                    CliHelpers.WriteError("lit aminer",
-                        ErrorCodes.DependencyMissing with { Message = $"AMiner call failed: {stderr.Trim()}" }, json);
-                    return;
-                }
-
-                if (json)
-                {
-                    var output = JsonOutput.Ok("lit aminer", $"AMiner {sub} results", new
-                    {
-                        query,
-                        subCommand = sub,
-                        limit,
-                        author = author ?? (string?)null,
-                        venue = venue ?? (string?)null,
-                        rawOutput = stdout
-                    });
-                    output.Metrics["resultBytes"] = stdout.Length;
-                    Console.WriteLine(JsonSerializer.Serialize(output, CliHelpers.JsonOpts));
-                }
-                else
-                {
-                    Console.WriteLine(stdout);
-                }
-            }
-            catch (Exception ex)
-            {
-                CliHelpers.WriteError("lit aminer",
-                    ErrorCodes.InternalError with { Message = ex.Message }, json);
-            }
-        }, queryOpt, limitOpt, subOpt, authorOpt, venueOpt, jsonOpt);
-
-        return cmd;
     }
 }
