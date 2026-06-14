@@ -132,7 +132,6 @@ public static class DocxTemplate
                     }
                     else
                     {
-                        // Clone last cell for extra columns
                         var templateCell = cellList.Count > 0 ? cellList[cellList.Count - 1] : new TableCell(new Paragraph());
                         var newCell = (TableCell)templateCell.CloneNode(true);
                         SetCellText(newCell, text);
@@ -140,12 +139,19 @@ public static class DocxTemplate
                     }
                     colIdx++;
                 }
-                // Clear any remaining cells the JSON didn't cover — prevents ghost template text
+                // Clear any remaining cells the JSON didn't cover
                 while (colIdx < cellList.Count)
                 {
                     SetCellText(cellList[colIdx], "");
                     colIdx++;
                 }
+                rowIdx++;
+            }
+            // Clear any remaining rows the JSON didn't cover
+            while (rowIdx < tableRows.Count)
+            {
+                foreach (var cell in tableRows[rowIdx].Elements<TableCell>())
+                    SetCellText(cell, "");
                 rowIdx++;
             }
         }
