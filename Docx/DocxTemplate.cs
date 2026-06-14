@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.ComponentModel;
+using System.Linq;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -86,20 +87,32 @@ public static class DocxTemplate
     }
 
     /// <summary>
-    /// 按表格索引 + 行号 + 列号填入单元格内容。模板无需 {{tag}} 占位符。
-    /// data JSON 格式: { "tables": [ { "index": 0, "rows": [ { "cells": ["col0", "col1"] } ] } ] }
+    /// 按表格索引或表头文字匹配填入单元格内容。模板无需 {{tag}} 占位符。
+    /// data JSON 格式: { "tables": [ { "index": 0, "match": "项目名称", "rows": [...] } ] }
+    /// "match" 优先于 "index"——按第一行文本搜索表格，避免跳过嵌套表时索引偏移。
     /// </summary>
     static void FillTablesByPosition(MainDocumentPart main, System.Collections.IEnumerable tableList)
     {
-        var tables = main.Document.Body!.Descendants<Table>().ToList();
+        var tables = main.Document.Body!.Elements<Table>().ToList();
         foreach (var entry in tableList)
         {
             var entryDict = ToDictionary(entry ?? new());
-            if (!entryDict.TryGetValue("index", out var indexVal) || indexVal is not int index) continue;
-            if (index < 0 || index >= tables.Count) continue;
             if (!entryDict.TryGetValue("rows", out var rowsVal) || rowsVal is not System.Collections.IEnumerable rows) continue;
 
-            var table = tables[index];
+            Table? table = null;
+
+            // 1. match by header text (preferred — immune to index drift)
+            if (entryDict.TryGetValue("match", out var matchVal) && matchVal is string matchText && matchText.Length > 0)
+            {
+                table = tables.FirstOrDefault(t => t.InnerText.Contains(matchText, StringComparison.Ordinal));
+            }
+            // 2. fallback to numeric index
+            if (table == null && entryDict.TryGetValue("index", out var indexVal) && indexVal is int index
+                && index >= 0 && index < tables.Count)
+            {
+                table = tables[index];
+            }
+            if (table == null) continue;
             var tableRows = table.Elements<TableRow>().ToList();
             int rowIdx = 0;
             foreach (var rowData in rows)
@@ -142,7 +155,7 @@ public static class DocxTemplate
                 // Clear any remaining cells the JSON didn't cover
                 while (colIdx < cellList.Count)
                 {
-                    SetCellText(cellList[colIdx], "");
+                    ClearCell(cellList[colIdx]);
                     colIdx++;
                 }
                 rowIdx++;
@@ -151,20 +164,21 @@ public static class DocxTemplate
             while (rowIdx < tableRows.Count)
             {
                 foreach (var cell in tableRows[rowIdx].Elements<TableCell>())
-                    SetCellText(cell, "");
+                    ClearCell(cell);
                 rowIdx++;
             }
         }
     }
 
     /// <summary>
-    /// Replace text content in a table cell, preserving the original cell,
-    /// paragraph, and run formatting. Only the text runs are replaced.
-    /// When the cell contains multiple paragraphs (e.g. label/value pairs),
-    /// all but the first are removed to avoid template-ghost text leaking.
+    /// Replace text in a table cell. An empty string means "keep the original
+    /// cell content" — label columns can be preserved by passing "".
     /// </summary>
     static void SetCellText(TableCell cell, string text)
     {
+        // Empty string = preserve original, don't touch
+        if (text.Length == 0)
+            return;
         // Find the first paragraph that has text content, or use the first paragraph
         var allParas = cell.Elements<Paragraph>().ToList();
         var firstPara = allParas.FirstOrDefault(p => p.InnerText.Length > 0)
@@ -195,6 +209,15 @@ public static class DocxTemplate
             runProps.Append(new FontSize { Val = fs.Val?.Value });
 
         firstPara.Append(new Run(runProps, new Text(text) { Space = SpaceProcessingModeValues.Preserve }));
+    }
+
+    /// <summary>Wipe a cell clean — used for rows/columns beyond what the JSON covers.</summary>
+    static void ClearCell(TableCell cell)
+    {
+        var allParas = cell.Elements<Paragraph>().ToList();
+        foreach (var p in allParas)
+            p.Remove();
+        cell.Append(new Paragraph()); // empty paragraph keeps the cell structurally present
     }
 
     static void ProcessElement(OpenXmlElement root, Dictionary<string, object?> data, MainDocumentPart main)
