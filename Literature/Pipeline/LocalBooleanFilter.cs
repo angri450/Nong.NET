@@ -122,6 +122,16 @@ public sealed class LocalBooleanFilter
         var needle = CnkiQueryNormalizer.NormalizeText(term.Value);
         var matched = !string.IsNullOrWhiteSpace(needle) &&
             CnkiQueryNormalizer.NormalizeText(haystack).Contains(needle, StringComparison.OrdinalIgnoreCase);
+
+        // In recall mode, keep papers where the provider returned them but the
+        // local filter can't match (e.g. Chinese DSL vs English abstracts).
+        // The provider's own full-text search is treated as a positive signal.
+        if (!matched && recall && HasCjk(needle) && !HasCjk(haystack))
+        {
+            record.MatchReasons.Add($"{field}:{term.Value}(recall-cjk-mismatch)");
+            return true;
+        }
+
         if (matched)
             record.MatchReasons.Add($"{field}:{term.Value}");
         return matched;
@@ -189,5 +199,14 @@ public sealed class LocalBooleanFilter
         }
 
         return string.Join(' ', parts);
+    }
+
+    /// <summary>True if the string contains any CJK character (U+4E00–U+9FFF).</summary>
+    static bool HasCjk(string? s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return false;
+        foreach (var c in s)
+            if (c >= 0x4E00 && c <= 0x9FFF) return true;
+        return false;
     }
 }
