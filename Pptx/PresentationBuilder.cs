@@ -181,25 +181,25 @@ public sealed class PresentationBuilder : IDisposable
     {
         var toRemove = new List<IShape>();
         foreach (var s in slide.Shapes) if (s.PlaceholderType is PlaceholderType) toRemove.Add(s);
-        foreach (var s in toRemove) try { s.Remove(); } catch { }
+        foreach (var s in toRemove) try { s.Remove(); } catch (Exception ex) { Console.Error.WriteLine($"[PresentationBuilder] RemovePlaceholder: {ex.GetType().Name}"); }
     }
 
     private void StyleHeading(IShape shape, decimal fs, string? co)
     {
         if (_theme == null) return;
-        try { if (shape.TextBox is not { Paragraphs.Count: > 0 } tb || tb.Paragraphs[0].Portions.Count == 0) return; var f = tb.Paragraphs[0].Portions[0].Font; f.LatinName = _theme.HeadFont; f.EastAsianName = _theme.HeadCJK; f.Size = fs; f.IsBold = true; f.Color.Set(!string.IsNullOrEmpty(co) ? co : _theme.Accent1); } catch { }
+        try { if (shape.TextBox is not { Paragraphs.Count: > 0 } tb || tb.Paragraphs[0].Portions.Count == 0) return; var f = tb.Paragraphs[0].Portions[0].Font; f.LatinName = _theme.HeadFont; f.EastAsianName = _theme.HeadCJK; f.Size = fs; f.IsBold = true; f.Color.Set(!string.IsNullOrEmpty(co) ? co : _theme.Accent1); } catch (Exception ex) { _notes.Add($"StyleHeading: {ex.GetType().Name}"); }
     }
 
     private void StyleSubtitle(IShape shape)
     {
         if (_theme == null) return;
-        try { if (shape.TextBox is not { Paragraphs.Count: > 0 } tb || tb.Paragraphs[0].Portions.Count == 0) return; var f = tb.Paragraphs[0].Portions[0].Font; f.LatinName = _theme.BodyFont; f.EastAsianName = _theme.BodyCJK; f.Size = 20m; f.Color.Set(_theme.Accent2); } catch { }
+        try { if (shape.TextBox is not { Paragraphs.Count: > 0 } tb || tb.Paragraphs[0].Portions.Count == 0) return; var f = tb.Paragraphs[0].Portions[0].Font; f.LatinName = _theme.BodyFont; f.EastAsianName = _theme.BodyCJK; f.Size = 20m; f.Color.Set(_theme.Accent2); } catch (Exception ex) { _notes.Add($"StyleSubtitle: {ex.GetType().Name}"); }
     }
 
     private void StyleBody(IShape shape, decimal fs)
     {
         if (_theme == null) return;
-        try { if (shape.TextBox is not { Paragraphs.Count: > 0 } tb || tb.Paragraphs[0].Portions.Count == 0) return; var f = tb.Paragraphs[0].Portions[0].Font; f.LatinName = _theme.BodyFont; f.EastAsianName = _theme.BodyCJK; f.Size = fs; f.Color.Set(_theme.Dark1); } catch { }
+        try { if (shape.TextBox is not { Paragraphs.Count: > 0 } tb || tb.Paragraphs[0].Portions.Count == 0) return; var f = tb.Paragraphs[0].Portions[0].Font; f.LatinName = _theme.BodyFont; f.EastAsianName = _theme.BodyCJK; f.Size = fs; f.Color.Set(_theme.Dark1); } catch (Exception ex) { _notes.Add($"StyleBody: {ex.GetType().Name}"); }
     }
 
     private void StyleBullet(IShape shape)
@@ -213,20 +213,20 @@ public sealed class PresentationBuilder : IDisposable
                 if (p.Portions.Count > 0) { var f = p.Portions[0].Font; f.Size = 18m; f.Color.Set(_theme?.Dark1 ?? "1A1A1A"); if (_theme != null) { f.LatinName = _theme.BodyFont; f.EastAsianName = _theme.BodyCJK; } }
             }
         }
-        catch { }
+        catch (Exception ex) { _notes.Add($"StyleBullet: {ex.GetType().Name}"); }
     }
 
     private void StyleTable(ITable table, int rows, int cols)
     {
-        try { table.StyleOptions.HasHeaderRow = true; table.StyleOptions.HasBandedRows = true; } catch { }
+        try { table.StyleOptions.HasHeaderRow = true; table.StyleOptions.HasBandedRows = true; } catch (Exception ex) { _notes.Add($"StyleTable-options: {ex.GetType().Name}"); }
         if (_theme == null) return;
         try
         {
-            try { table.UpdateFill(_theme.Light1); } catch { }
-            for (int c = 0; c < cols; c++) try { var cell = table[0, c]; cell.Fill.SetColor(_theme.Accent1); if (cell.TextBox is { Paragraphs.Count: > 0 } ctb && ctb.Paragraphs[0].Portions.Count > 0) { var f = ctb.Paragraphs[0].Portions[0].Font; f.LatinName = _theme.HeadFont; f.EastAsianName = _theme.HeadCJK; f.Size = 16m; f.IsBold = true; f.Color.Set(_theme.Light1); } } catch { }
-            for (int r = 1; r < rows; r++) { if (r % 2 == 1) continue; for (int c = 0; c < cols; c++) try { table[r, c].Fill.SetColor(_theme.Light2); } catch { } }
+            try { table.UpdateFill(_theme.Light1); } catch (Exception ex) { _notes.Add($"StyleTable-fill: {ex.GetType().Name}"); }
+            for (int c = 0; c < cols; c++) try { var cell = table[0, c]; cell.Fill.SetColor(_theme.Accent1); if (cell.TextBox is { Paragraphs.Count: > 0 } ctb && ctb.Paragraphs[0].Portions.Count > 0) { var f = ctb.Paragraphs[0].Portions[0].Font; f.LatinName = _theme.HeadFont; f.EastAsianName = _theme.HeadCJK; f.Size = 16m; f.IsBold = true; f.Color.Set(_theme.Light1); } } catch (Exception ex) { _notes.Add($"StyleTable-header: {ex.GetType().Name}"); }
+            for (int r = 1; r < rows; r++) { if (r % 2 == 1) continue; for (int c = 0; c < cols; c++) try { table[r, c].Fill.SetColor(_theme.Light2); } catch (Exception ex) { _notes.Add($"StyleTable-row: {ex.GetType().Name}"); } }
         }
-        catch { }
+        catch (Exception ex) { _notes.Add($"StyleTable: {ex.GetType().Name}"); }
     }
 
     private void AddPageNumber(IUserSlide slide)
@@ -237,7 +237,7 @@ public sealed class PresentationBuilder : IDisposable
             var s = slide.Shapes[slide.Shapes.Count - 1];
             if (s.TextBox is { Paragraphs.Count: > 0 } tb && tb.Paragraphs[0].Portions.Count > 0) { var f = tb.Paragraphs[0].Portions[0].Font; f.Size = LayoutSystem.FontSizes.Caption; f.Color.Set("999999"); if (_theme != null) { f.LatinName = _theme.BodyFont; f.EastAsianName = _theme.BodyCJK; } }
         }
-        catch { }
+        catch (Exception ex) { _notes.Add($"PageNumber: {ex.GetType().Name}"); }
     }
 
     public void Dispose()

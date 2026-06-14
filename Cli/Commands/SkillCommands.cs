@@ -22,15 +22,6 @@ public static class SkillCommands
 
     // ===== shared helpers =====
 
-    static void GuardEmptyPath(string dir, string command, bool json)
-    {
-        if (string.IsNullOrWhiteSpace(dir))
-        {
-            CliHelpers.WriteError(command,
-                ErrorCodes.MissingArgument with { Message = "Directory path is required." }, json);
-        }
-    }
-
     static bool TryResolveDir(string dir, string command, bool json, out string fullDir)
     {
         fullDir = "";

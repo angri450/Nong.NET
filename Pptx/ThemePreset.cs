@@ -130,7 +130,7 @@ public sealed class ThemePreset : IEquatable<ThemePreset>
             font.IsBold = true;
             font.Color.Set(Accent1);
         }
-        catch { /* best effort */ }
+        catch (Exception ex) { Console.Error.WriteLine($"[ThemePreset] StyleTitle: {ex.GetType().Name}"); }
     }
 
     /// <summary>Apply body text style to a shape's first paragraph.</summary>
@@ -147,7 +147,7 @@ public sealed class ThemePreset : IEquatable<ThemePreset>
             font.Size = fontSize;
             font.Color.Set(Dark1);
         }
-        catch { /* best effort */ }
+        catch (Exception ex) { Console.Error.WriteLine($"[ThemePreset] StyleBody: {ex.GetType().Name}"); }
     }
 
     /// <summary>Apply bullet styling to a paragraph.</summary>
@@ -162,7 +162,7 @@ public sealed class ThemePreset : IEquatable<ThemePreset>
             para.SetFontSize(18);
             para.SetFontColor(Dark1);
         }
-        catch { /* best effort */ }
+        catch (Exception ex) { Console.Error.WriteLine($"[ThemePreset] StyleBullet: {ex.GetType().Name}"); }
     }
 
     /// <summary>Inject theme into a presentation's master slide.</summary>
@@ -185,7 +185,7 @@ public sealed class ThemePreset : IEquatable<ThemePreset>
             fs.HeadEastAsianFont = HeadCJK;
             fs.BodyEastAsianFont = BodyCJK;
         }
-        catch { /* theme injection is best-effort; per-shape fallback always runs */ }
+        catch (Exception ex) { Console.Error.WriteLine($"[ThemePreset] ApplyToMasterSlide: {ex.GetType().Name}"); }
     }
 
     public bool Equals(ThemePreset? other) =>

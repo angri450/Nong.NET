@@ -389,8 +389,6 @@ public static class PptxCommands
         using var writer = new System.IO.StreamWriter(entry.Open(), System.Text.Encoding.UTF8);
         writer.Write(content);
     }
-
-    static int _shapeIdCounter = 1;
 }
 
 internal class PptxCreateSpec

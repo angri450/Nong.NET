@@ -542,8 +542,15 @@ public static class ExcelCommands
 
     static string ColToRef(int col)
     {
-        if (col <= 26) return ((char)('A' + col - 1)).ToString();
-        return ((char)('A' + (col - 1) / 26 - 1)).ToString() + ((char)('A' + (col - 1) % 26)).ToString();
+        if (col < 1) return "?";
+        var sb = new System.Text.StringBuilder();
+        while (col > 0)
+        {
+            col--;
+            sb.Insert(0, (char)('A' + col % 26));
+            col /= 26;
+        }
+        return sb.ToString();
     }
 
     // ===== excel create =====
