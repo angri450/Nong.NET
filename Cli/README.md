@@ -24,8 +24,8 @@ The OCR runtime bundle is maintained in the separate `Nong.OcrRuntime` repositor
 nong --help                  # 全部命令
 nong commands --json         # 机器可读的命令列表
 nong word check file.doc     # 预检 .doc/.docx
-nong word convert file.doc -o file.docx # 转换到 .docx
 nong word read file.docx     # 提取 Word 文本
+nong word fill template.docx data.json -o out.docx  # 模板填充
 nong lit parse --query "SU=('腐植酸'+'腐殖酸')*('稀土'+'微肥')" --json
 nong inspect diagnose file.txt # 论文质量诊断
 ```

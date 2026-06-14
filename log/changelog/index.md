@@ -2,6 +2,9 @@
 
 > Agent 添加变更记录后同步更新此文件。格式：`- YYYY-MM-DD | 文件名 | 一句话摘要`
 
+## 2026-06-14
+- 2026-06-14 | 2026-06-14-4.2.1-cellreplace-refactor.md | Word 模板填充引擎重构: cellReplace 键值匹配 + tableRows 数据行追加，告别 index/match 定位漂移
+
 ## 2026-06-13
 - 2026-06-13 | 2026-06-13-4.1.5-core-fixes.md | v4.1.5: OCR preflight 去阻塞化 + word fill 表格位置填充 + NongMark 字体属性 + OCR 日志抑制 + 版本号修正：一键安装模型+运行时，不再分开
 - 2026-06-13 | 2026-06-13-nong-ocr-skiasharp-native-fix.md | nong-ocr 缺 SkiaSharp.NativeAssets.Win32 导致 libSkiaSharp 加载失败；ocr check-env imageAnalyzer 硬编码修复
