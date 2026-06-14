@@ -265,7 +265,7 @@ public sealed class OpenAlexProvider : ILiteratureProvider
 
     static int? GetInt(JsonElement item, string property)
     {
-        return item.TryGetProperty(property, out var value) && value.TryGetInt32(out var number)
+        return item.TryGetProperty(property, out var value) && value.ValueKind != JsonValueKind.Null && value.TryGetInt32(out var number)
             ? number
             : null;
     }
