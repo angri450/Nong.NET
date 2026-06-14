@@ -294,7 +294,7 @@ public static class LitCommands
 
     static Option<string> QueryOption() => new("--query", "CNKI-like literature query") { IsRequired = true };
 
-    static Option<string> SourcesOption() => new("--sources", () => "openalex,crossref", "Comma-separated sources: openalex,crossref,unpaywall");
+    static Option<string> SourcesOption() => new("--sources", () => "openalex,crossref,aminer", "Comma-separated sources: openalex,crossref,aminer,unpaywall");
 
     static IReadOnlyList<string> ParseSources(string sources)
     {
