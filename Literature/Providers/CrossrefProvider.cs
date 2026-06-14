@@ -209,6 +209,7 @@ public sealed class CrossrefProvider : ILiteratureProvider
                 parts.GetArrayLength() > 0 &&
                 parts[0].ValueKind == JsonValueKind.Array &&
                 parts[0].GetArrayLength() > 0 &&
+                parts[0][0].ValueKind != JsonValueKind.Null &&
                 parts[0][0].TryGetInt32(out var year))
             {
                 return year;

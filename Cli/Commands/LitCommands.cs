@@ -370,7 +370,8 @@ public static class LitCommands
                     return;
                 }
 
-                var args = new List<string> { script, sub, "--keyword", query, "--size", limit.ToString() };
+                var argName = sub == "person-search" ? "--name" : "--keyword";
+                var args = new List<string> { script, sub, argName, query, "--size", limit.ToString() };
                 if (!string.IsNullOrWhiteSpace(author)) { args.Add("--author"); args.Add(author); }
                 if (!string.IsNullOrWhiteSpace(venue)) { args.Add("--venue"); args.Add(venue); }
 
