@@ -173,7 +173,6 @@ public sealed class LiteratureSearchPipeline
             var p = _registry.Create(pn);
             var pr = new LiteratureSearchRequest { Query = queryText, ProviderQuery = queryText, Sources = new[] { pn }, Limit = request.Limit };
             var sr = await p.SearchAsync(pr, ct).ConfigureAwait(false);
-            Console.Error.WriteLine($"[plain] {pn} records={sr.Records.Count} issues={sr.Issues.Count}");
             recs.AddRange(sr.Records);
             iss.AddRange(sr.Issues);
         }
