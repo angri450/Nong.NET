@@ -1,5 +1,6 @@
 using System.CommandLine;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Angri450.Nong.Literature.Dsl;
 using Angri450.Nong.Literature.Export;
 using Angri450.Nong.Literature.Models;
@@ -18,6 +19,7 @@ public static class LitCommands
         cmd.AddCommand(CreatePlan(jsonOpt));
         cmd.AddCommand(CreateSearch(jsonOpt));
         cmd.AddCommand(CreateExport(jsonOpt));
+        cmd.AddCommand(CreateBatch(jsonOpt));
         return cmd;
     }
 
@@ -330,5 +332,229 @@ public static class LitCommands
                 Message = issue.Message
             });
         }
+    }
+
+    // === lit batch ===
+
+    /// <summary>Regex that captures a complete CNKI DSL query starting with SU=</summary>
+    static readonly Regex DslRegex = new(
+        @"SU\s*=\s*(?<query>\(.+\))",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    static Command CreateBatch(Option<bool> jsonOpt)
+    {
+        var dirArg = new Argument<string>("dir", "Directory containing .txt files with DSL queries");
+        var outOpt = new Option<string>("-o", "Output markdown report") { IsRequired = true };
+        var sourcesOpt = SourcesOption();
+        var limitOpt = new Option<int>("--limit", () => 5, "Max records per DSL query");
+        var profileOpt = new Option<string>("--profile", () => "balanced", "Rank profile: balanced, classic, recent");
+
+        var cmd = new Command("batch", "Extract DSL queries from all .txt files in a directory and produce a search report")
+        {
+            dirArg, outOpt, sourcesOpt, limitOpt, profileOpt
+        };
+
+        cmd.SetHandler((string dir, string output, string sources, int limit, string profile, bool json) =>
+        {
+            if (!Directory.Exists(dir))
+            {
+                CliHelpers.WriteError("lit batch",
+                    ErrorCodes.FileNotFound with { Message = $"Directory not found: {dir}" }, json);
+                return;
+            }
+
+            var txtFiles = Directory.GetFiles(dir, "*.txt", SearchOption.TopDirectoryOnly)
+                .Where(f => !Path.GetFileName(f).Equals("草案.txt", StringComparison.OrdinalIgnoreCase))
+                .OrderBy(f => f)
+                .ToList();
+
+            if (txtFiles.Count == 0)
+            {
+                CliHelpers.WriteError("lit batch",
+                    ErrorCodes.ValidationFailed with { Message = $"No .txt files found in: {dir}" }, json);
+                return;
+            }
+
+            if (!TryParseProfile(profile, out var rankProfile))
+            {
+                CliHelpers.WriteError("lit batch",
+                    ErrorCodes.ValidationFailed with { Message = $"Unknown rank profile: {profile}" }, json);
+                return;
+            }
+
+            var sourceList = ParseSources(sources);
+            var pipeline = new LiteratureSearchPipeline();
+            var allResults = new List<(string FileName, string Section, string Dsl, LiteratureSearchResult Result)>();
+            var errors = new List<string>();
+
+            foreach (var file in txtFiles)
+            {
+                var fileName = Path.GetFileNameWithoutExtension(file);
+                var lines = File.ReadAllLines(file);
+                string? currentSection = null;
+
+                foreach (var line in lines)
+                {
+                    // Section headers: "1. xxx" or "方向x" etc.
+                    var trimmed = line.Trim();
+                    if (trimmed.StartsWith("方向") || (trimmed.Length > 2 && char.IsDigit(trimmed[0]) && trimmed[1] == '.'))
+                    {
+                        currentSection = trimmed;
+                        continue;
+                    }
+
+                    var m = DslRegex.Match(trimmed);
+                    if (!m.Success) continue;
+
+                    var dsl = m.Groups["query"].Value; // already captures full parenthesized expression
+                    var fullQuery = $"SU={dsl}";
+
+                    try
+                    {
+                        var request = new LiteratureSearchRequest
+                        {
+                            Query = fullQuery,
+                            Sources = sourceList,
+                            Limit = limit,
+                            Profile = rankProfile,
+                            FilterMode = "recall"  // recall mode essential for CJK→EN queries
+                        };
+
+                        var result = pipeline.SearchAsync(request, CancellationToken.None).GetAwaiter().GetResult();
+                        var section = currentSection ?? Path.GetFileNameWithoutExtension(file);
+                        allResults.Add((fileName, section, fullQuery, result));
+                    }
+                    catch (Exception ex)
+                    {
+                        errors.Add($"{fileName}: {fullQuery} → {ex.Message}");
+                    }
+                }
+            }
+
+            // Build markdown report
+            var md = new System.Text.StringBuilder();
+            md.AppendLine("# 文献检索报告");
+            md.AppendLine();
+            md.AppendLine($"生成时间：{DateTime.Now:yyyy-MM-dd HH:mm}");
+            md.AppendLine($"检索目录：{Path.GetFullPath(dir)}");
+            md.AppendLine($"检索源：{string.Join(", ", sourceList)}");
+            md.AppendLine($"结果数/DSL：{limit}");
+            md.AppendLine();
+
+            var grouped = allResults.GroupBy(r => r.FileName);
+
+            foreach (var fileGroup in grouped)
+            {
+                md.AppendLine($"## {fileGroup.Key}");
+                md.AppendLine();
+
+                var sectionGroups = fileGroup.GroupBy(r => r.Section);
+
+                foreach (var sec in sectionGroups)
+                {
+                    md.AppendLine($"### {sec.Key}");
+                    md.AppendLine();
+
+                    foreach (var (_, _, dsl, result) in sec)
+                    {
+                        md.AppendLine($"**检索式**: `{dsl}`");
+                        md.AppendLine();
+                        md.AppendLine($"候选 {result.Metrics.GetValueOrDefault("candidates", 0)} 篇 → 去重 {result.Metrics.GetValueOrDefault("merged", 0)} 篇 → 返回 {result.Records.Count} 篇");
+                        md.AppendLine();
+
+                        if (errors.Any(e => e.Contains(dsl)))
+                        {
+                            md.AppendLine("**⚠ 检索失败**");
+                            md.AppendLine();
+                            continue;
+                        }
+
+                        if (result.Records.Count == 0)
+                        {
+                            md.AppendLine("*无匹配文献*");
+                            md.AppendLine();
+                            continue;
+                        }
+
+                        for (int i = 0; i < result.Records.Count; i++)
+                        {
+                            var r = result.Records[i];
+                            var authors = r.Authors.Count > 3
+                                ? string.Join(", ", r.Authors.Take(3)) + " 等"
+                                : string.Join(", ", r.Authors);
+                            var src = r.RetrievedFrom.FirstOrDefault() ?? "?";
+                            var year = r.Year?.ToString() ?? "—";
+                            var doi = !string.IsNullOrWhiteSpace(r.Doi) ? $" DOI:{r.Doi}" : "";
+                            var abs = r.Abstract?.Length > 0
+                                ? $"  \n  **摘要**: {TruncateAbstract(r.Abstract, 200)}"
+                                : "";
+
+                            md.AppendLine($"{i + 1}. **{EscapeMarkdown(r.Title ?? "无标题")}**");
+                            md.AppendLine($"   {authors}. {r.Journal ?? r.Venue ?? "—"}, {year}. [{src}]{doi}{abs}");
+                            md.AppendLine();
+                        }
+                    }
+                }
+            }
+
+            if (errors.Count > 0)
+            {
+                md.AppendLine("## 错误");
+                md.AppendLine();
+                foreach (var e in errors)
+                    md.AppendLine($"- {e}");
+                md.AppendLine();
+            }
+
+            md.AppendLine("---");
+            md.AppendLine($"报告由 Nong.Cli.Net {CliVersion.Current} 生成");
+
+            File.WriteAllText(output, md.ToString(), System.Text.Encoding.UTF8);
+
+            var totalQueries = allResults.Count + errors.Count(e => !allResults.Any(r => e.Contains(r.Dsl)));
+            var okQueries = allResults.Count(r => r.Result.Records.Count > 0);
+
+            if (json)
+            {
+                var outputJson = JsonOutput.Ok("lit batch",
+                    $"Batch search: {okQueries}/{totalQueries} DSL queries produced results", new
+                    {
+                        dir = Path.GetFullPath(dir),
+                        files = txtFiles.Select(Path.GetFileNameWithoutExtension),
+                        totalQueries,
+                        successfulQueries = okQueries,
+                        totalRecords = allResults.Sum(r => r.Result.Records.Count),
+                        errors = errors.Count
+                    });
+                outputJson.Artifacts["report"] = Path.GetFullPath(output);
+                Console.WriteLine(JsonSerializer.Serialize(outputJson, CliHelpers.JsonOpts));
+            }
+            else
+            {
+                Console.WriteLine($"Batch search complete: {okQueries}/{totalQueries} DSL(s) → {Path.GetFullPath(output)}");
+            }
+        }, dirArg, outOpt, sourcesOpt, limitOpt, profileOpt, jsonOpt);
+
+        return cmd;
+    }
+
+    static string TruncateAbstract(string text, int maxLen)
+    {
+        if (text.Length <= maxLen) return EscapeMarkdown(text);
+        // Cut at word boundary
+        var cut = text.LastIndexOf(' ', maxLen);
+        if (cut < maxLen / 2) cut = maxLen;
+        return EscapeMarkdown(text[..cut]) + "…";
+    }
+
+    static string EscapeMarkdown(string text)
+    {
+        return text
+            .Replace("\\", "\\\\")
+            .Replace("*", "\\*")
+            .Replace("_", "\\_")
+            .Replace("`", "\\`")
+            .Replace("[", "\\[")
+            .Replace("]", "\\]");
     }
 }
